@@ -20,25 +20,20 @@ const { isMobile } = useBreakpoint()
       flexShrink: '0',
     }">
       <div
-        :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)', cursor: 'pointer' }"
+        :style="{ display: 'flex', alignItems: 'center', cursor: 'pointer' }"
         @click="router.push('/')"
       >
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-          <circle cx="9"  cy="9"  r="5" stroke="#FFC801" stroke-width="2.5"/>
-          <circle cx="23" cy="9"  r="5" stroke="white"  stroke-width="2.5" opacity="0.7"/>
-          <circle cx="9"  cy="23" r="5" stroke="white"  stroke-width="2.5" opacity="0.7"/>
-          <circle cx="23" cy="23" r="5" stroke="#FFC801" stroke-width="2.5"/>
-          <circle cx="16" cy="16" r="3.5" fill="#FFC801"/>
-        </svg>
-        <span :style="{
-          fontFamily: 'var(--font-display)',
-          fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-extrabold)',
-        }">
-          <span :style="{ color: 'var(--color-text-on-primary)' }">Cooper</span>
-          <span :style="{ color: 'var(--color-accent)' }">amigó</span>
-        </span>
+        <img
+          src="/logo-principal.svg"
+          alt="Cooperamigó"
+          :style="{
+            height: '32px',
+            objectFit: 'contain',
+            filter: 'brightness(0) invert(1)',
+          }"
+        />
       </div>
-      <span :style="{
+      <span v-if="!isMobile" :style="{
         fontSize: 'var(--text-sm)', color: 'rgba(255,255,255,0.6)',
         fontWeight: 'var(--fw-medium)',
       }">Portal de solicitudes</span>
