@@ -1,43 +1,68 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-primary:        #114C5A;
+  /* === BRAND COOPERAMIGÓ === */
+  --color-primary:        #172B36;
   --color-primary-light:  #D9E8E2;
   --color-primary-dark:   #0A3340;
   --color-accent:         #FFC801;
   --color-accent-dark:    #E6B400;
   --color-impulso:        #FE9932;
-  --color-dark:           #172B36;
 
+  /* === FONDOS === */
   --color-bg-app:         #F1F6F4;
   --color-bg-card:        #FFFFFF;
   --color-bg-surface:     #F8FAFA;
   --color-bg-surface-alt: #EDF3F0;
 
-  --color-text-1:         #172B36;
-  --color-text-2:         #4A6670;
-  --color-text-3:         #8AACB4;
+  /* === TEXTO === */
+  --color-text-1:          #172B36;
+  --color-text-2:          #4A6670;
+  --color-text-3:          #8AACB4;
+  --color-text-4:          #2D4A54;
+  --color-text-on-primary: #FFFFFF;
 
+  /* === BORDES === */
   --color-border:         #D9E8E2;
-  --color-border-card:    #E8F0ED;
   --color-border-light:   #EDF3F0;
+  --color-border-card:    #E8F0ED;
 
+  /* === SUCCESS === */
   --color-success-bg:     #DCFCE7;
   --color-success-text:   #16A34A;
   --color-success:        #22C55E;
 
+  /* === WARNING === */
   --color-warning-bg:     #FFF8DC;
   --color-warning-text:   #B45309;
   --color-warning:        #FFC801;
 
+  /* === ERROR === */
   --color-error-bg:       #FEE2E2;
   --color-error-text:     #B91C1C;
   --color-error:          #EF4444;
 
+  /* === INFO — sincronizado con primary actual === */
   --color-info-bg:        #D9E8E2;
-  --color-info-text:      #114C5A;
-  --color-info:           #114C5A;
+  --color-info-text:      #172B36;
+  --color-info:           #172B36;
 
+  /* === INACTIVE === */
+  --color-inactive-bg:    #F1F6F4;
+  --color-inactive-text:  #4A6670;
+  --color-inactive:       #8AACB4;
+
+  /* === PENDING / NARANJA === */
+  --color-pending-bg:     #FFF0DC;
+  --color-pending-text:   #B45309;
+  --color-pending:        #FE9932;
+
+  /* === PURPLE === */
+  --color-purple-bg:      #EDE9FE;
+  --color-purple-text:    #6D28D9;
+  --color-purple:         #8B5CF6;
+
+  /* === BORDER RADIUS === */
   --r-sm:   4px;
   --r-md:   8px;
   --r-lg:   12px;
@@ -45,11 +70,16 @@
   --r-2xl:  24px;
   --r-pill: 99px;
 
-  --shadow-card:   0 1px 4px rgba(17,76,90,0.06), 0 4px 16px rgba(17,76,90,0.08);
-  --shadow-btn:    0 2px 8px rgba(17,76,90,0.22);
+  /* === SOMBRAS — color base sincronizado con primary #172B36 === */
+  --shadow-card:   0 1px 4px rgba(23,43,54,0.06), 0 4px 16px rgba(23,43,54,0.08);
+  --shadow-btn:    0 2px 8px rgba(23,43,54,0.22);
   --shadow-accent: 0 2px 8px rgba(255,200,1,0.35);
-  --shadow-modal:  0 8px 40px rgba(17,76,90,0.14);
+  --shadow-modal:  0 8px 40px rgba(23,43,54,0.14);
+  --shadow-table:  0 2px 12px rgba(23,43,54,0.06);
+  --shadow-loader: 0 4px 24px rgba(23,43,54,0.12);
+  --shadow-input:  inset 0 2px 4px rgba(23,43,54,0.04);
 
+  /* === TIPOGRAFÍA === */
   --font-body:    'Nunito', sans-serif;
   --font-display: 'Nunito', sans-serif;
 
@@ -67,6 +97,7 @@
   --fw-bold:      800;
   --fw-extrabold: 900;
 
+  /* === ESPACIADO === */
   --sp-xs:  4px;
   --sp-sm:  8px;
   --sp-md:  12px;
@@ -74,6 +105,10 @@
   --sp-xl:  20px;
   --sp-2xl: 24px;
 
+  /* === LAYOUT === */
+  --topbar-h: 60px;
+
+  /* === TRANSICIONES === */
   --transition-fast: 0.15s ease;
   --transition-base: 0.20s ease;
   --transition-slow: 0.25s ease;
@@ -87,6 +122,7 @@
     color: var(--color-text-1);
     background-color: var(--color-bg-app);
     -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
     margin: 0;
   }
   input, select, textarea, button {

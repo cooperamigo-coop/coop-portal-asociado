@@ -31,6 +31,7 @@ defineEmits(['update:modelValue', 'blur'])
         color: 'var(--color-text-1)',
         fontFamily: 'var(--font-body)',
         outline: 'none',
+        boxShadow: 'var(--shadow-input)',
         transition: 'border-color var(--transition-fast)',
         width: '100%',
       }"

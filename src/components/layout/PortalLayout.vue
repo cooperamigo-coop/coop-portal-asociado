@@ -11,7 +11,7 @@ const router = useRouter()
     <!-- Topbar -->
     <header :style="{
       background: 'var(--color-primary)',
-      height: '60px',
+      height: 'var(--topbar-h)',
       display: 'flex', alignItems: 'center',
       justifyContent: 'space-between',
       padding: '0 var(--sp-2xl)',
@@ -32,7 +32,7 @@ const router = useRouter()
           fontFamily: 'var(--font-display)',
           fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-extrabold)',
         }">
-          <span :style="{ color: '#fff' }">Cooper</span>
+          <span :style="{ color: 'var(--color-text-on-primary)' }">Cooper</span>
           <span :style="{ color: 'var(--color-accent)' }">amigó</span>
         </span>
       </div>

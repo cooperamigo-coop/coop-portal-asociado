@@ -23,10 +23,10 @@ defineProps({
             ? 'none' : '1px solid var(--color-border)',
           transition: 'all var(--transition-base)',
         }">
-          <CheckCircle v-if="actual > i + 1" :size="16" style="color: #fff" />
+          <CheckCircle v-if="actual > i + 1" :size="16" :style="{ color: 'var(--color-text-on-primary)' }" />
           <span v-else :style="{
             fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)',
-            color: actual === i + 1 ? '#fff' : 'var(--color-text-3)',
+            color: actual === i + 1 ? 'var(--color-text-on-primary)' : 'var(--color-text-3)',
           }">{{ i + 1 }}</span>
         </div>
         <span :style="{

@@ -47,7 +47,7 @@ const router = useRouter()
         }"
         @mouseenter="e => {
           e.currentTarget.style.transform = 'translateY(-4px)'
-          e.currentTarget.style.boxShadow = '0 8px 32px rgba(17,76,90,0.14)'
+          e.currentTarget.style.boxShadow = 'var(--shadow-modal)'
           e.currentTarget.style.borderColor = 'var(--color-primary)'
         }"
         @mouseleave="e => {
@@ -101,7 +101,7 @@ const router = useRouter()
         }"
         @mouseenter="e => {
           e.currentTarget.style.transform = 'translateY(-4px)'
-          e.currentTarget.style.boxShadow = '0 8px 32px rgba(17,76,90,0.14)'
+          e.currentTarget.style.boxShadow = 'var(--shadow-modal)'
           e.currentTarget.style.borderColor = 'var(--color-accent)'
         }"
         @mouseleave="e => {
