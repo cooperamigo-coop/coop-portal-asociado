@@ -7,17 +7,19 @@ import PortalInput from '@/components/ui/PortalInput.vue'
 import AlertaBanner from '@/components/ui/AlertaBanner.vue'
 import { useAfiliacion } from '@/composables/useAfiliacion'
 import { useBreakpoint } from '@/composables/useBreakpoint'
-import { CheckCircle } from 'lucide-vue-next'
+import { CheckCircle, Mail } from 'lucide-vue-next'
 
 const router = useRouter()
 
 const {
-  paso, loading, error, solicitudCreada, asociadoExistente,
+  paso, loading, loadingEmail, error, solicitudCreada, asociadoExistente,
   erroresCampos, honeypot,
+  emailInicial, errorEmail, borradorDisponible,
   datosPersonales, datosLaborales,
   pasoValido,
   validarCampoActual, schemaPersonales, schemaLaborales,
-  verificarCedula, irAPaso, enviarSolicitud, reiniciar,
+  confirmarEmail, restaurarBorrador, descartarBorrador,
+  verificarCedula, irAPaso, enviarSolicitud,
 } = useAfiliacion()
 
 const { isMobile } = useBreakpoint()
@@ -32,8 +34,96 @@ const pasos = [
 <template>
   <PortalLayout>
 
-    <!-- Paso 3: Éxito -->
-    <div v-if="paso === 3" :style="{
+    <!-- PASO 0: Correo electrónico -->
+    <div v-if="paso === 0" :style="{
+      maxWidth: '480px',
+      margin: '0 auto',
+    }">
+      <div :style="{
+        background: 'var(--color-bg-card)',
+        border: '1px solid var(--color-border-card)',
+        borderRadius: 'var(--r-2xl)',
+        padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
+        boxShadow: 'var(--shadow-card)',
+        textAlign: 'center',
+      }">
+        <!-- Icono -->
+        <div :style="{
+          width: '64px', height: '64px', borderRadius: '50%',
+          background: 'var(--color-primary-light)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto var(--sp-xl)',
+        }">
+          <Mail :size="28" :style="{ color: 'var(--color-primary)' }" />
+        </div>
+
+        <div :style="{
+          fontFamily: 'var(--font-display)',
+          fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-extrabold)',
+          color: 'var(--color-text-1)', marginBottom: 'var(--sp-sm)',
+        }">Solicitud de afiliación</div>
+
+        <div :style="{
+          fontSize: 'var(--text-base)', color: 'var(--color-text-2)',
+          fontWeight: 'var(--fw-medium)', lineHeight: '1.6',
+          marginBottom: 'var(--sp-2xl)',
+        }">
+          Ingresa tu correo electrónico para comenzar.<br>
+          Guardaremos tu progreso para que puedas retomar la solicitud en cualquier momento.
+        </div>
+
+        <!-- Estado: borrador encontrado -->
+        <template v-if="borradorDisponible">
+          <AlertaBanner
+            tipo="info"
+            mensaje="Encontramos una solicitud de afiliación guardada para este correo. ¿Deseas continuar donde lo dejaste?"
+            :style="{ marginBottom: 'var(--sp-xl)', textAlign: 'left' }"
+          />
+          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+            <PortalButton variant="primary" @click="restaurarBorrador">
+              Continuar donde lo dejé
+            </PortalButton>
+            <PortalButton variant="secondary" @click="descartarBorrador">
+              Iniciar solicitud nueva
+            </PortalButton>
+          </div>
+        </template>
+
+        <!-- Estado: ingresar email -->
+        <template v-else>
+          <div :style="{ textAlign: 'left', marginBottom: 'var(--sp-xl)' }">
+            <PortalInput
+              label="Correo electrónico"
+              v-model="emailInicial"
+              type="email"
+              placeholder="correo@ejemplo.com"
+              required
+              :error="errorEmail"
+              @keyup.enter="confirmarEmail"
+            />
+          </div>
+          <div :style="{
+            display: 'flex', justifyContent: 'space-between',
+            gap: 'var(--sp-md)',
+          }">
+            <PortalButton variant="secondary" @click="router.push('/')">
+              Volver
+            </PortalButton>
+            <PortalButton
+              variant="primary"
+              :disabled="!pasoValido"
+              :loading="loadingEmail"
+              @click="confirmarEmail"
+            >
+              Continuar
+            </PortalButton>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- PASO 3: Éxito -->
+    <div v-else-if="paso === 3" :style="{
       background: 'var(--color-bg-card)',
       border: '1px solid var(--color-border-card)',
       borderRadius: 'var(--r-2xl)',
@@ -83,7 +173,7 @@ const pasos = [
       <PortalButton variant="primary" @click="router.push('/')">Volver al inicio</PortalButton>
     </div>
 
-    <!-- Pasos 1-2 -->
+    <!-- PASOS 1–2 -->
     <template v-else>
       <!-- Encabezado -->
       <div :style="{ marginBottom: 'var(--sp-xl)' }">
@@ -182,10 +272,7 @@ const pasos = [
               v-model="datosPersonales.email"
               type="email"
               placeholder="correo@ejemplo.com"
-              required
-              :disabled="!!asociadoExistente"
-              :error="erroresCampos.email"
-              @blur="() => validarCampoActual(schemaPersonales, 'email', datosPersonales.email)"
+              :disabled="true"
             />
             <PortalInput
               label="Teléfono"

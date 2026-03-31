@@ -6,6 +6,11 @@ import {
 } from '@/services/credito.service'
 import { supabase } from '@/services/supabase'
 import {
+  buscarBorrador,
+  guardarBorrador,
+  eliminarBorrador,
+} from '@/services/progreso.service'
+import {
   schemaPersonales,
   schemaLaborales,
   schemaCredito,
@@ -21,15 +26,18 @@ import {
 } from '@/utils/seguridad'
 
 export function useCredito() {
-  const paso = ref(1)
+  const paso = ref(0)
   const loading = ref(false)
+  const loadingEmail = ref(false)
   const error = ref(null)
   const solicitudCreada = ref(null)
   const asociadoExistente = ref(null)
   const erroresCampos = ref({})
-
-  // Campo honeypot — debe estar siempre vacío; si un bot lo llena, lo detectamos
   const honeypot = ref('')
+
+  const emailInicial = ref('')
+  const errorEmail = ref('')
+  const borradorDisponible = ref(null)
 
   const datosPersonales = ref({
     cedula: '', nombres: '', apellidos: '',
@@ -47,7 +55,6 @@ export function useCredito() {
     plazo_meses: '', destino: '',
   })
 
-  // Registrar tiempo de inicio para detección de envíos demasiado rápidos
   registrarInicioFormulario('credito')
 
   const cuotaEstimada = computed(() => {
@@ -60,7 +67,6 @@ export function useCredito() {
     return isNaN(c) ? null : Math.round(c)
   })
 
-  // Validar un campo individual en tiempo real (se llama desde @blur)
   function validarCampoActual(schema, campo, valor) {
     const errorMsg = validarCampo(schema, campo, valor)
     if (errorMsg) {
@@ -73,6 +79,9 @@ export function useCredito() {
   }
 
   const pasoValido = computed(() => {
+    if (paso.value === 0) {
+      return !!(emailInicial.value.trim() && !errorEmail.value)
+    }
     if (paso.value === 1) {
       return !!(
         datosPersonales.value.cedula &&
@@ -80,8 +89,7 @@ export function useCredito() {
         datosPersonales.value.apellidos &&
         !erroresCampos.value.cedula &&
         !erroresCampos.value.nombres &&
-        !erroresCampos.value.apellidos &&
-        !erroresCampos.value.email
+        !erroresCampos.value.apellidos
       )
     }
     if (paso.value === 2) {
@@ -104,6 +112,68 @@ export function useCredito() {
     return true
   })
 
+  async function confirmarEmail() {
+    errorEmail.value = ''
+    const email = emailInicial.value.trim()
+    if (!email) {
+      errorEmail.value = 'El correo electrónico es requerido'
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errorEmail.value = 'Correo electrónico inválido'
+      return
+    }
+    loadingEmail.value = true
+    try {
+      const borrador = await buscarBorrador(email, 'credito')
+      if (borrador) {
+        borradorDisponible.value = borrador
+      } else {
+        datosPersonales.value.email = email
+        paso.value = 1
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    } catch {
+      datosPersonales.value.email = email
+      paso.value = 1
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } finally {
+      loadingEmail.value = false
+    }
+  }
+
+  function restaurarBorrador() {
+    const b = borradorDisponible.value
+    if (!b) return
+    if (b.datos.datosPersonales) datosPersonales.value = { ...b.datos.datosPersonales }
+    if (b.datos.datosLaborales) datosLaborales.value = { ...b.datos.datosLaborales }
+    if (b.datos.datosCredito) datosCredito.value = { ...b.datos.datosCredito }
+    borradorDisponible.value = null
+    paso.value = b.paso_actual
+    error.value = null
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function descartarBorrador() {
+    datosPersonales.value.email = emailInicial.value.trim()
+    borradorDisponible.value = null
+    paso.value = 1
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function _guardarProgreso(pasoActual) {
+    if (!emailInicial.value.trim()) return
+    try {
+      await guardarBorrador(emailInicial.value, 'credito', pasoActual, {
+        datosPersonales: datosPersonales.value,
+        datosLaborales: datosLaborales.value,
+        datosCredito: datosCredito.value,
+      })
+    } catch {
+      // silencioso — no interrumpir el flujo
+    }
+  }
+
   async function verificarCedula() {
     const cedula = datosPersonales.value.cedula
     const errorCedula = validarCampo(schemaPersonales, 'cedula', cedula)
@@ -122,7 +192,6 @@ export function useCredito() {
         asociadoExistente.value = existente
         datosPersonales.value.nombres   = existente.nombres
         datosPersonales.value.apellidos = existente.apellidos
-        datosPersonales.value.email     = existente.email ?? ''
         datosPersonales.value.telefono  = existente.telefono ?? ''
         datosLaborales.value.empresa    = existente.empresa ?? ''
         datosLaborales.value.cargo      = existente.cargo ?? ''
@@ -136,7 +205,6 @@ export function useCredito() {
   }
 
   function irAPaso(n) {
-    // Validar paso actual antes de avanzar
     if (n > paso.value) {
       let resultado
       if (paso.value === 1) resultado = validarSchema(schemaPersonales, datosPersonales.value)
@@ -145,6 +213,7 @@ export function useCredito() {
         erroresCampos.value = { ...erroresCampos.value, ...resultado.errores }
         return
       }
+      _guardarProgreso(n)
     }
     paso.value = n
     error.value = null
@@ -154,16 +223,13 @@ export function useCredito() {
   async function enviarSolicitud() {
     error.value = null
 
-    // 1. Anti-bot: honeypot (silencioso — no revelar que fue detectado)
     if (honeypot.value !== '') return
 
-    // 2. Anti-bot: tiempo mínimo de llenado
     if (envioDemasiadorapido('credito', 5)) {
       error.value = 'Por favor complete el formulario con atención.'
       return
     }
 
-    // 3. Validar todos los schemas antes de enviar
     const v1 = validarSchema(schemaPersonales, datosPersonales.value)
     const v2 = validarSchema(schemaLaborales, datosLaborales.value)
     const v3 = validarSchema(schemaCredito, datosCredito.value)
@@ -179,7 +245,6 @@ export function useCredito() {
       return
     }
 
-    // 4. Rate limiting por cédula
     const permitido = await verificarRateLimit(supabase, datosPersonales.value.cedula, 'credito')
     if (!permitido) {
       error.value = 'Ha alcanzado el límite de solicitudes para este documento. Intente después de 24 horas.'
@@ -193,12 +258,11 @@ export function useCredito() {
       if (asociadoExistente.value) {
         asociadoId = asociadoExistente.value.id
       } else {
-        // Usar datos ya validados y sanitizados por Zod
         const datosAsociado = sanitizarObjeto({
           cedula:                v1.datos.cedula,
           nombres:               v1.datos.nombres,
           apellidos:             v1.datos.apellidos,
-          email:                 v1.datos.email || null,
+          email:                 emailInicial.value.trim() || null,
           telefono:              v1.datos.telefono || null,
           fecha_nacimiento:      v1.datos.fecha_nacimiento || null,
           direccion:             v1.datos.direccion || null,
@@ -223,8 +287,8 @@ export function useCredito() {
 
       const solicitud = await crearSolicitudCredito(datosSolicitud)
 
-      // 5. Registrar intento para analytics de rate limit
       await registrarIntento(supabase, datosPersonales.value.cedula, 'credito')
+      await eliminarBorrador(emailInicial.value, 'credito').catch(() => {})
 
       solicitudCreada.value = solicitud
       paso.value = 4
@@ -242,7 +306,11 @@ export function useCredito() {
   }
 
   function reiniciar() {
-    paso.value = 1
+    paso.value = 0
+    emailInicial.value = ''
+    errorEmail.value = ''
+    borradorDisponible.value = null
+    loading.value = false
     error.value = null
     solicitudCreada.value = null
     asociadoExistente.value = null
@@ -262,11 +330,13 @@ export function useCredito() {
   }
 
   return {
-    paso, loading, error, solicitudCreada, asociadoExistente,
+    paso, loading, loadingEmail, error, solicitudCreada, asociadoExistente,
     erroresCampos, honeypot,
+    emailInicial, errorEmail, borradorDisponible,
     datosPersonales, datosLaborales, datosCredito,
     cuotaEstimada, pasoValido,
     validarCampoActual, schemaPersonales, schemaLaborales, schemaCredito,
+    confirmarEmail, restaurarBorrador, descartarBorrador,
     verificarCedula, irAPaso, enviarSolicitud, reiniciar,
   }
 }

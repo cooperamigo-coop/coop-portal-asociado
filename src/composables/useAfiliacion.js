@@ -6,6 +6,11 @@ import {
 } from '@/services/afiliacion.service'
 import { supabase } from '@/services/supabase'
 import {
+  buscarBorrador,
+  guardarBorrador,
+  eliminarBorrador,
+} from '@/services/progreso.service'
+import {
   schemaPersonales,
   schemaLaborales,
   validarCampo,
@@ -20,13 +25,18 @@ import {
 } from '@/utils/seguridad'
 
 export function useAfiliacion() {
-  const paso = ref(1)
+  const paso = ref(0)
   const loading = ref(false)
+  const loadingEmail = ref(false)
   const error = ref(null)
   const solicitudCreada = ref(null)
   const asociadoExistente = ref(null)
   const erroresCampos = ref({})
   const honeypot = ref('')
+
+  const emailInicial = ref('')
+  const errorEmail = ref('')
+  const borradorDisponible = ref(null)
 
   const datosPersonales = ref({
     cedula: '', nombres: '', apellidos: '',
@@ -42,16 +52,17 @@ export function useAfiliacion() {
   registrarInicioFormulario('afiliacion')
 
   const pasoValido = computed(() => {
+    if (paso.value === 0) {
+      return !!(emailInicial.value.trim() && !errorEmail.value)
+    }
     if (paso.value === 1) {
       return !!(
         datosPersonales.value.cedula &&
         datosPersonales.value.nombres &&
         datosPersonales.value.apellidos &&
-        datosPersonales.value.email &&
         !erroresCampos.value.cedula &&
         !erroresCampos.value.nombres &&
-        !erroresCampos.value.apellidos &&
-        !erroresCampos.value.email
+        !erroresCampos.value.apellidos
       )
     }
     if (paso.value === 2) {
@@ -76,6 +87,66 @@ export function useAfiliacion() {
     }
   }
 
+  async function confirmarEmail() {
+    errorEmail.value = ''
+    const email = emailInicial.value.trim()
+    if (!email) {
+      errorEmail.value = 'El correo electrónico es requerido'
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errorEmail.value = 'Correo electrónico inválido'
+      return
+    }
+    loadingEmail.value = true
+    try {
+      const borrador = await buscarBorrador(email, 'afiliacion')
+      if (borrador) {
+        borradorDisponible.value = borrador
+      } else {
+        datosPersonales.value.email = email
+        paso.value = 1
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    } catch {
+      datosPersonales.value.email = email
+      paso.value = 1
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } finally {
+      loadingEmail.value = false
+    }
+  }
+
+  function restaurarBorrador() {
+    const b = borradorDisponible.value
+    if (!b) return
+    if (b.datos.datosPersonales) datosPersonales.value = { ...b.datos.datosPersonales }
+    if (b.datos.datosLaborales) datosLaborales.value = { ...b.datos.datosLaborales }
+    borradorDisponible.value = null
+    paso.value = b.paso_actual
+    error.value = null
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function descartarBorrador() {
+    datosPersonales.value.email = emailInicial.value.trim()
+    borradorDisponible.value = null
+    paso.value = 1
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function _guardarProgreso(pasoActual) {
+    if (!emailInicial.value.trim()) return
+    try {
+      await guardarBorrador(emailInicial.value, 'afiliacion', pasoActual, {
+        datosPersonales: datosPersonales.value,
+        datosLaborales: datosLaborales.value,
+      })
+    } catch {
+      // silencioso — no interrumpir el flujo
+    }
+  }
+
   async function verificarCedula() {
     const cedula = datosPersonales.value.cedula
     const errorCedula = validarCampo(schemaPersonales, 'cedula', cedula)
@@ -94,7 +165,6 @@ export function useAfiliacion() {
       if (existente) {
         datosPersonales.value.nombres   = existente.nombres
         datosPersonales.value.apellidos = existente.apellidos
-        datosPersonales.value.email     = existente.email ?? ''
       }
     } catch {
       asociadoExistente.value = null
@@ -110,6 +180,7 @@ export function useAfiliacion() {
         erroresCampos.value = { ...erroresCampos.value, ...resultado.errores }
         return
       }
+      _guardarProgreso(n)
     }
     paso.value = n
     error.value = null
@@ -119,25 +190,15 @@ export function useAfiliacion() {
   async function enviarSolicitud() {
     error.value = null
 
-    // Anti-bot: honeypot
     if (honeypot.value !== '') return
 
-    // Anti-bot: tiempo mínimo
     if (envioDemasiadorapido('afiliacion', 8)) {
       error.value = 'Por favor complete el formulario con atención.'
       return
     }
 
-    // Validación completa
     const v1 = validarSchema(schemaPersonales, datosPersonales.value)
     const v2 = validarSchema(schemaLaborales, datosLaborales.value)
-
-    // Email es requerido en afiliación
-    if (!datosPersonales.value.email) {
-      erroresCampos.value = { ...erroresCampos.value, email: 'El correo electrónico es requerido' }
-      error.value = 'Por favor corrija los errores en el formulario.'
-      return
-    }
 
     if (!v1.valido || !v2.valido) {
       erroresCampos.value = {
@@ -149,7 +210,6 @@ export function useAfiliacion() {
       return
     }
 
-    // Rate limiting
     const permitido = await verificarRateLimit(supabase, datosPersonales.value.cedula, 'afiliacion')
     if (!permitido) {
       error.value = 'Ha alcanzado el límite de solicitudes para este documento. Intente después de 24 horas.'
@@ -167,7 +227,7 @@ export function useAfiliacion() {
           cedula:                v1.datos.cedula,
           nombres:               v1.datos.nombres,
           apellidos:             v1.datos.apellidos,
-          email:                 v1.datos.email || null,
+          email:                 emailInicial.value.trim(),
           telefono:              v1.datos.telefono || null,
           fecha_nacimiento:      v1.datos.fecha_nacimiento || null,
           direccion:             v1.datos.direccion || null,
@@ -185,6 +245,7 @@ export function useAfiliacion() {
       const solicitud = await crearSolicitudAfiliacion({ asociado_id: asociadoId })
 
       await registrarIntento(supabase, datosPersonales.value.cedula, 'afiliacion')
+      await eliminarBorrador(emailInicial.value, 'afiliacion').catch(() => {})
 
       solicitudCreada.value = solicitud
       paso.value = 3
@@ -202,7 +263,11 @@ export function useAfiliacion() {
   }
 
   function reiniciar() {
-    paso.value = 1
+    paso.value = 0
+    emailInicial.value = ''
+    errorEmail.value = ''
+    borradorDisponible.value = null
+    loading.value = false
     error.value = null
     solicitudCreada.value = null
     asociadoExistente.value = null
@@ -220,11 +285,13 @@ export function useAfiliacion() {
   }
 
   return {
-    paso, loading, error, solicitudCreada, asociadoExistente,
+    paso, loading, loadingEmail, error, solicitudCreada, asociadoExistente,
     erroresCampos, honeypot,
+    emailInicial, errorEmail, borradorDisponible,
     datosPersonales, datosLaborales,
     pasoValido,
     validarCampoActual, schemaPersonales, schemaLaborales,
+    confirmarEmail, restaurarBorrador, descartarBorrador,
     verificarCedula, irAPaso, enviarSolicitud, reiniciar,
   }
 }
