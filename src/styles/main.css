@@ -106,7 +106,12 @@
   --sp-2xl: 24px;
 
   /* === LAYOUT === */
-  --topbar-h: 60px;
+  --topbar-h:      60px;
+
+  /* === RESPONSIVE === */
+  --bp-mobile:     767px;
+  --bottom-nav-h:  64px;
+  --touch-target:  44px;
 
   /* === TRANSICIONES === */
   --transition-fast: 0.15s ease;
@@ -127,5 +132,9 @@
   }
   input, select, textarea, button {
     font-family: var(--font-body);
+  }
+  button, a, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 }

@@ -1,6 +1,8 @@
 <script setup>
 import { useRouter } from 'vue-router'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 const router = useRouter()
+const { isMobile } = useBreakpoint()
 </script>
 <template>
   <div :style="{
@@ -14,7 +16,7 @@ const router = useRouter()
       height: 'var(--topbar-h)',
       display: 'flex', alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0 var(--sp-2xl)',
+      padding: isMobile ? '0 var(--sp-lg)' : '0 var(--sp-2xl)',
       flexShrink: '0',
     }">
       <div
@@ -48,7 +50,7 @@ const router = useRouter()
       maxWidth: '720px',
       width: '100%',
       margin: '0 auto',
-      padding: 'var(--sp-2xl) var(--sp-lg)',
+      padding: isMobile ? 'var(--sp-lg) var(--sp-md)' : 'var(--sp-2xl) var(--sp-lg)',
     }">
       <slot />
     </main>

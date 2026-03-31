@@ -6,9 +6,11 @@ import PortalButton from '@/components/ui/PortalButton.vue'
 import PortalInput from '@/components/ui/PortalInput.vue'
 import AlertaBanner from '@/components/ui/AlertaBanner.vue'
 import { useCredito } from '@/composables/useCredito'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 import { CheckCircle } from 'lucide-vue-next'
 
 const router = useRouter()
+const { isMobile } = useBreakpoint()
 
 const {
   paso, loading, error, solicitudCreada, asociadoExistente,
@@ -49,7 +51,7 @@ function formatCOP(n) {
       background: 'var(--color-bg-card)',
       border: '1px solid var(--color-border-card)',
       borderRadius: 'var(--r-2xl)',
-      padding: 'var(--sp-2xl)',
+      padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
       boxShadow: 'var(--shadow-card)',
       textAlign: 'center',
     }">
@@ -118,7 +120,7 @@ function formatCOP(n) {
         background: 'var(--color-bg-card)',
         border: '1px solid var(--color-border-card)',
         borderRadius: 'var(--r-2xl)',
-        padding: 'var(--sp-2xl)',
+        padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
         boxShadow: 'var(--shadow-card)',
         position: 'relative',
       }">
@@ -160,7 +162,7 @@ function formatCOP(n) {
             :style="{ marginBottom: 'var(--sp-lg)' }"
           />
 
-          <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-lg)' }">
+          <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
             <div :style="{ gridColumn: '1 / -1' }">
               <PortalInput
                 label="Número de cédula"
@@ -242,7 +244,7 @@ function formatCOP(n) {
             color: 'var(--color-text-1)', marginBottom: 'var(--sp-xl)',
           }">Datos laborales</div>
 
-          <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-lg)' }">
+          <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
             <div :style="{ gridColumn: '1 / -1' }">
               <PortalInput
                 label="Empresa"
@@ -317,7 +319,7 @@ function formatCOP(n) {
             <div :style="{ fontSize: 'var(--text-base)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)' }">
               Tipo de crédito <span :style="{ color: 'var(--color-error)' }">*</span>
             </div>
-            <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-md)' }">
+            <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-md)' }">
               <div
                 v-for="tipo in tiposCredito" :key="tipo.value"
                 :style="{
@@ -346,7 +348,7 @@ function formatCOP(n) {
             </div>
           </div>
 
-          <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-lg)', marginBottom: 'var(--sp-lg)' }">
+          <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)', marginBottom: 'var(--sp-lg)' }">
             <PortalInput
               label="Monto solicitado (COP)"
               v-model="datosCredito.monto_solicitado"

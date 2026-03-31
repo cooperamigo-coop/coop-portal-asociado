@@ -2,7 +2,9 @@
 import { useRouter } from 'vue-router'
 import PortalLayout from '@/components/layout/PortalLayout.vue'
 import { CreditCard, UserPlus, ArrowRight } from 'lucide-vue-next'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 const router = useRouter()
+const { isMobile } = useBreakpoint()
 </script>
 
 <template>
@@ -11,7 +13,7 @@ const router = useRouter()
     <div :style="{ textAlign: 'center', marginBottom: 'var(--sp-2xl)' }">
       <div :style="{
         fontFamily: 'var(--font-display)',
-        fontSize: 'var(--text-2xl)', fontWeight: 'var(--fw-extrabold)',
+        fontSize: isMobile ? 'var(--text-xl)' : 'var(--text-2xl)', fontWeight: 'var(--fw-extrabold)',
         color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)',
         lineHeight: '1.2',
       }">
@@ -29,7 +31,7 @@ const router = useRouter()
 
     <!-- Cards opciones -->
     <div :style="{
-      display: 'grid', gridTemplateColumns: '1fr 1fr',
+      display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
       gap: 'var(--sp-lg)', marginBottom: 'var(--sp-2xl)',
     }">
 

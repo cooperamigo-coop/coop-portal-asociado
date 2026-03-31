@@ -1,9 +1,11 @@
 <script setup>
 import { CheckCircle } from 'lucide-vue-next'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 defineProps({
   pasos:   { type: Array, required: true },
   actual:  { type: Number, required: true },
 })
+const { isMobile } = useBreakpoint()
 </script>
 <template>
   <div :style="{
@@ -29,7 +31,7 @@ defineProps({
             color: actual === i + 1 ? 'var(--color-text-on-primary)' : 'var(--color-text-3)',
           }">{{ i + 1 }}</span>
         </div>
-        <span :style="{
+        <span v-if="!isMobile" :style="{
           fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)',
           color: actual >= i + 1 ? 'var(--color-text-1)' : 'var(--color-text-3)',
           whiteSpace: 'nowrap',
@@ -39,7 +41,7 @@ defineProps({
         flex: '1', height: '1px', margin: '0 var(--sp-md)',
         background: actual > i + 1 ? 'var(--color-success)' : 'var(--color-border)',
         transition: 'background var(--transition-base)',
-        minWidth: '20px',
+        minWidth: isMobile ? '12px' : '20px',
       }" />
     </template>
   </div>

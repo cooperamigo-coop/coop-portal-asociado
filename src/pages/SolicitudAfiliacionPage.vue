@@ -6,6 +6,7 @@ import PortalButton from '@/components/ui/PortalButton.vue'
 import PortalInput from '@/components/ui/PortalInput.vue'
 import AlertaBanner from '@/components/ui/AlertaBanner.vue'
 import { useAfiliacion } from '@/composables/useAfiliacion'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 import { CheckCircle } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -18,6 +19,8 @@ const {
   validarCampoActual, schemaPersonales, schemaLaborales,
   verificarCedula, irAPaso, enviarSolicitud, reiniciar,
 } = useAfiliacion()
+
+const { isMobile } = useBreakpoint()
 
 const pasos = [
   { label: 'Datos personales' },
@@ -34,7 +37,7 @@ const pasos = [
       background: 'var(--color-bg-card)',
       border: '1px solid var(--color-border-card)',
       borderRadius: 'var(--r-2xl)',
-      padding: 'var(--sp-2xl)',
+      padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
       boxShadow: 'var(--shadow-card)',
       textAlign: 'center',
     }">
@@ -100,7 +103,7 @@ const pasos = [
         background: 'var(--color-bg-card)',
         border: '1px solid var(--color-border-card)',
         borderRadius: 'var(--r-2xl)',
-        padding: 'var(--sp-2xl)',
+        padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
         boxShadow: 'var(--shadow-card)',
         position: 'relative',
       }">
@@ -142,7 +145,7 @@ const pasos = [
             :style="{ marginBottom: 'var(--sp-lg)' }"
           />
 
-          <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-lg)' }">
+          <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
             <div :style="{ gridColumn: '1 / -1' }">
               <PortalInput
                 label="Número de cédula"
@@ -225,7 +228,7 @@ const pasos = [
             color: 'var(--color-text-1)', marginBottom: 'var(--sp-xl)',
           }">Datos laborales</div>
 
-          <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-lg)' }">
+          <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
             <div :style="{ gridColumn: '1 / -1' }">
               <PortalInput
                 label="Empresa"
