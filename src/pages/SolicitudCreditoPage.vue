@@ -12,8 +12,10 @@ const router = useRouter()
 
 const {
   paso, loading, error, solicitudCreada, asociadoExistente,
+  erroresCampos, honeypot,
   datosPersonales, datosLaborales, datosCredito,
   cuotaEstimada, pasoValido,
+  validarCampoActual, schemaPersonales, schemaLaborales, schemaCredito,
   verificarCedula, irAPaso, enviarSolicitud, reiniciar,
 } = useCredito()
 
@@ -118,7 +120,30 @@ function formatCOP(n) {
         borderRadius: 'var(--r-2xl)',
         padding: 'var(--sp-2xl)',
         boxShadow: 'var(--shadow-card)',
+        position: 'relative',
       }">
+
+        <!-- Campo honeypot anti-bot — NO modificar este bloque -->
+        <div
+          aria-hidden="true"
+          :style="{
+            position: 'absolute',
+            left: '-9999px',
+            width: '1px',
+            height: '1px',
+            overflow: 'hidden',
+            opacity: '0',
+            pointerEvents: 'none',
+          }"
+        >
+          <input
+            v-model="honeypot"
+            type="text"
+            name="website"
+            autocomplete="off"
+            tabindex="-1"
+          />
+        </div>
 
         <!-- PASO 1: Datos personales -->
         <div v-if="paso === 1">
@@ -142,17 +167,69 @@ function formatCOP(n) {
                 v-model="datosPersonales.cedula"
                 placeholder="Ej. 1122334455"
                 required
-                @blur="verificarCedula"
+                :error="erroresCampos.cedula"
+                @blur="() => {
+                  validarCampoActual(schemaPersonales, 'cedula', datosPersonales.cedula)
+                  verificarCedula()
+                }"
               />
             </div>
-            <PortalInput label="Nombres" v-model="datosPersonales.nombres" placeholder="Sus nombres" required :disabled="!!asociadoExistente" />
-            <PortalInput label="Apellidos" v-model="datosPersonales.apellidos" placeholder="Sus apellidos" required :disabled="!!asociadoExistente" />
-            <PortalInput label="Correo electrónico" v-model="datosPersonales.email" type="email" placeholder="correo@ejemplo.com" :disabled="!!asociadoExistente" />
-            <PortalInput label="Teléfono" v-model="datosPersonales.telefono" placeholder="3001234567" />
-            <PortalInput label="Fecha de nacimiento" v-model="datosPersonales.fecha_nacimiento" type="date" />
-            <PortalInput label="Ciudad" v-model="datosPersonales.ciudad" placeholder="Su ciudad" />
+            <PortalInput
+              label="Nombres"
+              v-model="datosPersonales.nombres"
+              placeholder="Sus nombres"
+              required
+              :disabled="!!asociadoExistente"
+              :error="erroresCampos.nombres"
+              @blur="() => validarCampoActual(schemaPersonales, 'nombres', datosPersonales.nombres)"
+            />
+            <PortalInput
+              label="Apellidos"
+              v-model="datosPersonales.apellidos"
+              placeholder="Sus apellidos"
+              required
+              :disabled="!!asociadoExistente"
+              :error="erroresCampos.apellidos"
+              @blur="() => validarCampoActual(schemaPersonales, 'apellidos', datosPersonales.apellidos)"
+            />
+            <PortalInput
+              label="Correo electrónico"
+              v-model="datosPersonales.email"
+              type="email"
+              placeholder="correo@ejemplo.com"
+              :disabled="!!asociadoExistente"
+              :error="erroresCampos.email"
+              @blur="() => validarCampoActual(schemaPersonales, 'email', datosPersonales.email)"
+            />
+            <PortalInput
+              label="Teléfono"
+              v-model="datosPersonales.telefono"
+              placeholder="3001234567"
+              :error="erroresCampos.telefono"
+              @blur="() => validarCampoActual(schemaPersonales, 'telefono', datosPersonales.telefono)"
+            />
+            <PortalInput
+              label="Fecha de nacimiento"
+              v-model="datosPersonales.fecha_nacimiento"
+              type="date"
+              :error="erroresCampos.fecha_nacimiento"
+              @blur="() => validarCampoActual(schemaPersonales, 'fecha_nacimiento', datosPersonales.fecha_nacimiento)"
+            />
+            <PortalInput
+              label="Ciudad"
+              v-model="datosPersonales.ciudad"
+              placeholder="Su ciudad"
+              :error="erroresCampos.ciudad"
+              @blur="() => validarCampoActual(schemaPersonales, 'ciudad', datosPersonales.ciudad)"
+            />
             <div :style="{ gridColumn: '1 / -1' }">
-              <PortalInput label="Dirección" v-model="datosPersonales.direccion" placeholder="Su dirección de residencia" />
+              <PortalInput
+                label="Dirección"
+                v-model="datosPersonales.direccion"
+                placeholder="Su dirección de residencia"
+                :error="erroresCampos.direccion"
+                @blur="() => validarCampoActual(schemaPersonales, 'direccion', datosPersonales.direccion)"
+              />
             </div>
           </div>
         </div>
@@ -167,9 +244,22 @@ function formatCOP(n) {
 
           <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-lg)' }">
             <div :style="{ gridColumn: '1 / -1' }">
-              <PortalInput label="Empresa" v-model="datosLaborales.empresa" placeholder="Nombre de la empresa" required />
+              <PortalInput
+                label="Empresa"
+                v-model="datosLaborales.empresa"
+                placeholder="Nombre de la empresa"
+                required
+                :error="erroresCampos.empresa"
+                @blur="() => validarCampoActual(schemaLaborales, 'empresa', datosLaborales.empresa)"
+              />
             </div>
-            <PortalInput label="Cargo" v-model="datosLaborales.cargo" placeholder="Su cargo actual" />
+            <PortalInput
+              label="Cargo"
+              v-model="datosLaborales.cargo"
+              placeholder="Su cargo actual"
+              :error="erroresCampos.cargo"
+              @blur="() => validarCampoActual(schemaLaborales, 'cargo', datosLaborales.cargo)"
+            />
             <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
               <label :style="{ fontSize: 'var(--text-base)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)' }">
                 Tipo de contrato
@@ -195,8 +285,22 @@ function formatCOP(n) {
                 <option value="prestacion">Prestación de servicios</option>
               </select>
             </div>
-            <PortalInput label="Salario mensual" v-model="datosLaborales.salario" type="number" placeholder="Ej. 3000000" required />
-            <PortalInput label="Fecha de ingreso a la empresa" v-model="datosLaborales.fecha_ingreso_empresa" type="date" />
+            <PortalInput
+              label="Salario mensual"
+              v-model="datosLaborales.salario"
+              type="number"
+              placeholder="Ej. 3000000"
+              required
+              :error="erroresCampos.salario"
+              @blur="() => validarCampoActual(schemaLaborales, 'salario', datosLaborales.salario)"
+            />
+            <PortalInput
+              label="Fecha de ingreso a la empresa"
+              v-model="datosLaborales.fecha_ingreso_empresa"
+              type="date"
+              :error="erroresCampos.fecha_ingreso_empresa"
+              @blur="() => validarCampoActual(schemaLaborales, 'fecha_ingreso_empresa', datosLaborales.fecha_ingreso_empresa)"
+            />
           </div>
         </div>
 
@@ -249,6 +353,8 @@ function formatCOP(n) {
               type="number"
               placeholder="Ej. 5000000"
               required
+              :error="erroresCampos.monto_solicitado"
+              @blur="() => validarCampoActual(schemaCredito, 'monto_solicitado', datosCredito.monto_solicitado)"
             />
             <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
               <label :style="{ fontSize: 'var(--text-base)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)' }">
@@ -273,7 +379,13 @@ function formatCOP(n) {
               </select>
             </div>
             <div :style="{ gridColumn: '1 / -1' }">
-              <PortalInput label="Destino del crédito" v-model="datosCredito.destino" placeholder="Describa para qué usará el crédito" />
+              <PortalInput
+                label="Destino del crédito"
+                v-model="datosCredito.destino"
+                placeholder="Describa para qué usará el crédito"
+                :error="erroresCampos.destino"
+                @blur="() => validarCampoActual(schemaCredito, 'destino', datosCredito.destino)"
+              />
             </div>
           </div>
 
