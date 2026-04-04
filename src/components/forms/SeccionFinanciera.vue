@@ -1,11 +1,13 @@
 <script setup>
 import CampoMoneda from './CampoMoneda.vue'
+import CampoTexto  from './CampoTexto.vue'
 
 const props = defineProps({
-  modelValue:      { type: Object, required: true },
-  errores:         { type: Object, default: () => ({}) },
-  titulo:          { type: String, required: true },
-  salarioBloqueado:{ type: Boolean, default: false },
+  modelValue:       { type: Object,  required: true },
+  errores:          { type: Object,  default: () => ({}) },
+  titulo:           { type: String,  required: true },
+  salarioBloqueado: { type: Boolean, default: false },
+  tipoTrabajador:   { type: String,  default: '' },
 })
 const emit = defineEmits(['update:modelValue'])
 
@@ -22,6 +24,12 @@ function claveSalario() {
   return 'salario_codeudor' in props.modelValue
     ? 'salario_codeudor'
     : 'salario_ingresos_fijos'
+}
+
+function claveFuente() {
+  return 'fuente_ingresos_codeudor' in props.modelValue
+    ? 'fuente_ingresos_codeudor'
+    : 'fuente_ingresos'
 }
 </script>
 
@@ -40,8 +48,21 @@ function claveSalario() {
       gridTemplateColumns: '1fr 1fr',
       gap:                 'var(--sp-lg)',
     }">
-      <!-- Salario — bloqueable para independientes -->
+      <!-- Fuente de ingresos para cuidado del hogar -->
+      <CampoTexto
+        v-if="tipoTrabajador === 'cuidado_hogar'"
+        :model-value="modelValue[claveFuente()]"
+        label="Fuente de ingresos"
+        placeholder="Ej: Apoyo familiar, arrendamiento, pensión de esposo/a..."
+        required
+        :error="errores[claveFuente()]"
+        :style="{ gridColumn: '1 / -1' }"
+        @update:model-value="actualizar(claveFuente(), $event)"
+      />
+
+      <!-- Salario — oculto para cuidado_hogar -->
       <CampoMoneda
+        v-if="tipoTrabajador !== 'cuidado_hogar'"
         :model-value="modelValue[claveSalario()]"
         label="Salario / Ingresos fijos"
         :required="!salarioBloqueado"
@@ -50,6 +71,7 @@ function claveSalario() {
         :error="errores[claveSalario()]"
         @update:model-value="actualizar(claveSalario(), $event)"
       />
+
       <CampoMoneda
         :model-value="modelValue[clave('ingresos_independiente')]"
         label="Ingresos como independiente"

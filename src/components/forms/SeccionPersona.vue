@@ -1,21 +1,44 @@
 <script setup>
-import CampoTexto       from './CampoTexto.vue'
-import CampoSelect      from './CampoSelect.vue'
-import CampoFecha       from './CampoFecha.vue'
-import DireccionEstandar from './DireccionEstandar.vue'
-import { TIPOS_DOCUMENTO } from '@/data/formularioCredito'
+import { ref } from 'vue'
+import CampoTexto            from './CampoTexto.vue'
+import CampoSelect           from './CampoSelect.vue'
+import CampoFecha            from './CampoFecha.vue'
+import ModalDireccion        from './ModalDireccion.vue'
+import SelectorDeptoMunicipio from './SelectorDeptoMunicipio.vue'
+import PortalButton          from '@/components/ui/PortalButton.vue'
+import { MapPin }            from 'lucide-vue-next'
+import { TIPOS_DOCUMENTO }   from '@/data/formularioCredito'
 
 const props = defineProps({
-  modelValue:           { type: Object, required: true },
-  errores:              { type: Object, default: () => ({}) },
-  titulo:               { type: String, required: true },
+  modelValue:            { type: Object,  required: true },
+  errores:               { type: Object,  default: () => ({}) },
+  titulo:                { type: String,  required: true },
   // Bloquear doc/correo cuando vienen de la verificación previa
-  bloquearDocumento:    { type: Boolean, default: false },
-  bloquearCorreo:       { type: Boolean, default: false },
-  // Objeto de dirección estructurada (solo para el solicitante)
-  direccionEstructurada:{ type: Object, default: null },
+  bloquearDocumento:     { type: Boolean, default: false },
+  bloquearCorreo:        { type: Boolean, default: false },
+  // Objeto de dirección estructurada (solo para el solicitante; null = campo libre)
+  direccionEstructurada: { type: Object,  default: null },
+  // Ubicación de residencia (depto/municipio)
+  ubicacion: {
+    type: Object,
+    default: () => ({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' }),
+  },
+  // Ubicación de expedición del documento
+  ubicacionExpedicion: {
+    type: Object,
+    default: null,
+  },
+  // Mostrar selector de nivel educativo
+  showNivelEducativo:    { type: Boolean, default: false },
 })
-const emit = defineEmits(['update:modelValue', 'update:direccionEstructurada'])
+const emit = defineEmits([
+  'update:modelValue',
+  'update:direccionEstructurada',
+  'update:ubicacion',
+  'update:ubicacionExpedicion',
+])
+
+const modalVisible = ref(false)
 
 function actualizar(campo, valor) {
   emit('update:modelValue', { ...props.modelValue, [campo]: valor })
@@ -110,14 +133,31 @@ function actualizarUpper(campo, valor) {
         @update:model-value="actualizar(clave('correo_electronico'), $event)"
       />
 
-      <!-- Dirección: estándar colombiana para solicitante, texto libre para codeudor -->
+      <!-- Dirección: modal colombiano para solicitante, campo libre para codeudor -->
       <div :style="{ gridColumn: '1 / -1' }">
-        <DireccionEstandar
-          v-if="direccionEstructurada !== null"
-          :model-value="direccionEstructurada"
-          :error="errores[clave('direccion_residencia')]"
-          @update:model-value="actualizarDireccion($event)"
-        />
+        <div v-if="direccionEstructurada !== null">
+          <label :style="{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-xs)' }">Dirección de residencia *</label>
+          <div :style="{ display: 'flex', gap: 'var(--sp-sm)' }">
+            <input
+              :value="modelValue[clave('direccion_residencia')] || 'Sin ingresar'"
+              readonly
+              :style="{
+                flex: '1', padding: '9px 14px',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--r-lg)',
+                fontSize: 'var(--text-base)', fontFamily: 'var(--font-body)',
+                background: 'var(--color-bg-surface-alt)',
+                color: modelValue[clave('direccion_residencia')] ? 'var(--color-text-1)' : 'var(--color-text-3)',
+                cursor: 'pointer', outline: 'none',
+              }"
+              @click="modalVisible = true"
+            />
+            <PortalButton variant="secondary" @click="modalVisible = true">
+              <MapPin :size="14" />
+              {{ modelValue[clave('direccion_residencia')] ? 'Editar' : 'Ingresar' }}
+            </PortalButton>
+          </div>
+        </div>
         <CampoTexto
           v-else
           :model-value="modelValue[clave('direccion_residencia')]"
@@ -129,27 +169,26 @@ function actualizarUpper(campo, valor) {
         />
       </div>
 
-      <!-- Ciudad -->
-      <CampoTexto
-        :model-value="modelValue[clave('ciudad')]"
-        label="Ciudad"
-        placeholder="BOGOTÁ"
-        required
-        :error="errores[clave('ciudad')]"
-        @update:model-value="actualizar(clave('ciudad'), $event ? $event.toUpperCase() : $event)"
-        @blur="actualizarUpper(clave('ciudad'), modelValue[clave('ciudad')])"
+      <!-- ModalDireccion — solo para solicitante -->
+      <ModalDireccion
+        v-if="direccionEstructurada !== null"
+        :model-value="direccionEstructurada"
+        :visible="modalVisible"
+        @update:model-value="actualizarDireccion($event)"
+        @confirmar="actualizar(clave('direccion_residencia'), $event)"
+        @update:visible="modalVisible = $event"
       />
 
-      <!-- Departamento -->
-      <CampoTexto
-        :model-value="modelValue[clave('departamento')]"
-        label="Departamento"
-        placeholder="CUNDINAMARCA"
-        required
-        :error="errores[clave('departamento')]"
-        @update:model-value="actualizar(clave('departamento'), $event ? $event.toUpperCase() : $event)"
-        @blur="actualizarUpper(clave('departamento'), modelValue[clave('departamento')])"
-      />
+      <!-- Ciudad y departamento via selector encadenado -->
+      <div :style="{ gridColumn: '1 / -1' }">
+        <SelectorDeptoMunicipio
+          :model-value="ubicacion"
+          :label-depto="clave('departamento') === 'departamento' ? 'Departamento de residencia' : 'Departamento'"
+          :label-municipio="clave('ciudad') === 'ciudad' ? 'Municipio de residencia' : 'Municipio'"
+          :required="true"
+          @update:model-value="emit('update:ubicacion', $event)"
+        />
+      </div>
 
       <!-- Fecha de nacimiento -->
       <CampoFecha
@@ -158,6 +197,28 @@ function actualizarUpper(campo, valor) {
         required
         :error="errores[clave('fecha_nacimiento')]"
         @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
+      />
+
+      <!-- Nivel educativo (solo solicitante) -->
+      <CampoSelect
+        v-if="showNivelEducativo"
+        :model-value="modelValue.nivel_educativo_solicitante"
+        label="Nivel educativo"
+        required
+        :opciones="[
+          { value: 'ninguno',               label: 'Ninguno'                   },
+          { value: 'primaria_incompleta',   label: 'Primaria incompleta'       },
+          { value: 'primaria_completa',     label: 'Primaria completa'         },
+          { value: 'secundaria_incompleta', label: 'Bachillerato incompleto'   },
+          { value: 'secundaria_completa',   label: 'Bachillerato completo'     },
+          { value: 'tecnico',               label: 'Técnico / Técnico laboral' },
+          { value: 'tecnologo',             label: 'Tecnólogo'                 },
+          { value: 'universitario',         label: 'Universitario / Pregrado'  },
+          { value: 'especializacion',       label: 'Especialización'           },
+          { value: 'maestria',              label: 'Maestría'                  },
+          { value: 'doctorado',             label: 'Doctorado'                 },
+        ]"
+        @update:model-value="actualizar('nivel_educativo_solicitante', $event)"
       />
 
       <!-- Fecha expedición -->
@@ -169,8 +230,18 @@ function actualizarUpper(campo, valor) {
         @update:model-value="actualizar(clave('fecha_expedicion_documento'), $event)"
       />
 
-      <!-- Ciudad expedición -->
+      <!-- Ciudad/municipio de expedición — selector encadenado si hay ubicacionExpedicion prop, texto libre si no -->
+      <div v-if="ubicacionExpedicion !== null" :style="{ gridColumn: '1 / -1' }">
+        <SelectorDeptoMunicipio
+          :model-value="ubicacionExpedicion"
+          label-depto="Departamento de expedición"
+          label-municipio="Ciudad de expedición"
+          :required="true"
+          @update:model-value="emit('update:ubicacionExpedicion', $event)"
+        />
+      </div>
       <CampoTexto
+        v-else
         :model-value="modelValue[clave('ciudad_expedicion')]"
         label="Ciudad de expedición"
         placeholder="BOGOTÁ"

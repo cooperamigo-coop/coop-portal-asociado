@@ -38,11 +38,11 @@ export function useSolicitudCredito() {
 
   // ── Sección 1-2: Solicitud ────────────────────────────────
   const general = ref({
-    modalidad_credito:  '',   // 'ordinario' | 'educativo'
-    tipo_operacion:     '',   // solo si ordinario
-    valor_credito:      '',   // crédito nuevo o educativo
-    valor_reestructura: '',   // reestructura o reestructura_desembolso
-    valor_desembolso:   '',   // solo reestructura_desembolso
+    modalidad_credito:  '',
+    tipo_operacion:     '',
+    valor_credito:      '',
+    valor_reestructura: '',
+    valor_desembolso:   '',
     destino_credito:    '',
     plazo_solicitado:   '',
   })
@@ -60,6 +60,7 @@ export function useSolicitudCredito() {
     fecha_nacimiento:           '',
     fecha_expedicion_documento: '',
     ciudad_expedicion:          '',
+    nivel_educativo_solicitante: '',
   })
 
   // Dirección estructurada (solo solicitante)
@@ -77,29 +78,26 @@ export function useSolicitudCredito() {
     barrio:          '',
   })
 
+  // ── Ubicaciones (departamento/municipio) ──────────────────
+  const ubicacionResidencia = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
+  const ubicacionExpedicion = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
+
   // ── Sección 4: Laboral solicitante ────────────────────────
   const laboral = ref({
-    tipo_trabajador:          '',
-    // Empleado
-    nombre_empresa:           '',
-    fecha_ingreso:            '',
-    tipo_contrato:            '',
-    tipo_contrato_otro:       '',
-    cargo_oficio:             '',
-    // Independiente
-    actividad_comercial:      '',
-    fecha_inicio_actividad:   '',
-    ocupacion:                '',
-    // Pensionado
-    entidad_pagadora:         '',
-    // Estudiante
-    institucion_educativa:    '',
-    nivel_educativo:          '',
-    // Cuidado del hogar
-    descripcion_ocupacion:    '',
-    // Todos
-    tiene_dependientes:       false,
-    numero_dependientes:      '',
+    tipo_trabajador:        '',
+    nombre_empresa:         '',
+    fecha_ingreso:          '',
+    tipo_contrato:          '',
+    tipo_contrato_otro:     '',
+    cargo_oficio:           '',
+    actividad_comercial:    '',
+    fecha_inicio_actividad: '',
+    ocupacion:              '',
+    entidad_pagadora:       '',
+    institucion_educativa:  '',
+    nivel_educativo:        '',
+    tiene_dependientes:     false,
+    numero_dependientes:    '',
   })
 
   // ── Sección 5: Financiera solicitante ─────────────────────
@@ -110,6 +108,7 @@ export function useSolicitudCredito() {
     gastos_familiares:        '',
     otros_gastos:             '',
     obligaciones_financieras: '',
+    fuente_ingresos:          '',
   })
 
   // ── Sección 6: Patrimonio solicitante ─────────────────────
@@ -129,33 +128,47 @@ export function useSolicitudCredito() {
     numero_cuenta:    '',
   })
 
-  // ── Sección 8-11: Codeudor ────────────────────────────────
-  const tieneCodudor = ref(null) // null = sin responder, true/false = respondido
+  // ── Sección 8: Número de codeudores ──────────────────────
+  const numCodudores = ref(0) // 0, 1 o 2
 
-  const personaCod = ref({
-    tipo_documento_codeudor:             '',
-    numero_identificacion_codeudor:      '',
-    nombres_codeudor:                    '',
-    apellidos_codeudor:                  '',
-    correo_codeudor:                     '',
-    direccion_codeudor:                  '',
-    ciudad_codeudor:                     '',
-    departamento_codeudor:               '',
-    fecha_nacimiento_codeudor:           '',
-    fecha_expedicion_codeudor:           '',
-    ciudad_expedicion_codeudor:          '',
+  // ── Codeudor 1 ────────────────────────────────────────────
+  const personaCod1 = ref({
+    tipo_documento_codeudor:            '',
+    numero_identificacion_codeudor:     '',
+    nombres_codeudor:                   '',
+    apellidos_codeudor:                 '',
+    correo_codeudor:                    '',
+    direccion_codeudor:                 '',
+    fecha_nacimiento_codeudor:          '',
+    fecha_expedicion_codeudor:          '',
+    ciudad_expedicion_codeudor:         '',
   })
-
-  const financieraCod = ref({
+  const laboralCod1 = ref({
+    tipo_trabajador_codeudor:            '',
+    nombre_empresa_codeudor:             '',
+    fecha_ingreso_codeudor:              '',
+    tipo_contrato_codeudor:              '',
+    cargo_oficio_codeudor:               '',
+    actividad_comercial_codeudor:        '',
+    fecha_inicio_actividad_codeudor:     '',
+    ocupacion_codeudor:                  '',
+    entidad_pagadora_codeudor:           '',
+    institucion_educativa_codeudor:      '',
+    nivel_educativo_codeudor:            '',
+    descripcion_ocupacion_codeudor:      '',
+    tiene_dependientes_codeudor:         false,
+    numero_dependientes_codeudor:        '',
+  })
+  const financieraCod1 = ref({
     salario_codeudor:                  '',
     ingresos_independiente_codeudor:   '',
     otros_ingresos_codeudor:           '',
     gastos_familiares_codeudor:        '',
     otros_gastos_codeudor:             '',
     obligaciones_financieras_codeudor: '',
+    fuente_ingresos_codeudor:          '',
   })
-
-  const patrimonioCod = ref({
+  const patrimonioCod1 = ref({
     tiene_propiedad_raiz_codeudor: false,
     valor_propiedad_raiz_codeudor: '',
     tiene_vehiculo_codeudor:       false,
@@ -163,17 +176,61 @@ export function useSolicitudCredito() {
     total_activos_codeudor:        '',
     total_pasivos_codeudor:        '',
   })
+  const ubicacionCod1 = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
 
-  // ── Sección 12: Autorizaciones ────────────────────────────
+  // ── Codeudor 2 ────────────────────────────────────────────
+  const personaCod2 = ref({
+    tipo_documento_codeudor2:            '',
+    numero_identificacion_codeudor2:     '',
+    nombres_codeudor2:                   '',
+    apellidos_codeudor2:                 '',
+    correo_codeudor2:                    '',
+    direccion_codeudor2:                 '',
+    fecha_nacimiento_codeudor2:          '',
+    fecha_expedicion_codeudor2:          '',
+    ciudad_expedicion_codeudor2:         '',
+  })
+  const laboralCod2 = ref({
+    tipo_trabajador_codeudor2:            '',
+    nombre_empresa_codeudor2:             '',
+    fecha_ingreso_codeudor2:              '',
+    tipo_contrato_codeudor2:              '',
+    cargo_oficio_codeudor2:               '',
+    actividad_comercial_codeudor2:        '',
+    fecha_inicio_actividad_codeudor2:     '',
+    ocupacion_codeudor2:                  '',
+    entidad_pagadora_codeudor2:           '',
+    institucion_educativa_codeudor2:      '',
+    nivel_educativo_codeudor2:            '',
+    descripcion_ocupacion_codeudor2:      '',
+    tiene_dependientes_codeudor2:         false,
+    numero_dependientes_codeudor2:        '',
+  })
+  const financieraCod2 = ref({
+    salario_codeudor2:                  '',
+    ingresos_independiente_codeudor2:   '',
+    otros_ingresos_codeudor2:           '',
+    gastos_familiares_codeudor2:        '',
+    otros_gastos_codeudor2:             '',
+    obligaciones_financieras_codeudor2: '',
+    fuente_ingresos_codeudor2:          '',
+  })
+  const patrimonioCod2 = ref({
+    tiene_propiedad_raiz_codeudor2: false,
+    valor_propiedad_raiz_codeudor2: '',
+    tiene_vehiculo_codeudor2:       false,
+    valor_vehiculo_codeudor2:       '',
+    total_activos_codeudor2:        '',
+    total_pasivos_codeudor2:        '',
+  })
+  const ubicacionCod2 = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
+
+  // ── Sección autorizaciones ────────────────────────────────
   const autorizaciones = ref({
-    autorizacion_reporte_centrales:    false,
-    autorizacion_consulta_informacion: false,
-    autorizacion_tratamiento_datos:    false,
-    autorizacion_datos_sensibles:      false,
-    declaracion_veracidad_informacion: false,
+    autorizacion_aceptada: false,
   })
 
-  // ── Sección 13: Firma ─────────────────────────────────────
+  // ── Sección firma ─────────────────────────────────────────
   const firma = ref({
     nombre_firma: '',
   })
@@ -215,8 +272,9 @@ export function useSolicitudCredito() {
   // Pasos activos según condiciones
   const pasosActivos = computed(() =>
     PASOS_FORMULARIO.filter(p => {
-      if (p.numero === 7)  return mostrarCuentaDesembolso.value
-      if ([9, 10, 11].includes(p.numero)) return tieneCodudor.value === true
+      if (p.numero === 7)                        return mostrarCuentaDesembolso.value
+      if ([9, 10, 11, 12].includes(p.numero))   return numCodudores.value >= 1
+      if ([13, 14, 15, 16].includes(p.numero))  return numCodudores.value >= 2
       return true
     })
   )
@@ -299,12 +357,28 @@ export function useSolicitudCredito() {
         if (borrador.patrimonio)            patrimonio.value            = { ...patrimonio.value, ...borrador.patrimonio }
         if (borrador.cuenta)                cuenta.value                = { ...cuenta.value,     ...borrador.cuenta }
         if (borrador.direccionEstructurada) direccionEstructurada.value = { ...direccionEstructurada.value, ...borrador.direccionEstructurada }
-        if (borrador.tieneCodudor !== undefined) tieneCodudor.value    = borrador.tieneCodudor
-        // Restaurar paso; validar que esté en los pasos activos (con el estado ya restaurado)
+        if (borrador.numCodudores !== undefined) numCodudores.value = borrador.numCodudores
+        if (borrador.personaCod1)    personaCod1.value    = { ...personaCod1.value,    ...borrador.personaCod1    }
+        if (borrador.laboralCod1)    laboralCod1.value    = { ...laboralCod1.value,    ...borrador.laboralCod1    }
+        if (borrador.financieraCod1) financieraCod1.value = { ...financieraCod1.value, ...borrador.financieraCod1 }
+        if (borrador.patrimonioCod1) patrimonioCod1.value = { ...patrimonioCod1.value, ...borrador.patrimonioCod1 }
+        if (borrador.personaCod2)    personaCod2.value    = { ...personaCod2.value,    ...borrador.personaCod2    }
+        if (borrador.laboralCod2)    laboralCod2.value    = { ...laboralCod2.value,    ...borrador.laboralCod2    }
+        if (borrador.financieraCod2) financieraCod2.value = { ...financieraCod2.value, ...borrador.financieraCod2 }
+        if (borrador.patrimonioCod2) patrimonioCod2.value = { ...patrimonioCod2.value, ...borrador.patrimonioCod2 }
+        if (borrador.ubicacionResidencia) ubicacionResidencia.value = { ...ubicacionResidencia.value, ...borrador.ubicacionResidencia }
+        if (borrador.ubicacionExpedicion) ubicacionExpedicion.value = { ...ubicacionExpedicion.value, ...borrador.ubicacionExpedicion }
+        if (borrador.ubicacionCod1) ubicacionCod1.value = { ...ubicacionCod1.value, ...borrador.ubicacionCod1 }
+        if (borrador.ubicacionCod2) ubicacionCod2.value = { ...ubicacionCod2.value, ...borrador.ubicacionCod2 }
+        if (borrador.autorizaciones) autorizaciones.value = { ...autorizaciones.value, ...borrador.autorizaciones }
+        if (borrador.firma)          firma.value          = { ...firma.value, ...borrador.firma }
+
+        // Restaurar paso; validar que esté en los pasos activos
         const pasoRestaurado = borrador.paso
         const enActivos = PASOS_FORMULARIO.filter(p => {
-          if (p.numero === 7)              return general.value.tipo_operacion !== 'reestructura'
-          if ([9, 10, 11].includes(p.numero)) return tieneCodudor.value === true
+          if (p.numero === 7)                       return general.value.tipo_operacion !== 'reestructura'
+          if ([9, 10, 11, 12].includes(p.numero))  return numCodudores.value >= 1
+          if ([13, 14, 15, 16].includes(p.numero)) return numCodudores.value >= 2
           return true
         }).some(p => p.numero === pasoRestaurado)
         paso.value = enActivos ? pasoRestaurado : 1
@@ -328,26 +402,42 @@ export function useSolicitudCredito() {
   // ── Aplanar para BD ───────────────────────────────────────
   function aplanarDatos() {
     return {
-      // Fecha de solicitud — automática
       fecha_solicitud: new Date().toISOString().split('T')[0],
-      // Solicitud
       ...general.value,
-      tiene_codeudor: tieneCodudor.value === true,
-      // Persona (dirección construida desde campos estructurados)
+      num_codeudores: numCodudores.value,
+      tiene_codeudor: numCodudores.value > 0,
+      // Persona solicitante
       ...persona.value,
       direccion_residencia: construirDireccion() || persona.value.direccion_residencia,
-      // Laboral
+      departamento:         ubicacionResidencia.value.depto_nombre,
+      ciudad:               ubicacionResidencia.value.municipio_nombre,
+      departamento_codigo:  ubicacionResidencia.value.depto_codigo,
+      municipio_codigo:     ubicacionResidencia.value.municipio_codigo,
+      ciudad_expedicion:    ubicacionExpedicion.value.municipio_nombre,
+      depto_expedicion:     ubicacionExpedicion.value.depto_nombre,
+      // Laboral, financiera, patrimonio, cuenta
       ...laboral.value,
-      // Financiera (sin ahorros)
       ...financiera.value,
-      // Patrimonio
       ...patrimonio.value,
-      // Cuenta
       ...cuenta.value,
-      // Codeudor (solo si aplica)
-      ...(tieneCodudor.value ? personaCod.value    : {}),
-      ...(tieneCodudor.value ? financieraCod.value : {}),
-      ...(tieneCodudor.value ? patrimonioCod.value : {}),
+      // Codeudor 1
+      ...(numCodudores.value >= 1 ? personaCod1.value   : {}),
+      ...(numCodudores.value >= 1 ? laboralCod1.value   : {}),
+      ...(numCodudores.value >= 1 ? financieraCod1.value : {}),
+      ...(numCodudores.value >= 1 ? patrimonioCod1.value : {}),
+      ...(numCodudores.value >= 1 ? {
+        ciudad_codeudor:       ubicacionCod1.value.municipio_nombre,
+        departamento_codeudor: ubicacionCod1.value.depto_nombre,
+      } : {}),
+      // Codeudor 2
+      ...(numCodudores.value >= 2 ? personaCod2.value   : {}),
+      ...(numCodudores.value >= 2 ? laboralCod2.value   : {}),
+      ...(numCodudores.value >= 2 ? financieraCod2.value : {}),
+      ...(numCodudores.value >= 2 ? patrimonioCod2.value : {}),
+      ...(numCodudores.value >= 2 ? {
+        ciudad_codeudor2:       ubicacionCod2.value.municipio_nombre,
+        departamento_codeudor2: ubicacionCod2.value.depto_nombre,
+      } : {}),
       // Autorizaciones
       ...autorizaciones.value,
       // Firma
@@ -361,10 +451,13 @@ export function useSolicitudCredito() {
     try {
       if (verificacion.value.correo) {
         guardarBorradorLocal(verificacion.value.correo, {
-          general,              persona,       laboral,
-          financiera,           patrimonio,    cuenta,
-          direccionEstructurada,
-          tieneCodudor: tieneCodudor.value,
+          general, persona, laboral, financiera, patrimonio, cuenta,
+          direccionEstructurada, autorizaciones, firma,
+          numCodudores: numCodudores.value,
+          personaCod1, laboralCod1, financieraCod1, patrimonioCod1,
+          personaCod2, laboralCod2, financieraCod2, patrimonioCod2,
+          ubicacionResidencia, ubicacionExpedicion,
+          ubicacionCod1, ubicacionCod2,
           paso: paso.value,
         })
       }
@@ -428,12 +521,15 @@ export function useSolicitudCredito() {
     return activos.length > 0 && activos[activos.length - 1].numero === paso.value
   })
 
+  // ── Token helper ──────────────────────────────────────────
+  function generarToken() {
+    return crypto.randomUUID().replace(/-/g, '')
+  }
+
   // ── Envío final ───────────────────────────────────────────
   async function enviar() {
-    if (!autorizaciones.value.autorizacion_reporte_centrales ||
-        !autorizaciones.value.autorizacion_tratamiento_datos  ||
-        !autorizaciones.value.declaracion_veracidad_informacion) {
-      error.value = 'Debe aceptar todas las autorizaciones obligatorias para continuar.'
+    if (!autorizaciones.value.autorizacion_aceptada) {
+      error.value = 'Debe aceptar las autorizaciones para continuar.'
       return
     }
     if (!firma.value.nombre_firma.trim()) {
@@ -444,6 +540,19 @@ export function useSolicitudCredito() {
     error.value = null
     try {
       await guardarPaso()
+      const datos = sanitizarObjeto(aplanarDatos())
+      // Tokens de firma para codeudores
+      if (numCodudores.value >= 1) {
+        datos.token_firma_codeudor1  = generarToken()
+        datos.correo_envio_codeudor1 = personaCod1.value.correo_codeudor
+        // TODO: Enviar email al codeudor con el enlace:
+        // https://portal.cooperamigo.com/firma-codeudor?token={datos.token_firma_codeudor1}
+      }
+      if (numCodudores.value >= 2) {
+        datos.token_firma_codeudor2  = generarToken()
+        datos.correo_envio_codeudor2 = personaCod2.value.correo_codeudor2
+        // TODO: Enviar email al codeudor 2
+      }
       await enviarSolicitud(solicitudId.value)
       limpiarBorradorLocal(verificacion.value.correo)
       enviado.value = true
@@ -474,8 +583,12 @@ export function useSolicitudCredito() {
     verificarYContinuar, onCorreoCambia,
     // Estado
     general, persona, laboral, financiera, patrimonio, cuenta,
-    direccionEstructurada, tieneCodudor,
-    personaCod, financieraCod, patrimonioCod,
+    direccionEstructurada,
+    numCodudores,
+    personaCod1, laboralCod1, financieraCod1, patrimonioCod1,
+    personaCod2, laboralCod2, financieraCod2, patrimonioCod2,
+    ubicacionResidencia, ubicacionExpedicion,
+    ubicacionCod1, ubicacionCod2,
     autorizaciones, firma,
     // Computeds
     mostrarTipoOperacion, mostrarValorCredito,

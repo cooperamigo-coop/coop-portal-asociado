@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import PortalLayout           from '@/components/layout/PortalLayout.vue'
 import PortalButton           from '@/components/ui/PortalButton.vue'
@@ -13,12 +13,16 @@ import CampoSelect            from '@/components/forms/CampoSelect.vue'
 import CampoMoneda            from '@/components/forms/CampoMoneda.vue'
 import CampoCheck             from '@/components/forms/CampoCheck.vue'
 import CampoFecha             from '@/components/forms/CampoFecha.vue'
+import ModalDireccion         from '@/components/forms/ModalDireccion.vue'
+import SelectorDeptoMunicipio from '@/components/forms/SelectorDeptoMunicipio.vue'
+import ModalAutorizaciones    from '@/components/forms/ModalAutorizaciones.vue'
 import {
   ShieldCheck, ArrowRight, ArrowLeft, CheckCircle, Send,
-  UserX, Mail, Phone, RotateCcw, Users, UserCheck,
+  UserX, Mail, Phone, RotateCcw, Users, UserCheck, ScrollText,
 } from 'lucide-vue-next'
 import { useSolicitudCredito } from '@/composables/useSolicitudCredito'
 import { TIPOS_CONTRATO, ENTIDADES_PENSIONES } from '@/data/formularioCredito'
+import { ENTIDADES_BANCARIAS } from '@/data/colombiaData.js'
 
 const router = useRouter()
 
@@ -30,14 +34,20 @@ const {
   tieneBorradorPrevio, borradorRecuperado,
   verificarYContinuar, onCorreoCambia,
   general, persona, laboral, financiera, patrimonio, cuenta,
-  direccionEstructurada, tieneCodudor,
-  personaCod, financieraCod, patrimonioCod,
+  direccionEstructurada,
+  numCodudores,
+  personaCod1, laboralCod1, financieraCod1, patrimonioCod1,
+  personaCod2, laboralCod2, financieraCod2, patrimonioCod2,
+  ubicacionResidencia, ubicacionExpedicion,
+  ubicacionCod1, ubicacionCod2,
   autorizaciones, firma,
   mostrarTipoOperacion, mostrarValorCredito,
   mostrarValorReestructura, mostrarValorDesembolso, mostrarCuentaDesembolso,
   salarioBloqueado, montoTotalOperacion,
   siguiente, anterior, irAPaso, enviar, formatMonto,
 } = useSolicitudCredito()
+
+const modalAutorizacionesVisible = ref(false)
 
 const indexPasoActual = computed(() =>
   pasosActivos.value.findIndex(p => p.numero === paso.value) + 1
@@ -108,6 +118,13 @@ function actualizarLaboral(campo, valor) {
 function actualizarCuenta(campo, valor) {
   cuenta.value = { ...cuenta.value, [campo]: valor }
 }
+
+function actualizarLaboralCod1(campo, valor) {
+  laboralCod1.value = { ...laboralCod1.value, [campo]: valor }
+}
+function actualizarLaboralCod2(campo, valor) {
+  laboralCod2.value = { ...laboralCod2.value, [campo]: valor }
+}
 </script>
 
 <template>
@@ -153,6 +170,24 @@ function actualizarCuenta(campo, valor) {
       <PortalButton variant="primary" @click="router.push('/')">
         Volver al inicio
       </PortalButton>
+
+      <!-- Aviso codeudores -->
+      <div v-if="numCodudores > 0" :style="{
+        background: 'var(--color-primary-light)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 'var(--r-xl)',
+        padding: 'var(--sp-xl)',
+        marginTop: 'var(--sp-lg)',
+        textAlign: 'left',
+      }">
+        <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', marginBottom: 'var(--sp-sm)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <Mail :size="16" /> Enlace de firma enviado al codeudor
+        </div>
+        <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-primary)', fontWeight: 'var(--fw-medium)', lineHeight: '1.6' }">
+          Se enviará un enlace al correo del codeudor para que firme la solicitud.
+          El proceso continúa una vez todos los codeudores hayan firmado.
+        </div>
+      </div>
     </div>
 
     <!-- ═══ PANTALLA PREVIA — Verificación de identidad ═════ -->
@@ -505,8 +540,13 @@ function actualizarCuenta(campo, valor) {
           :bloquear-documento="true"
           :bloquear-correo="true"
           :direccion-estructurada="direccionEstructurada"
+          :ubicacion="ubicacionResidencia"
+          :ubicacion-expedicion="ubicacionExpedicion"
+          :show-nivel-educativo="true"
           @update:model-value="persona = $event"
           @update:direccion-estructurada="direccionEstructurada = $event"
+          @update:ubicacion="ubicacionResidencia = $event"
+          @update:ubicacion-expedicion="ubicacionExpedicion = $event"
         />
 
         <!-- ── PASO 4: Información laboral solicitante ───────── -->
@@ -613,21 +653,14 @@ function actualizarCuenta(campo, valor) {
               />
             </template>
 
-            <!-- Cuidado del hogar -->
+            <!-- Cuidado del hogar — sin campos adicionales -->
             <template v-if="laboral.tipo_trabajador === 'cuidado_hogar'">
-              <CampoTexto
-                :model-value="laboral.descripcion_ocupacion"
-                label="Descripción de la ocupación"
-                placeholder="Describa brevemente su actividad"
-                required
-                :style="{ gridColumn: '1 / -1' }"
-                @update:model-value="actualizarLaboral('descripcion_ocupacion', $event)"
-              />
+              <!-- Sin campos adicionales para cuidado del hogar -->
             </template>
           </div>
 
-          <!-- Dependientes — todos los tipos -->
-          <div v-if="laboral.tipo_trabajador" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+          <!-- Dependientes — todos los tipos excepto cuidado_hogar -->
+          <div v-if="laboral.tipo_trabajador && laboral.tipo_trabajador !== 'cuidado_hogar'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
             <CampoCheck
               :model-value="laboral.tiene_dependientes"
               label="Tengo personas a cargo (hijos, padres, etc.)"
@@ -651,6 +684,7 @@ function actualizarCuenta(campo, valor) {
           :model-value="financiera"
           titulo="Información financiera"
           :salario-bloqueado="salarioBloqueado"
+          :tipo-trabajador="laboral.tipo_trabajador"
           @update:model-value="financiera = $event"
         />
 
@@ -675,11 +709,12 @@ function actualizarCuenta(campo, valor) {
             :opciones="opsTipoCuenta"
             @update:model-value="actualizarCuenta('tipo_cuenta', $event)"
           />
-          <CampoTexto
+          <CampoSelect
             :model-value="cuenta.entidad_bancaria"
             label="Entidad bancaria"
-            placeholder="Ej: Bancolombia, Davivienda"
             required
+            :opciones="ENTIDADES_BANCARIAS.map(e => ({ value: e, label: e }))"
+            placeholder="Seleccione su banco"
             @update:model-value="actualizarCuenta('entidad_bancaria', $event)"
           />
           <CampoTexto
@@ -692,274 +727,221 @@ function actualizarCuenta(campo, valor) {
           />
         </div>
 
-        <!-- ── PASO 8: ¿Tiene codeudor? + Persona codeudor ─────── -->
+        <!-- ── PASO 8: Selección de codeudores ─────────────────── -->
         <div v-if="paso === 8" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
-
-          <!-- Pregunta Sí / No -->
-          <div>
-            <div :style="{
-              fontFamily:   'var(--font-display)',
-              fontSize:     'var(--text-lg)',
-              fontWeight:   'var(--fw-extrabold)',
-              color:        'var(--color-text-1)',
-              marginBottom: 'var(--sp-lg)',
-            }">¿Desea agregar un codeudor a su solicitud?</div>
-
-            <div :style="{ display: 'flex', gap: 'var(--sp-md)' }">
-              <!-- Sí -->
-              <div
-                :style="{
-                  flex:         '1',
-                  display:      'flex',
-                  alignItems:   'center',
-                  gap:          'var(--sp-md)',
-                  padding:      'var(--sp-lg)',
-                  borderRadius: 'var(--r-xl)',
-                  border:       tieneCodudor === true
-                    ? '2px solid var(--color-primary)'
-                    : '1px solid var(--color-border)',
-                  background:   tieneCodudor === true
-                    ? 'var(--color-primary-light)'
-                    : 'var(--color-bg-surface)',
-                  cursor:       'pointer',
-                  transition:   'all var(--transition-fast)',
-                }"
-                @click="tieneCodudor = true"
-              >
-                <UserCheck :size="22" :style="{
-                  color: tieneCodudor === true ? 'var(--color-primary)' : 'var(--color-text-3)',
-                }" />
-                <div>
-                  <div :style="{
-                    fontWeight: 'var(--fw-bold)',
-                    color:      tieneCodudor === true ? 'var(--color-primary)' : 'var(--color-text-1)',
-                    fontSize:   'var(--text-base)',
-                  }">Sí, agregar codeudor</div>
-                  <div :style="{
-                    fontSize:   'var(--text-sm)',
-                    color:      'var(--color-text-3)',
-                    fontWeight: 'var(--fw-medium)',
-                  }">Puede mejorar las condiciones del crédito</div>
-                </div>
-              </div>
-
-              <!-- No -->
-              <div
-                :style="{
-                  flex:         '1',
-                  display:      'flex',
-                  alignItems:   'center',
-                  gap:          'var(--sp-md)',
-                  padding:      'var(--sp-lg)',
-                  borderRadius: 'var(--r-xl)',
-                  border:       tieneCodudor === false
-                    ? '2px solid var(--color-primary)'
-                    : '1px solid var(--color-border)',
-                  background:   tieneCodudor === false
-                    ? 'var(--color-primary-light)'
-                    : 'var(--color-bg-surface)',
-                  cursor:       'pointer',
-                  transition:   'all var(--transition-fast)',
-                }"
-                @click="tieneCodudor = false"
-              >
-                <Users :size="22" :style="{
-                  color: tieneCodudor === false ? 'var(--color-primary)' : 'var(--color-text-3)',
-                }" />
-                <div>
-                  <div :style="{
-                    fontWeight: 'var(--fw-bold)',
-                    color:      tieneCodudor === false ? 'var(--color-primary)' : 'var(--color-text-1)',
-                    fontSize:   'var(--text-base)',
-                  }">No, continuar solo</div>
-                  <div :style="{
-                    fontSize:   'var(--text-sm)',
-                    color:      'var(--color-text-3)',
-                    fontWeight: 'var(--fw-medium)',
-                  }">Sin codeudor en la solicitud</div>
-                </div>
-              </div>
+          <div :style="{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-sm)' }">
+            ¿Desea agregar codeudores a su solicitud?
+          </div>
+          <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--sp-md)' }">
+            <div
+              v-for="opcion in [
+                { num: 0, titulo: 'Sin codeudor',   desc: 'Continúo solo'          },
+                { num: 1, titulo: '1 Codeudor',     desc: 'Añadir un codeudor'     },
+                { num: 2, titulo: '2 Codeudores',   desc: 'Añadir dos codeudores'  },
+              ]"
+              :key="opcion.num"
+              :style="{
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                gap: 'var(--sp-sm)', padding: 'var(--sp-xl)',
+                borderRadius: 'var(--r-xl)',
+                border: numCodudores === opcion.num ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                background: numCodudores === opcion.num ? 'var(--color-primary-light)' : 'var(--color-bg-surface)',
+                cursor: 'pointer', transition: 'all var(--transition-fast)', textAlign: 'center',
+              }"
+              @click="numCodudores = opcion.num"
+            >
+              <UserCheck v-if="opcion.num === 1" :size="28" :style="{ color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
+              <Users v-else :size="28" :style="{ color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
+              <div :style="{ fontWeight: 'var(--fw-bold)', color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-1)', fontSize: 'var(--text-base)' }">{{ opcion.titulo }}</div>
+              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">{{ opcion.desc }}</div>
             </div>
           </div>
-
-          <!-- Información del codeudor — solo si respondió Sí -->
-          <SeccionPersona
-            v-if="tieneCodudor === true"
-            :model-value="personaCod"
-            titulo="Datos del codeudor"
-            @update:model-value="personaCod = $event"
-          />
         </div>
 
-        <!-- ── PASO 9: Laboral codeudor ──────────────────────── -->
-        <div v-if="paso === 9" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
-          <SelectorTipoTrabajador
-            :model-value="laboral.tipo_trabajador"
-            @update:model-value="actualizarLaboral('tipo_trabajador', $event)"
-          />
+        <!-- ── PASO 9: Datos personales Codeudor 1 ──────────────── -->
+        <SeccionPersona
+          v-if="paso === 9"
+          :model-value="personaCod1"
+          titulo="Datos del codeudor 1"
+          :ubicacion="ubicacionCod1"
+          @update:model-value="personaCod1 = $event"
+          @update:ubicacion="ubicacionCod1 = $event"
+        />
 
+        <!-- ── PASO 10: Laboral Codeudor 1 ───────────────────── -->
+        <div v-if="paso === 10" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+          <SelectorTipoTrabajador
+            :model-value="laboralCod1.tipo_trabajador_codeudor"
+            @update:model-value="actualizarLaboralCod1('tipo_trabajador_codeudor', $event)"
+          />
           <div
-            v-if="laboral.tipo_trabajador"
+            v-if="laboralCod1.tipo_trabajador_codeudor"
             :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-lg)' }"
           >
-            <template v-if="laboral.tipo_trabajador === 'empleado'">
-              <CampoTexto
-                :model-value="laboral.nombre_empresa"
-                label="Nombre de la empresa"
-                placeholder="Empresa donde trabaja"
-                required
-                @update:model-value="actualizarLaboral('nombre_empresa', $event)"
-              />
-              <CampoTexto
-                :model-value="laboral.cargo_oficio"
-                label="Cargo u oficio"
-                placeholder="Ej: Contador, Docente"
-                required
-                @update:model-value="actualizarLaboral('cargo_oficio', $event)"
-              />
-              <CampoSelect
-                :model-value="laboral.tipo_contrato"
-                label="Tipo de contrato"
-                required
-                :opciones="opsTipoContrato"
-                @update:model-value="actualizarLaboral('tipo_contrato', $event)"
-              />
-              <CampoFecha
-                :model-value="laboral.fecha_ingreso"
-                label="Fecha de ingreso"
-                required
-                @update:model-value="actualizarLaboral('fecha_ingreso', $event)"
-              />
+            <template v-if="laboralCod1.tipo_trabajador_codeudor === 'empleado'">
+              <CampoTexto :model-value="laboralCod1.nombre_empresa_codeudor" label="Nombre de la empresa" placeholder="Empresa donde trabaja" required @update:model-value="actualizarLaboralCod1('nombre_empresa_codeudor', $event)" />
+              <CampoTexto :model-value="laboralCod1.cargo_oficio_codeudor" label="Cargo u oficio" placeholder="Ej: Contador, Docente" required @update:model-value="actualizarLaboralCod1('cargo_oficio_codeudor', $event)" />
+              <CampoSelect :model-value="laboralCod1.tipo_contrato_codeudor" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboralCod1('tipo_contrato_codeudor', $event)" />
+              <CampoFecha :model-value="laboralCod1.fecha_ingreso_codeudor" label="Fecha de ingreso" required @update:model-value="actualizarLaboralCod1('fecha_ingreso_codeudor', $event)" />
             </template>
-            <template v-if="laboral.tipo_trabajador === 'independiente'">
-              <CampoTexto
-                :model-value="laboral.actividad_comercial"
-                label="Actividad comercial"
-                placeholder="Ej: Comercio, Consultoría"
-                required
-                @update:model-value="actualizarLaboral('actividad_comercial', $event)"
-              />
-              <CampoTexto
-                :model-value="laboral.ocupacion"
-                label="Ocupación"
-                placeholder="Ej: Diseñador freelance"
-                required
-                @update:model-value="actualizarLaboral('ocupacion', $event)"
-              />
+            <template v-if="laboralCod1.tipo_trabajador_codeudor === 'independiente'">
+              <CampoTexto :model-value="laboralCod1.actividad_comercial_codeudor" label="Actividad comercial" placeholder="Ej: Comercio" required @update:model-value="actualizarLaboralCod1('actividad_comercial_codeudor', $event)" />
+              <CampoTexto :model-value="laboralCod1.ocupacion_codeudor" label="Ocupación" placeholder="Ej: Diseñador freelance" required @update:model-value="actualizarLaboralCod1('ocupacion_codeudor', $event)" />
             </template>
-            <template v-if="laboral.tipo_trabajador === 'pensionado'">
-              <CampoSelect
-                :model-value="laboral.entidad_pagadora"
-                label="Entidad pagadora"
-                required
-                :opciones="opsEntidadesPensiones"
-                @update:model-value="actualizarLaboral('entidad_pagadora', $event)"
-              />
+            <template v-if="laboralCod1.tipo_trabajador_codeudor === 'pensionado'">
+              <CampoSelect :model-value="laboralCod1.entidad_pagadora_codeudor" label="Entidad pagadora" required :opciones="opsEntidadesPensiones" @update:model-value="actualizarLaboralCod1('entidad_pagadora_codeudor', $event)" />
             </template>
-            <template v-if="laboral.tipo_trabajador === 'estudiante'">
-              <CampoTexto
-                :model-value="laboral.institucion_educativa"
-                label="Institución educativa"
-                placeholder="Nombre de la institución"
-                required
-                @update:model-value="actualizarLaboral('institucion_educativa', $event)"
-              />
-              <CampoSelect
-                :model-value="laboral.nivel_educativo"
-                label="Nivel educativo"
-                required
-                :opciones="opsNivelEducativo"
-                @update:model-value="actualizarLaboral('nivel_educativo', $event)"
-              />
+            <template v-if="laboralCod1.tipo_trabajador_codeudor === 'estudiante'">
+              <CampoTexto :model-value="laboralCod1.institucion_educativa_codeudor" label="Institución educativa" placeholder="Nombre de la institución" required @update:model-value="actualizarLaboralCod1('institucion_educativa_codeudor', $event)" />
+              <CampoSelect :model-value="laboralCod1.nivel_educativo_codeudor" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboralCod1('nivel_educativo_codeudor', $event)" />
             </template>
-            <template v-if="laboral.tipo_trabajador === 'cuidado_hogar'">
-              <CampoTexto
-                :model-value="laboral.descripcion_ocupacion"
-                label="Descripción de la ocupación"
-                placeholder="Describa brevemente su actividad"
-                required
-                :style="{ gridColumn: '1 / -1' }"
-                @update:model-value="actualizarLaboral('descripcion_ocupacion', $event)"
-              />
+            <template v-if="laboralCod1.tipo_trabajador_codeudor === 'cuidado_hogar'">
+              <!-- Sin campos adicionales -->
             </template>
+          </div>
+          <div v-if="laboralCod1.tipo_trabajador_codeudor && laboralCod1.tipo_trabajador_codeudor !== 'cuidado_hogar'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+            <CampoCheck :model-value="laboralCod1.tiene_dependientes_codeudor" label="Tiene personas a cargo" @update:model-value="actualizarLaboralCod1('tiene_dependientes_codeudor', $event)" />
+            <CampoTexto v-if="laboralCod1.tiene_dependientes_codeudor" :model-value="laboralCod1.numero_dependientes_codeudor" label="Número de dependientes" type="number" :style="{ maxWidth: '200px' }" @update:model-value="actualizarLaboralCod1('numero_dependientes_codeudor', $event)" />
           </div>
         </div>
 
-        <!-- ── PASO 10: Financiera codeudor ──────────────────── -->
+        <!-- ── PASO 11: Financiera Codeudor 1 ────────────────── -->
         <SeccionFinanciera
-          v-if="paso === 10"
-          :model-value="financieraCod"
-          titulo="Información financiera del codeudor"
-          @update:model-value="financieraCod = $event"
-        />
-
-        <!-- ── PASO 11: Patrimonio codeudor ──────────────────── -->
-        <SeccionPatrimonio
           v-if="paso === 11"
-          :model-value="patrimonioCod"
-          titulo="Patrimonio del codeudor"
-          tooltip-activos="Suma de todos los bienes del codeudor."
-          tooltip-pasivos="Suma de todas las deudas del codeudor."
-          @update:model-value="patrimonioCod = $event"
+          :model-value="financieraCod1"
+          titulo="Información financiera — Codeudor 1"
+          :tipo-trabajador="laboralCod1.tipo_trabajador_codeudor"
+          @update:model-value="financieraCod1 = $event"
         />
 
-        <!-- ── PASO 12: Autorizaciones ────────────────────────── -->
-        <div v-if="paso === 12" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+        <!-- ── PASO 12: Patrimonio Codeudor 1 ────────────────── -->
+        <SeccionPatrimonio
+          v-if="paso === 12"
+          :model-value="patrimonioCod1"
+          titulo="Patrimonio — Codeudor 1"
+          tooltip-activos="Suma de todos los bienes del codeudor 1."
+          tooltip-pasivos="Suma de todas las deudas del codeudor 1."
+          @update:model-value="patrimonioCod1 = $event"
+        />
 
-          <div :style="{
-            fontFamily:   'var(--font-display)',
-            fontSize:     'var(--text-lg)',
-            fontWeight:   'var(--fw-extrabold)',
-            color:        'var(--color-text-1)',
-            marginBottom: 'var(--sp-sm)',
-          }">Autorizaciones y declaraciones</div>
+        <!-- ── PASO 13: Datos personales Codeudor 2 ──────────── -->
+        <SeccionPersona
+          v-if="paso === 13"
+          :model-value="personaCod2"
+          titulo="Datos del codeudor 2"
+          :ubicacion="ubicacionCod2"
+          @update:model-value="personaCod2 = $event"
+          @update:ubicacion="ubicacionCod2 = $event"
+        />
 
-          <div :style="{
-            padding:      'var(--sp-lg)',
-            borderRadius: 'var(--r-xl)',
-            background:   'var(--color-bg-surface)',
-            border:       '1px solid var(--color-border)',
-            display:      'flex',
-            flexDirection:'column',
-            gap:          'var(--sp-lg)',
-          }">
-            <CampoCheck
-              :model-value="autorizaciones.autorizacion_reporte_centrales"
-              label="Autorizo a Cooperamigó a consultar y reportar mi información en centrales de riesgo (Datacrédito, TransUnión). *"
-              @update:model-value="autorizaciones.autorizacion_reporte_centrales = $event"
-            />
-            <CampoCheck
-              :model-value="autorizaciones.autorizacion_consulta_informacion"
-              label="Autorizo la consulta de mi información financiera y crediticia para el estudio de esta solicitud."
-              @update:model-value="autorizaciones.autorizacion_consulta_informacion = $event"
-            />
-            <CampoCheck
-              :model-value="autorizaciones.autorizacion_tratamiento_datos"
-              label="Autorizo el tratamiento de mis datos personales conforme a la política de privacidad de Cooperamigó. *"
-              @update:model-value="autorizaciones.autorizacion_tratamiento_datos = $event"
-            />
-            <CampoCheck
-              :model-value="autorizaciones.autorizacion_datos_sensibles"
-              label="Autorizo el tratamiento de mis datos sensibles en los términos establecidos por la ley colombiana."
-              @update:model-value="autorizaciones.autorizacion_datos_sensibles = $event"
-            />
-            <CampoCheck
-              :model-value="autorizaciones.declaracion_veracidad_informacion"
-              label="Declaro que toda la información suministrada en esta solicitud es veraz y comprobable. *"
-              @update:model-value="autorizaciones.declaracion_veracidad_informacion = $event"
-            />
+        <!-- ── PASO 14: Laboral Codeudor 2 ───────────────────── -->
+        <div v-if="paso === 14" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+          <SelectorTipoTrabajador
+            :model-value="laboralCod2.tipo_trabajador_codeudor2"
+            @update:model-value="actualizarLaboralCod2('tipo_trabajador_codeudor2', $event)"
+          />
+          <div
+            v-if="laboralCod2.tipo_trabajador_codeudor2"
+            :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-lg)' }"
+          >
+            <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'empleado'">
+              <CampoTexto :model-value="laboralCod2.nombre_empresa_codeudor2" label="Nombre de la empresa" placeholder="Empresa donde trabaja" required @update:model-value="actualizarLaboralCod2('nombre_empresa_codeudor2', $event)" />
+              <CampoTexto :model-value="laboralCod2.cargo_oficio_codeudor2" label="Cargo u oficio" placeholder="Ej: Contador, Docente" required @update:model-value="actualizarLaboralCod2('cargo_oficio_codeudor2', $event)" />
+              <CampoSelect :model-value="laboralCod2.tipo_contrato_codeudor2" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboralCod2('tipo_contrato_codeudor2', $event)" />
+              <CampoFecha :model-value="laboralCod2.fecha_ingreso_codeudor2" label="Fecha de ingreso" required @update:model-value="actualizarLaboralCod2('fecha_ingreso_codeudor2', $event)" />
+            </template>
+            <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'independiente'">
+              <CampoTexto :model-value="laboralCod2.actividad_comercial_codeudor2" label="Actividad comercial" placeholder="Ej: Comercio" required @update:model-value="actualizarLaboralCod2('actividad_comercial_codeudor2', $event)" />
+              <CampoTexto :model-value="laboralCod2.ocupacion_codeudor2" label="Ocupación" placeholder="Ej: Diseñador freelance" required @update:model-value="actualizarLaboralCod2('ocupacion_codeudor2', $event)" />
+            </template>
+            <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'pensionado'">
+              <CampoSelect :model-value="laboralCod2.entidad_pagadora_codeudor2" label="Entidad pagadora" required :opciones="opsEntidadesPensiones" @update:model-value="actualizarLaboralCod2('entidad_pagadora_codeudor2', $event)" />
+            </template>
+            <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'estudiante'">
+              <CampoTexto :model-value="laboralCod2.institucion_educativa_codeudor2" label="Institución educativa" placeholder="Nombre de la institución" required @update:model-value="actualizarLaboralCod2('institucion_educativa_codeudor2', $event)" />
+              <CampoSelect :model-value="laboralCod2.nivel_educativo_codeudor2" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboralCod2('nivel_educativo_codeudor2', $event)" />
+            </template>
+            <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'cuidado_hogar'">
+              <!-- Sin campos adicionales -->
+            </template>
           </div>
-
-          <div :style="{
-            fontSize:   'var(--text-sm)',
-            color:      'var(--color-text-3)',
-            fontWeight: 'var(--fw-medium)',
-            lineHeight: '1.6',
-          }">Los campos marcados con * son obligatorios para continuar.</div>
+          <div v-if="laboralCod2.tipo_trabajador_codeudor2 && laboralCod2.tipo_trabajador_codeudor2 !== 'cuidado_hogar'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+            <CampoCheck :model-value="laboralCod2.tiene_dependientes_codeudor2" label="Tiene personas a cargo" @update:model-value="actualizarLaboralCod2('tiene_dependientes_codeudor2', $event)" />
+            <CampoTexto v-if="laboralCod2.tiene_dependientes_codeudor2" :model-value="laboralCod2.numero_dependientes_codeudor2" label="Número de dependientes" type="number" :style="{ maxWidth: '200px' }" @update:model-value="actualizarLaboralCod2('numero_dependientes_codeudor2', $event)" />
+          </div>
         </div>
 
-        <!-- ── PASO 13: Confirmación y firma ─────────────────── -->
-        <div v-if="paso === 13" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+        <!-- ── PASO 15: Financiera Codeudor 2 ────────────────── -->
+        <SeccionFinanciera
+          v-if="paso === 15"
+          :model-value="financieraCod2"
+          titulo="Información financiera — Codeudor 2"
+          :tipo-trabajador="laboralCod2.tipo_trabajador_codeudor2"
+          @update:model-value="financieraCod2 = $event"
+        />
+
+        <!-- ── PASO 16: Patrimonio Codeudor 2 ────────────────── -->
+        <SeccionPatrimonio
+          v-if="paso === 16"
+          :model-value="patrimonioCod2"
+          titulo="Patrimonio — Codeudor 2"
+          tooltip-activos="Suma de todos los bienes del codeudor 2."
+          tooltip-pasivos="Suma de todas las deudas del codeudor 2."
+          @update:model-value="patrimonioCod2 = $event"
+        />
+
+        <!-- ── PASO 17: Autorizaciones ────────────────────────── -->
+        <div v-if="paso === 17" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+          <div :style="{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)' }">Autorizaciones y declaraciones legales</div>
+
+          <div :style="{
+            border: '1px solid var(--color-border-card)',
+            borderRadius: 'var(--r-xl)',
+            padding: 'var(--sp-xl)',
+            background: 'var(--color-bg-card)',
+            boxShadow: 'var(--shadow-card)',
+          }">
+            <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--sp-md)' }">
+              <div>
+                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-xs)' }">Autorizaciones y declaraciones legales</div>
+                <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', fontWeight: 'var(--fw-medium)' }">Debe leer y aceptar los términos para continuar.</div>
+              </div>
+              <div :style="{
+                display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)',
+                padding: 'var(--sp-sm) var(--sp-lg)',
+                borderRadius: 'var(--r-pill)',
+                background: autorizaciones.autorizacion_aceptada ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
+                border: autorizaciones.autorizacion_aceptada ? '1px solid var(--color-success)' : '1px solid var(--color-border)',
+              }">
+                <CheckCircle v-if="autorizaciones.autorizacion_aceptada" :size="16" :style="{ color: 'var(--color-success)' }" />
+                <span :style="{
+                  fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)',
+                  color: autorizaciones.autorizacion_aceptada ? 'var(--color-success-text)' : 'var(--color-text-3)',
+                }">{{ autorizaciones.autorizacion_aceptada ? 'Aceptadas' : 'Pendiente' }}</span>
+              </div>
+            </div>
+
+            <PortalButton
+              variant="primary"
+              :full="true"
+              :style="{ marginTop: 'var(--sp-lg)' }"
+              @click="modalAutorizacionesVisible = true"
+            >
+              <ScrollText :size="15" />
+              {{ autorizaciones.autorizacion_aceptada ? 'Revisar autorizaciones' : 'Leer y aceptar autorizaciones' }}
+            </PortalButton>
+          </div>
+
+          <ModalAutorizaciones
+            v-model:visible="modalAutorizacionesVisible"
+            :aceptado="autorizaciones.autorizacion_aceptada"
+            @aceptar="autorizaciones.autorizacion_aceptada = true"
+            @rechazar="autorizaciones.autorizacion_aceptada = false"
+          />
+        </div>
+
+        <!-- ── PASO 18: Confirmación y firma ─────────────────── -->
+        <div v-if="paso === 18" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
 
           <!-- Título -->
           <div :style="{
@@ -1114,28 +1096,55 @@ function actualizarCuenta(campo, valor) {
             </div>
           </div>
 
-          <!-- Codeudor (condicional) -->
-          <div v-if="tieneCodudor" :style="{ borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', overflow: 'hidden' }">
+          <!-- Codeudor 1 (condicional) -->
+          <div v-if="numCodudores >= 1" :style="{ borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', overflow: 'hidden' }">
             <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center' }">
-              <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Codeudor</span>
+              <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Codeudor 1</span>
             </div>
             <div :style="{ background: 'var(--color-bg-surface)' }">
               <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr' }">
                 <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
                   <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Nombre</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ [personaCod.nombres_codeudor, personaCod.apellidos_codeudor].filter(Boolean).join(' ') || '—' }}</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ [personaCod1.nombres_codeudor, personaCod1.apellidos_codeudor].filter(Boolean).join(' ') || '—' }}</div>
                 </div>
                 <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
                   <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Documento</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ label(LABEL_TIPO_DOC, personaCod.tipo_documento_codeudor) }} {{ personaCod.numero_identificacion_codeudor }}</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ label(LABEL_TIPO_DOC, personaCod1.tipo_documento_codeudor) }} {{ personaCod1.numero_identificacion_codeudor }}</div>
                 </div>
                 <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)' }">
                   <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Ingresos</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ formatMonto(financieraCod.salario_codeudor || financieraCod.ingresos_independiente_codeudor) || '—' }}</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ formatMonto(financieraCod1.salario_codeudor || financieraCod1.ingresos_independiente_codeudor) || '—' }}</div>
                 </div>
                 <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderLeft: '1px solid var(--color-border)' }">
                   <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Correo</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ personaCod.correo_codeudor || '—' }}</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ personaCod1.correo_codeudor || '—' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Codeudor 2 (condicional) -->
+          <div v-if="numCodudores >= 2" :style="{ borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center' }">
+              <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Codeudor 2</span>
+            </div>
+            <div :style="{ background: 'var(--color-bg-surface)' }">
+              <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr' }">
+                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
+                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Nombre</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ [personaCod2.nombres_codeudor2, personaCod2.apellidos_codeudor2].filter(Boolean).join(' ') || '—' }}</div>
+                </div>
+                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
+                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Documento</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ label(LABEL_TIPO_DOC, personaCod2.tipo_documento_codeudor2) }} {{ personaCod2.numero_identificacion_codeudor2 }}</div>
+                </div>
+                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)' }">
+                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Ingresos</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ formatMonto(financieraCod2.salario_codeudor2 || financieraCod2.ingresos_independiente_codeudor2) || '—' }}</div>
+                </div>
+                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderLeft: '1px solid var(--color-border)' }">
+                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Correo</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ personaCod2.correo_codeudor2 || '—' }}</div>
                 </div>
               </div>
             </div>
@@ -1224,6 +1233,7 @@ function actualizarCuenta(campo, valor) {
           v-if="!esUltimoPaso"
           variant="primary"
           :loading="loading"
+          :disabled="paso === 17 && !autorizaciones.autorizacion_aceptada"
           @click="siguiente()"
         >
           Continuar <ArrowRight :size="15" />
