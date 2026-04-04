@@ -12,15 +12,15 @@ import {
   limpiarBorradorLocal,
   tieneBorrador,
 } from '@/utils/borrador'
+import { PASOS_FORMULARIO } from '@/data/formularioCredito'
 
 export function useSolicitudCredito() {
-  const paso           = ref(1)
-  const totalPasos     = 17
-  const loading        = ref(false)
-  const error          = ref(null)
-  const solicitudId    = ref(null)
-  const enviado        = ref(false)
-  const erroresCampos  = ref({})
+  const paso          = ref(1)
+  const loading       = ref(false)
+  const error         = ref(null)
+  const solicitudId   = ref(null)
+  const enviado       = ref(false)
+  const erroresCampos = ref({})
 
   // ── Paso previo: verificación ─────────────────────────────
   const verificacion = ref({
@@ -28,36 +28,29 @@ export function useSolicitudCredito() {
     tipo_documento:   'cedula_ciudadania',
     numero_documento: '',
   })
-  const verificado              = ref(false)
-  const loadingVerificacion     = ref(false)
-  const errorVerificacion       = ref(null)
-  const asociadoVerificado      = ref(null)
-  const mostrarModalNoAsociado  = ref(false)
-  const tieneBorradorPrevio     = ref(false)
-  const borradorRecuperado      = ref(false)
+  const verificado             = ref(false)
+  const loadingVerificacion    = ref(false)
+  const errorVerificacion      = ref(null)
+  const asociadoVerificado     = ref(null)
+  const mostrarModalNoAsociado = ref(false)
+  const tieneBorradorPrevio    = ref(false)
+  const borradorRecuperado     = ref(false)
 
-  // ── Sección 1: Datos generales ────────────────────────────
+  // ── Sección 1-2: Solicitud ────────────────────────────────
   const general = ref({
-    fecha_solicitud:           new Date().toISOString().split('T')[0],
-    valor_credito:             '',
-    destino_credito:           '',
-    plazo_solicitado:          '',
-    tipo_operacion:            '',
-    monto_reestructura:        '',
-    credito_educativo:         false,
-    numero_comprobante:        '',
-    numero_pagare:             '',
-    nombre_firma_solicitante:  '',
-    cc_firma_solicitante:      '',
-    nombre_codeudor_1:         '',
-    cc_codeudor_1:             '',
+    modalidad_credito:  '',   // 'ordinario' | 'educativo'
+    tipo_operacion:     '',   // solo si ordinario
+    valor_credito:      '',   // crédito nuevo o educativo
+    valor_reestructura: '',   // reestructura o reestructura_desembolso
+    valor_desembolso:   '',   // solo reestructura_desembolso
+    destino_credito:    '',
+    plazo_solicitado:   '',
   })
 
-  // ── Sección 2: Datos personales solicitante ───────────────
+  // ── Sección 3: Datos personales solicitante ───────────────
   const persona = ref({
     tipo_documento:             '',
     numero_identificacion:      '',
-    tipo_persona:               '',
     nombres:                    '',
     apellidos:                  '',
     correo_electronico:         '',
@@ -69,16 +62,47 @@ export function useSolicitudCredito() {
     ciudad_expedicion:          '',
   })
 
-  // ── Sección 3: Laboral solicitante ────────────────────────
-  const laboral = ref({
-    cargo_oficio:       '',
-    nombre_empresa:     '',
-    tipo_contrato:      '',
-    tipo_contrato_otro: '',
-    fecha_ingreso:      '',
+  // Dirección estructurada (solo solicitante)
+  const direccionEstructurada = ref({
+    via_principal:   '',
+    numero_via:      '',
+    letra_via:       '',
+    bis:             false,
+    cuadrante_via:   '',
+    numero_cruce:    '',
+    letra_cruce:     '',
+    cuadrante_cruce: '',
+    numero_placa:    '',
+    complemento:     '',
+    barrio:          '',
   })
 
-  // ── Sección 4: Financiera solicitante ─────────────────────
+  // ── Sección 4: Laboral solicitante ────────────────────────
+  const laboral = ref({
+    tipo_trabajador:          '',
+    // Empleado
+    nombre_empresa:           '',
+    fecha_ingreso:            '',
+    tipo_contrato:            '',
+    tipo_contrato_otro:       '',
+    cargo_oficio:             '',
+    // Independiente
+    actividad_comercial:      '',
+    fecha_inicio_actividad:   '',
+    ocupacion:                '',
+    // Pensionado
+    entidad_pagadora:         '',
+    // Estudiante
+    institucion_educativa:    '',
+    nivel_educativo:          '',
+    // Cuidado del hogar
+    descripcion_ocupacion:    '',
+    // Todos
+    tiene_dependientes:       false,
+    numero_dependientes:      '',
+  })
+
+  // ── Sección 5: Financiera solicitante ─────────────────────
   const financiera = ref({
     salario_ingresos_fijos:   '',
     ingresos_independiente:   '',
@@ -86,10 +110,9 @@ export function useSolicitudCredito() {
     gastos_familiares:        '',
     otros_gastos:             '',
     obligaciones_financieras: '',
-    ahorros:                  '',
   })
 
-  // ── Sección 5: Patrimonio solicitante ─────────────────────
+  // ── Sección 6: Patrimonio solicitante ─────────────────────
   const patrimonio = ref({
     tiene_propiedad_raiz: false,
     valor_propiedad_raiz: '',
@@ -99,24 +122,19 @@ export function useSolicitudCredito() {
     total_pasivos:        '',
   })
 
-  // ── Sección 6: Cuenta de desembolso ──────────────────────
+  // ── Sección 7: Cuenta de desembolso ──────────────────────
   const cuenta = ref({
     tipo_cuenta:      '',
     entidad_bancaria: '',
     numero_cuenta:    '',
   })
 
-  // ── Sección 7-8: Referencias solicitante ─────────────────
-  const refFamiliar1 = ref({ nombres_apellidos: '', parentesco: '', profesion_oficio: '', contacto: '' })
-  const refFamiliar2 = ref({ nombres_apellidos: '', parentesco: '', profesion_oficio: '', contacto: '' })
-  const refPersonal1 = ref({ nombres_apellidos: '', relacion: '', profesion_oficio: '', contacto: '' })
-  const refPersonal2 = ref({ nombres_apellidos: '', relacion: '', profesion_oficio: '', contacto: '' })
+  // ── Sección 8-11: Codeudor ────────────────────────────────
+  const tieneCodudor = ref(null) // null = sin responder, true/false = respondido
 
-  // ── Sección 9: Datos personales codeudor ──────────────────
   const personaCod = ref({
     tipo_documento_codeudor:             '',
     numero_identificacion_codeudor:      '',
-    tipo_persona_codeudor:               '',
     nombres_codeudor:                    '',
     apellidos_codeudor:                  '',
     correo_codeudor:                     '',
@@ -128,14 +146,6 @@ export function useSolicitudCredito() {
     ciudad_expedicion_codeudor:          '',
   })
 
-  // ── Secciones 10-14: Codeudor ────────────────────────────
-  const laboralCod = ref({
-    cargo_oficio_codeudor:       '',
-    nombre_empresa_codeudor:     '',
-    tipo_contrato_codeudor:      '',
-    tipo_contrato_otro_codeudor: '',
-    fecha_ingreso_codeudor:      '',
-  })
   const financieraCod = ref({
     salario_codeudor:                  '',
     ingresos_independiente_codeudor:   '',
@@ -144,6 +154,7 @@ export function useSolicitudCredito() {
     otros_gastos_codeudor:             '',
     obligaciones_financieras_codeudor: '',
   })
+
   const patrimonioCod = ref({
     tiene_propiedad_raiz_codeudor: false,
     valor_propiedad_raiz_codeudor: '',
@@ -152,12 +163,8 @@ export function useSolicitudCredito() {
     total_activos_codeudor:        '',
     total_pasivos_codeudor:        '',
   })
-  const refFamiliarCod1 = ref({ nombres_apellidos: '', parentesco: '', profesion_oficio: '', contacto: '' })
-  const refFamiliarCod2 = ref({ nombres_apellidos: '', parentesco: '', profesion_oficio: '', contacto: '' })
-  const refPersonalCod1 = ref({ nombres_apellidos: '', relacion: '', profesion_oficio: '', contacto: '' })
-  const refPersonalCod2 = ref({ nombres_apellidos: '', relacion: '', profesion_oficio: '', contacto: '' })
 
-  // ── Sección 16: Autorizaciones ────────────────────────────
+  // ── Sección 12: Autorizaciones ────────────────────────────
   const autorizaciones = ref({
     autorizacion_reporte_centrales:    false,
     autorizacion_consulta_informacion: false,
@@ -166,31 +173,86 @@ export function useSolicitudCredito() {
     declaracion_veracidad_informacion: false,
   })
 
-  // ── Progreso ──────────────────────────────────────────────
-  const porcentaje = computed(() =>
-    Math.round(((paso.value - 1) / totalPasos) * 100)
+  // ── Sección 13: Firma ─────────────────────────────────────
+  const firma = ref({
+    nombre_firma: '',
+  })
+
+  // ── Computeds condicionales ───────────────────────────────
+  const mostrarTipoOperacion = computed(() =>
+    general.value.modalidad_credito === 'ordinario'
   )
 
-  // ── Definición de pasos ───────────────────────────────────
-  const pasos = [
-    { numero: 1,  titulo: 'Datos de la solicitud',           seccion: 'Solicitud'   },
-    { numero: 2,  titulo: 'Datos personales',                seccion: 'Solicitante' },
-    { numero: 3,  titulo: 'Información laboral',             seccion: 'Solicitante' },
-    { numero: 4,  titulo: 'Información financiera',          seccion: 'Solicitante' },
-    { numero: 5,  titulo: 'Patrimonio',                      seccion: 'Solicitante' },
-    { numero: 6,  titulo: 'Cuenta de desembolso',            seccion: 'Solicitante' },
-    { numero: 7,  titulo: 'Referencias familiares',          seccion: 'Solicitante' },
-    { numero: 8,  titulo: 'Referencias personales',          seccion: 'Solicitante' },
-    { numero: 9,  titulo: 'Datos personales codeudor',       seccion: 'Codeudor'    },
-    { numero: 10, titulo: 'Información laboral codeudor',    seccion: 'Codeudor'    },
-    { numero: 11, titulo: 'Información financiera codeudor', seccion: 'Codeudor'    },
-    { numero: 12, titulo: 'Patrimonio codeudor',             seccion: 'Codeudor'    },
-    { numero: 13, titulo: 'Referencias familiares codeudor', seccion: 'Codeudor'    },
-    { numero: 14, titulo: 'Referencias personales codeudor', seccion: 'Codeudor'    },
-    { numero: 15, titulo: 'Datos operativos',                seccion: 'Sistema'     },
-    { numero: 16, titulo: 'Autorizaciones',                  seccion: 'Legal'       },
-    { numero: 17, titulo: 'Firmas',                          seccion: 'Legal'       },
-  ]
+  const mostrarValorCredito = computed(() =>
+    general.value.modalidad_credito === 'educativo' ||
+    general.value.tipo_operacion === 'credito_nuevo' ||
+    (general.value.modalidad_credito === 'ordinario' && !general.value.tipo_operacion)
+  )
+
+  const mostrarValorReestructura = computed(() =>
+    ['reestructura', 'reestructura_desembolso'].includes(general.value.tipo_operacion)
+  )
+
+  const mostrarValorDesembolso = computed(() =>
+    general.value.tipo_operacion === 'reestructura_desembolso'
+  )
+
+  const mostrarCuentaDesembolso = computed(() =>
+    general.value.tipo_operacion !== 'reestructura'
+  )
+
+  const salarioBloqueado = computed(() =>
+    laboral.value.tipo_trabajador === 'independiente'
+  )
+
+  const montoTotalOperacion = computed(() => {
+    if (general.value.tipo_operacion !== 'reestructura_desembolso') return null
+    const r = Number(general.value.valor_reestructura) || 0
+    const d = Number(general.value.valor_desembolso)   || 0
+    return r + d > 0 ? r + d : null
+  })
+
+  // Pasos activos según condiciones
+  const pasosActivos = computed(() =>
+    PASOS_FORMULARIO.filter(p => {
+      if (p.numero === 7)  return mostrarCuentaDesembolso.value
+      if ([9, 10, 11].includes(p.numero)) return tieneCodudor.value === true
+      return true
+    })
+  )
+
+  const totalPasosActivos = computed(() => pasosActivos.value.length)
+
+  const porcentaje = computed(() => {
+    const idx = pasosActivos.value.findIndex(p => p.numero === paso.value)
+    if (idx < 0 || pasosActivos.value.length <= 1) return 0
+    return Math.round((idx / (pasosActivos.value.length - 1)) * 100)
+  })
+
+  // Paso actual dentro de los activos
+  const pasoActual = computed(() =>
+    pasosActivos.value.find(p => p.numero === paso.value)
+  )
+
+  // ── Dirección → texto ─────────────────────────────────────
+  function construirDireccion() {
+    const m = direccionEstructurada.value
+    if (!m.via_principal && !m.numero_via) return ''
+    let dir = m.via_principal || ''
+    if (m.numero_via)      dir += ` ${m.numero_via}`
+    if (m.letra_via)       dir += m.letra_via
+    if (m.bis)             dir += ' BIS'
+    if (m.cuadrante_via)   dir += ` ${m.cuadrante_via}`
+    dir += ' #'
+    if (m.numero_cruce)    dir += ` ${m.numero_cruce}`
+    if (m.letra_cruce)     dir += m.letra_cruce
+    if (m.cuadrante_cruce) dir += ` ${m.cuadrante_cruce}`
+    dir += ' -'
+    if (m.numero_placa)    dir += ` ${m.numero_placa}`
+    if (m.complemento)     dir += `, ${m.complemento}`
+    if (m.barrio)          dir += `, ${m.barrio}`
+    return dir.trim().toUpperCase()
+  }
 
   // ── Verificación previa ───────────────────────────────────
   async function verificarYContinuar() {
@@ -201,7 +263,6 @@ export function useSolicitudCredito() {
       errorVerificacion.value = 'Ingrese un correo electrónico válido.'
       return
     }
-
     if (!verificacion.value.numero_documento ||
         verificacion.value.numero_documento.length < 5) {
       errorVerificacion.value = 'Ingrese un número de documento válido.'
@@ -211,9 +272,7 @@ export function useSolicitudCredito() {
     loadingVerificacion.value = true
     try {
       const tiposQueVerifican = ['cedula_ciudadania', 'cedula_extranjeria']
-      const debeVerificar = tiposQueVerifican.includes(
-        verificacion.value.tipo_documento
-      )
+      const debeVerificar = tiposQueVerifican.includes(verificacion.value.tipo_documento)
 
       if (debeVerificar) {
         const resultado = await verificarAsociado(
@@ -227,21 +286,28 @@ export function useSolicitudCredito() {
         asociadoVerificado.value = resultado
       }
 
-      // Pre-llenar campos del solicitante
       persona.value.numero_identificacion = verificacion.value.numero_documento
       persona.value.tipo_documento        = verificacion.value.tipo_documento
       persona.value.correo_electronico    = verificacion.value.correo
 
-      // Recuperar borrador local si existe
       const borrador = recuperarBorradorLocal(verificacion.value.correo)
       if (borrador) {
-        if (borrador.general)    general.value    = { ...general.value,    ...borrador.general }
-        if (borrador.persona)    persona.value    = { ...persona.value,    ...borrador.persona }
-        if (borrador.laboral)    laboral.value    = { ...laboral.value,    ...borrador.laboral }
-        if (borrador.financiera) financiera.value = { ...financiera.value, ...borrador.financiera }
-        if (borrador.patrimonio) patrimonio.value = { ...patrimonio.value, ...borrador.patrimonio }
-        if (borrador.cuenta)     cuenta.value     = { ...cuenta.value,     ...borrador.cuenta }
-        if (borrador.paso)       paso.value       = borrador.paso
+        if (borrador.general)               general.value               = { ...general.value,    ...borrador.general }
+        if (borrador.persona)               persona.value               = { ...persona.value,    ...borrador.persona }
+        if (borrador.laboral)               laboral.value               = { ...laboral.value,    ...borrador.laboral }
+        if (borrador.financiera)            financiera.value            = { ...financiera.value, ...borrador.financiera }
+        if (borrador.patrimonio)            patrimonio.value            = { ...patrimonio.value, ...borrador.patrimonio }
+        if (borrador.cuenta)                cuenta.value                = { ...cuenta.value,     ...borrador.cuenta }
+        if (borrador.direccionEstructurada) direccionEstructurada.value = { ...direccionEstructurada.value, ...borrador.direccionEstructurada }
+        if (borrador.tieneCodudor !== undefined) tieneCodudor.value    = borrador.tieneCodudor
+        // Restaurar paso; validar que esté en los pasos activos (con el estado ya restaurado)
+        const pasoRestaurado = borrador.paso
+        const enActivos = PASOS_FORMULARIO.filter(p => {
+          if (p.numero === 7)              return general.value.tipo_operacion !== 'reestructura'
+          if ([9, 10, 11].includes(p.numero)) return tieneCodudor.value === true
+          return true
+        }).some(p => p.numero === pasoRestaurado)
+        paso.value = enActivos ? pasoRestaurado : 1
         borradorRecuperado.value = true
       }
 
@@ -254,79 +320,54 @@ export function useSolicitudCredito() {
     }
   }
 
-  // Detectar borrador al cambiar correo
   function onCorreoCambia(correo) {
     verificacion.value.correo = correo
     tieneBorradorPrevio.value = tieneBorrador(correo)
   }
 
-  // ── Aplanar todas las secciones para BD ──────────────────
+  // ── Aplanar para BD ───────────────────────────────────────
   function aplanarDatos() {
     return {
+      // Fecha de solicitud — automática
+      fecha_solicitud: new Date().toISOString().split('T')[0],
+      // Solicitud
       ...general.value,
+      tiene_codeudor: tieneCodudor.value === true,
+      // Persona (dirección construida desde campos estructurados)
       ...persona.value,
+      direccion_residencia: construirDireccion() || persona.value.direccion_residencia,
+      // Laboral
       ...laboral.value,
+      // Financiera (sin ahorros)
       ...financiera.value,
+      // Patrimonio
       ...patrimonio.value,
+      // Cuenta
       ...cuenta.value,
-      ref_familiar_1_nombres:    refFamiliar1.value.nombres_apellidos,
-      ref_familiar_1_parentesco: refFamiliar1.value.parentesco,
-      ref_familiar_1_profesion:  refFamiliar1.value.profesion_oficio,
-      ref_familiar_1_contacto:   refFamiliar1.value.contacto,
-      ref_familiar_2_nombres:    refFamiliar2.value.nombres_apellidos,
-      ref_familiar_2_parentesco: refFamiliar2.value.parentesco,
-      ref_familiar_2_profesion:  refFamiliar2.value.profesion_oficio,
-      ref_familiar_2_contacto:   refFamiliar2.value.contacto,
-      ref_personal_1_nombres:    refPersonal1.value.nombres_apellidos,
-      ref_personal_1_relacion:   refPersonal1.value.relacion,
-      ref_personal_1_profesion:  refPersonal1.value.profesion_oficio,
-      ref_personal_1_contacto:   refPersonal1.value.contacto,
-      ref_personal_2_nombres:    refPersonal2.value.nombres_apellidos,
-      ref_personal_2_relacion:   refPersonal2.value.relacion,
-      ref_personal_2_profesion:  refPersonal2.value.profesion_oficio,
-      ref_personal_2_contacto:   refPersonal2.value.contacto,
-      ...personaCod.value,
-      ...laboralCod.value,
-      ...financieraCod.value,
-      ...patrimonioCod.value,
-      ref_familiar_cod_1_nombres:    refFamiliarCod1.value.nombres_apellidos,
-      ref_familiar_cod_1_parentesco: refFamiliarCod1.value.parentesco,
-      ref_familiar_cod_1_profesion:  refFamiliarCod1.value.profesion_oficio,
-      ref_familiar_cod_1_contacto:   refFamiliarCod1.value.contacto,
-      ref_familiar_cod_2_nombres:    refFamiliarCod2.value.nombres_apellidos,
-      ref_familiar_cod_2_parentesco: refFamiliarCod2.value.parentesco,
-      ref_familiar_cod_2_profesion:  refFamiliarCod2.value.profesion_oficio,
-      ref_familiar_cod_2_contacto:   refFamiliarCod2.value.contacto,
-      ref_personal_cod_1_nombres:    refPersonalCod1.value.nombres_apellidos,
-      ref_personal_cod_1_relacion:   refPersonalCod1.value.relacion,
-      ref_personal_cod_1_profesion:  refPersonalCod1.value.profesion_oficio,
-      ref_personal_cod_1_contacto:   refPersonalCod1.value.contacto,
-      ref_personal_cod_2_nombres:    refPersonalCod2.value.nombres_apellidos,
-      ref_personal_cod_2_relacion:   refPersonalCod2.value.relacion,
-      ref_personal_cod_2_profesion:  refPersonalCod2.value.profesion_oficio,
-      ref_personal_cod_2_contacto:   refPersonalCod2.value.contacto,
+      // Codeudor (solo si aplica)
+      ...(tieneCodudor.value ? personaCod.value    : {}),
+      ...(tieneCodudor.value ? financieraCod.value : {}),
+      ...(tieneCodudor.value ? patrimonioCod.value : {}),
+      // Autorizaciones
       ...autorizaciones.value,
+      // Firma
+      ...firma.value,
       paso_actual: paso.value,
     }
   }
 
-  // ── Guardar progreso: localStorage + Supabase ─────────────
+  // ── Guardar: localStorage + Supabase ─────────────────────
   async function guardarPaso() {
     try {
-      // 1. Guardar en localStorage de forma inmediata (sin red)
       if (verificacion.value.correo) {
         guardarBorradorLocal(verificacion.value.correo, {
-          general:    general.value,
-          persona:    persona.value,
-          laboral:    laboral.value,
-          financiera: financiera.value,
-          patrimonio: patrimonio.value,
-          cuenta:     cuenta.value,
-          paso:       paso.value,
+          general,              persona,       laboral,
+          financiera,           patrimonio,    cuenta,
+          direccionEstructurada,
+          tieneCodudor: tieneCodudor.value,
+          paso: paso.value,
         })
       }
-
-      // 2. Guardar en Supabase en segundo plano
       const datos = sanitizarObjeto(aplanarDatos())
       if (!solicitudId.value) {
         const nuevo = await crearBorrador(datos)
@@ -340,36 +381,63 @@ export function useSolicitudCredito() {
   }
 
   // ── Navegación ────────────────────────────────────────────
+  function pasoSiguienteNumero() {
+    const activos = pasosActivos.value
+    const idx = activos.findIndex(p => p.numero === paso.value)
+    return idx < activos.length - 1 ? activos[idx + 1].numero : null
+  }
+
+  function pasoAnteriorNumero() {
+    const activos = pasosActivos.value
+    const idx = activos.findIndex(p => p.numero === paso.value)
+    return idx > 0 ? activos[idx - 1].numero : null
+  }
+
   async function siguiente() {
     error.value = null
     loading.value = true
     try {
       await guardarPaso()
-      paso.value = Math.min(paso.value + 1, totalPasos)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      const sig = pasoSiguienteNumero()
+      if (sig) {
+        paso.value = sig
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
     } finally {
       loading.value = false
     }
   }
 
   function anterior() {
-    paso.value = Math.max(paso.value - 1, 1)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    const ant = pasoAnteriorNumero()
+    if (ant) {
+      paso.value = ant
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }
 
   function irAPaso(n) {
-    if (n >= 1 && n <= totalPasos) {
+    if (pasosActivos.value.some(p => p.numero === n)) {
       paso.value = n
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
+  const esUltimoPaso = computed(() => {
+    const activos = pasosActivos.value
+    return activos.length > 0 && activos[activos.length - 1].numero === paso.value
+  })
+
   // ── Envío final ───────────────────────────────────────────
   async function enviar() {
     if (!autorizaciones.value.autorizacion_reporte_centrales ||
-        !autorizaciones.value.autorizacion_tratamiento_datos ||
+        !autorizaciones.value.autorizacion_tratamiento_datos  ||
         !autorizaciones.value.declaracion_veracidad_informacion) {
       error.value = 'Debe aceptar todas las autorizaciones obligatorias para continuar.'
+      return
+    }
+    if (!firma.value.nombre_firma.trim()) {
+      error.value = 'Debe escribir su nombre completo para firmar la solicitud.'
       return
     }
     loading.value = true
@@ -387,22 +455,34 @@ export function useSolicitudCredito() {
     }
   }
 
+  // ── Helper formato moneda ─────────────────────────────────
+  function formatMonto(n) {
+    if (!n) return ''
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency', currency: 'COP', minimumFractionDigits: 0,
+    }).format(n)
+  }
+
   return {
-    paso, totalPasos, loading, error, enviado,
-    solicitudId, erroresCampos, porcentaje, pasos,
-    // Verificación previa
+    paso, loading, error, enviado,
+    solicitudId, erroresCampos,
+    porcentaje, pasosActivos, pasoActual, esUltimoPaso,
+    // Verificación
     verificacion, verificado, loadingVerificacion, errorVerificacion,
     asociadoVerificado, mostrarModalNoAsociado,
     tieneBorradorPrevio, borradorRecuperado,
     verificarYContinuar, onCorreoCambia,
-    // Estado por sección
+    // Estado
     general, persona, laboral, financiera, patrimonio, cuenta,
-    refFamiliar1, refFamiliar2, refPersonal1, refPersonal2,
-    personaCod, laboralCod, financieraCod, patrimonioCod,
-    refFamiliarCod1, refFamiliarCod2,
-    refPersonalCod1, refPersonalCod2,
-    autorizaciones,
+    direccionEstructurada, tieneCodudor,
+    personaCod, financieraCod, patrimonioCod,
+    autorizaciones, firma,
+    // Computeds
+    mostrarTipoOperacion, mostrarValorCredito,
+    mostrarValorReestructura, mostrarValorDesembolso,
+    mostrarCuentaDesembolso, salarioBloqueado,
+    montoTotalOperacion,
     // Acciones
-    siguiente, anterior, irAPaso, enviar, guardarPaso,
+    siguiente, anterior, irAPaso, enviar, guardarPaso, formatMonto,
   }
 }

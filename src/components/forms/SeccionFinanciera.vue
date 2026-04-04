@@ -2,10 +2,10 @@
 import CampoMoneda from './CampoMoneda.vue'
 
 const props = defineProps({
-  modelValue: { type: Object, required: true },
-  errores:    { type: Object, default: () => ({}) },
-  titulo:     { type: String, required: true },
-  sinAhorros: { type: Boolean, default: false },
+  modelValue:      { type: Object, required: true },
+  errores:         { type: Object, default: () => ({}) },
+  titulo:          { type: String, required: true },
+  salarioBloqueado:{ type: Boolean, default: false },
 })
 const emit = defineEmits(['update:modelValue'])
 
@@ -13,13 +13,11 @@ function actualizar(campo, valor) {
   emit('update:modelValue', { ...props.modelValue, [campo]: valor })
 }
 
-// Detecta si el objeto es del codeudor por la presencia de 'salario_codeudor'
 function clave(base) {
   const conSufijo = base + '_codeudor'
   return conSufijo in props.modelValue ? conSufijo : base
 }
 
-// Para el salario el campo del codeudor tiene nombre diferente
 function claveSalario() {
   return 'salario_codeudor' in props.modelValue
     ? 'salario_codeudor'
@@ -30,22 +28,25 @@ function claveSalario() {
 <template>
   <div>
     <div :style="{
-      fontFamily: 'var(--font-display)',
-      fontSize: 'var(--text-lg)',
-      fontWeight: 'var(--fw-extrabold)',
-      color: 'var(--color-text-1)',
+      fontFamily:   'var(--font-display)',
+      fontSize:     'var(--text-lg)',
+      fontWeight:   'var(--fw-extrabold)',
+      color:        'var(--color-text-1)',
       marginBottom: 'var(--sp-xl)',
     }">{{ titulo }}</div>
 
     <div :style="{
-      display: 'grid',
+      display:             'grid',
       gridTemplateColumns: '1fr 1fr',
-      gap: 'var(--sp-lg)',
+      gap:                 'var(--sp-lg)',
     }">
+      <!-- Salario — bloqueable para independientes -->
       <CampoMoneda
         :model-value="modelValue[claveSalario()]"
         label="Salario / Ingresos fijos"
-        required
+        :required="!salarioBloqueado"
+        :disabled="salarioBloqueado"
+        :helper="salarioBloqueado ? 'No aplica para trabajadores independientes' : null"
         :error="errores[claveSalario()]"
         @update:model-value="actualizar(claveSalario(), $event)"
       />
@@ -79,13 +80,6 @@ function claveSalario() {
         label="Obligaciones financieras"
         :error="errores[clave('obligaciones_financieras')]"
         @update:model-value="actualizar(clave('obligaciones_financieras'), $event)"
-      />
-      <CampoMoneda
-        v-if="!sinAhorros"
-        :model-value="modelValue.ahorros"
-        label="Ahorros"
-        :error="errores.ahorros"
-        @update:model-value="actualizar('ahorros', $event)"
       />
     </div>
   </div>
