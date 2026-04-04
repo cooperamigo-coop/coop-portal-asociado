@@ -10,6 +10,7 @@ import SeccionFinanciera      from '@/components/forms/SeccionFinanciera.vue'
 import SeccionPatrimonio      from '@/components/forms/SeccionPatrimonio.vue'
 import CampoTexto             from '@/components/forms/CampoTexto.vue'
 import CampoSelect            from '@/components/forms/CampoSelect.vue'
+import CampoSelectBuscable    from '@/components/forms/CampoSelectBuscable.vue'
 import CampoMoneda            from '@/components/forms/CampoMoneda.vue'
 import CampoCheck             from '@/components/forms/CampoCheck.vue'
 import CampoFecha             from '@/components/forms/CampoFecha.vue'
@@ -34,11 +35,12 @@ const {
   tieneBorradorPrevio, borradorRecuperado,
   verificarYContinuar, onCorreoCambia,
   general, persona, laboral, financiera, patrimonio, cuenta,
-  direccionEstructurada,
+  direccionEstructurada, direccionEstructuradaCod1, direccionEstructuradaCod2,
   numCodudores,
   personaCod1, laboralCod1, financieraCod1, patrimonioCod1,
   personaCod2, laboralCod2, financieraCod2, patrimonioCod2,
   ubicacionResidencia, ubicacionExpedicion,
+  ubicacionExpedicionCod1, ubicacionExpedicionCod2,
   ubicacionCod1, ubicacionCod2,
   autorizaciones, firma,
   mostrarTipoOperacion, mostrarValorCredito,
@@ -626,11 +628,12 @@ function actualizarLaboralCod2(campo, valor) {
 
             <!-- Pensionado -->
             <template v-if="laboral.tipo_trabajador === 'pensionado'">
-              <CampoSelect
+              <CampoSelectBuscable
                 :model-value="laboral.entidad_pagadora"
                 label="Entidad pagadora"
                 required
                 :opciones="opsEntidadesPensiones"
+                :style="{ gridColumn: '1 / -1' }"
                 @update:model-value="actualizarLaboral('entidad_pagadora', $event)"
               />
             </template>
@@ -709,7 +712,7 @@ function actualizarLaboralCod2(campo, valor) {
             :opciones="opsTipoCuenta"
             @update:model-value="actualizarCuenta('tipo_cuenta', $event)"
           />
-          <CampoSelect
+          <CampoSelectBuscable
             :model-value="cuenta.entidad_bancaria"
             label="Entidad bancaria"
             required
@@ -763,9 +766,13 @@ function actualizarLaboralCod2(campo, valor) {
           v-if="paso === 9"
           :model-value="personaCod1"
           titulo="Datos del codeudor 1"
+          :direccion-estructurada="direccionEstructuradaCod1"
           :ubicacion="ubicacionCod1"
+          :ubicacion-expedicion="ubicacionExpedicionCod1"
           @update:model-value="personaCod1 = $event"
+          @update:direccion-estructurada="direccionEstructuradaCod1 = $event"
           @update:ubicacion="ubicacionCod1 = $event"
+          @update:ubicacion-expedicion="ubicacionExpedicionCod1 = $event"
         />
 
         <!-- ── PASO 10: Laboral Codeudor 1 ───────────────────── -->
@@ -789,7 +796,7 @@ function actualizarLaboralCod2(campo, valor) {
               <CampoTexto :model-value="laboralCod1.ocupacion_codeudor" label="Ocupación" placeholder="Ej: Diseñador freelance" required @update:model-value="actualizarLaboralCod1('ocupacion_codeudor', $event)" />
             </template>
             <template v-if="laboralCod1.tipo_trabajador_codeudor === 'pensionado'">
-              <CampoSelect :model-value="laboralCod1.entidad_pagadora_codeudor" label="Entidad pagadora" required :opciones="opsEntidadesPensiones" @update:model-value="actualizarLaboralCod1('entidad_pagadora_codeudor', $event)" />
+              <CampoSelectBuscable :model-value="laboralCod1.entidad_pagadora_codeudor" label="Entidad pagadora" required :opciones="opsEntidadesPensiones" :style="{ gridColumn: '1 / -1' }" @update:model-value="actualizarLaboralCod1('entidad_pagadora_codeudor', $event)" />
             </template>
             <template v-if="laboralCod1.tipo_trabajador_codeudor === 'estudiante'">
               <CampoTexto :model-value="laboralCod1.institucion_educativa_codeudor" label="Institución educativa" placeholder="Nombre de la institución" required @update:model-value="actualizarLaboralCod1('institucion_educativa_codeudor', $event)" />
@@ -829,9 +836,13 @@ function actualizarLaboralCod2(campo, valor) {
           v-if="paso === 13"
           :model-value="personaCod2"
           titulo="Datos del codeudor 2"
+          :direccion-estructurada="direccionEstructuradaCod2"
           :ubicacion="ubicacionCod2"
+          :ubicacion-expedicion="ubicacionExpedicionCod2"
           @update:model-value="personaCod2 = $event"
+          @update:direccion-estructurada="direccionEstructuradaCod2 = $event"
           @update:ubicacion="ubicacionCod2 = $event"
+          @update:ubicacion-expedicion="ubicacionExpedicionCod2 = $event"
         />
 
         <!-- ── PASO 14: Laboral Codeudor 2 ───────────────────── -->
@@ -855,7 +866,7 @@ function actualizarLaboralCod2(campo, valor) {
               <CampoTexto :model-value="laboralCod2.ocupacion_codeudor2" label="Ocupación" placeholder="Ej: Diseñador freelance" required @update:model-value="actualizarLaboralCod2('ocupacion_codeudor2', $event)" />
             </template>
             <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'pensionado'">
-              <CampoSelect :model-value="laboralCod2.entidad_pagadora_codeudor2" label="Entidad pagadora" required :opciones="opsEntidadesPensiones" @update:model-value="actualizarLaboralCod2('entidad_pagadora_codeudor2', $event)" />
+              <CampoSelectBuscable :model-value="laboralCod2.entidad_pagadora_codeudor2" label="Entidad pagadora" required :opciones="opsEntidadesPensiones" :style="{ gridColumn: '1 / -1' }" @update:model-value="actualizarLaboralCod2('entidad_pagadora_codeudor2', $event)" />
             </template>
             <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'estudiante'">
               <CampoTexto :model-value="laboralCod2.institucion_educativa_codeudor2" label="Institución educativa" placeholder="Nombre de la institución" required @update:model-value="actualizarLaboralCod2('institucion_educativa_codeudor2', $event)" />

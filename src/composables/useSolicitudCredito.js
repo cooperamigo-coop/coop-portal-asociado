@@ -63,7 +63,7 @@ export function useSolicitudCredito() {
     nivel_educativo_solicitante: '',
   })
 
-  // Dirección estructurada (solo solicitante)
+  // Dirección estructurada solicitante
   const direccionEstructurada = ref({
     via_principal:   '',
     numero_via:      '',
@@ -78,9 +78,25 @@ export function useSolicitudCredito() {
     barrio:          '',
   })
 
+  // Dirección estructurada codeudores
+  const direccionEstructuradaCod1 = ref({
+    via_principal: '', numero_via: '', letra_via: '', bis: false,
+    cuadrante_via: '', numero_cruce: '', letra_cruce: '', cuadrante_cruce: '',
+    numero_placa: '', complemento: '', barrio: '',
+  })
+  const direccionEstructuradaCod2 = ref({
+    via_principal: '', numero_via: '', letra_via: '', bis: false,
+    cuadrante_via: '', numero_cruce: '', letra_cruce: '', cuadrante_cruce: '',
+    numero_placa: '', complemento: '', barrio: '',
+  })
+
   // ── Ubicaciones (departamento/municipio) ──────────────────
   const ubicacionResidencia = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
   const ubicacionExpedicion = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
+
+  // Ubicación de expedición para codeudores
+  const ubicacionExpedicionCod1 = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
+  const ubicacionExpedicionCod2 = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
 
   // ── Sección 4: Laboral solicitante ────────────────────────
   const laboral = ref({
@@ -356,7 +372,9 @@ export function useSolicitudCredito() {
         if (borrador.financiera)            financiera.value            = { ...financiera.value, ...borrador.financiera }
         if (borrador.patrimonio)            patrimonio.value            = { ...patrimonio.value, ...borrador.patrimonio }
         if (borrador.cuenta)                cuenta.value                = { ...cuenta.value,     ...borrador.cuenta }
-        if (borrador.direccionEstructurada) direccionEstructurada.value = { ...direccionEstructurada.value, ...borrador.direccionEstructurada }
+        if (borrador.direccionEstructurada)     direccionEstructurada.value     = { ...direccionEstructurada.value,     ...borrador.direccionEstructurada     }
+        if (borrador.direccionEstructuradaCod1) direccionEstructuradaCod1.value = { ...direccionEstructuradaCod1.value, ...borrador.direccionEstructuradaCod1 }
+        if (borrador.direccionEstructuradaCod2) direccionEstructuradaCod2.value = { ...direccionEstructuradaCod2.value, ...borrador.direccionEstructuradaCod2 }
         if (borrador.numCodudores !== undefined) numCodudores.value = borrador.numCodudores
         if (borrador.personaCod1)    personaCod1.value    = { ...personaCod1.value,    ...borrador.personaCod1    }
         if (borrador.laboralCod1)    laboralCod1.value    = { ...laboralCod1.value,    ...borrador.laboralCod1    }
@@ -366,8 +384,10 @@ export function useSolicitudCredito() {
         if (borrador.laboralCod2)    laboralCod2.value    = { ...laboralCod2.value,    ...borrador.laboralCod2    }
         if (borrador.financieraCod2) financieraCod2.value = { ...financieraCod2.value, ...borrador.financieraCod2 }
         if (borrador.patrimonioCod2) patrimonioCod2.value = { ...patrimonioCod2.value, ...borrador.patrimonioCod2 }
-        if (borrador.ubicacionResidencia) ubicacionResidencia.value = { ...ubicacionResidencia.value, ...borrador.ubicacionResidencia }
-        if (borrador.ubicacionExpedicion) ubicacionExpedicion.value = { ...ubicacionExpedicion.value, ...borrador.ubicacionExpedicion }
+        if (borrador.ubicacionResidencia)    ubicacionResidencia.value    = { ...ubicacionResidencia.value,    ...borrador.ubicacionResidencia    }
+        if (borrador.ubicacionExpedicion)    ubicacionExpedicion.value    = { ...ubicacionExpedicion.value,    ...borrador.ubicacionExpedicion    }
+        if (borrador.ubicacionExpedicionCod1) ubicacionExpedicionCod1.value = { ...ubicacionExpedicionCod1.value, ...borrador.ubicacionExpedicionCod1 }
+        if (borrador.ubicacionExpedicionCod2) ubicacionExpedicionCod2.value = { ...ubicacionExpedicionCod2.value, ...borrador.ubicacionExpedicionCod2 }
         if (borrador.ubicacionCod1) ubicacionCod1.value = { ...ubicacionCod1.value, ...borrador.ubicacionCod1 }
         if (borrador.ubicacionCod2) ubicacionCod2.value = { ...ubicacionCod2.value, ...borrador.ubicacionCod2 }
         if (borrador.autorizaciones) autorizaciones.value = { ...autorizaciones.value, ...borrador.autorizaciones }
@@ -426,8 +446,10 @@ export function useSolicitudCredito() {
       ...(numCodudores.value >= 1 ? financieraCod1.value : {}),
       ...(numCodudores.value >= 1 ? patrimonioCod1.value : {}),
       ...(numCodudores.value >= 1 ? {
-        ciudad_codeudor:       ubicacionCod1.value.municipio_nombre,
-        departamento_codeudor: ubicacionCod1.value.depto_nombre,
+        ciudad_codeudor:              ubicacionCod1.value.municipio_nombre,
+        departamento_codeudor:        ubicacionCod1.value.depto_nombre,
+        ciudad_expedicion_codeudor:   ubicacionExpedicionCod1.value.municipio_nombre || personaCod1.value.ciudad_expedicion_codeudor,
+        depto_expedicion_codeudor:    ubicacionExpedicionCod1.value.depto_nombre,
       } : {}),
       // Codeudor 2
       ...(numCodudores.value >= 2 ? personaCod2.value   : {}),
@@ -435,8 +457,10 @@ export function useSolicitudCredito() {
       ...(numCodudores.value >= 2 ? financieraCod2.value : {}),
       ...(numCodudores.value >= 2 ? patrimonioCod2.value : {}),
       ...(numCodudores.value >= 2 ? {
-        ciudad_codeudor2:       ubicacionCod2.value.municipio_nombre,
-        departamento_codeudor2: ubicacionCod2.value.depto_nombre,
+        ciudad_codeudor2:             ubicacionCod2.value.municipio_nombre,
+        departamento_codeudor2:       ubicacionCod2.value.depto_nombre,
+        ciudad_expedicion_codeudor2:  ubicacionExpedicionCod2.value.municipio_nombre || personaCod2.value.ciudad_expedicion_codeudor2,
+        depto_expedicion_codeudor2:   ubicacionExpedicionCod2.value.depto_nombre,
       } : {}),
       // Autorizaciones
       ...autorizaciones.value,
@@ -452,11 +476,13 @@ export function useSolicitudCredito() {
       if (verificacion.value.correo) {
         guardarBorradorLocal(verificacion.value.correo, {
           general, persona, laboral, financiera, patrimonio, cuenta,
-          direccionEstructurada, autorizaciones, firma,
+          direccionEstructurada, direccionEstructuradaCod1, direccionEstructuradaCod2,
+          autorizaciones, firma,
           numCodudores: numCodudores.value,
           personaCod1, laboralCod1, financieraCod1, patrimonioCod1,
           personaCod2, laboralCod2, financieraCod2, patrimonioCod2,
           ubicacionResidencia, ubicacionExpedicion,
+          ubicacionExpedicionCod1, ubicacionExpedicionCod2,
           ubicacionCod1, ubicacionCod2,
           paso: paso.value,
         })
@@ -583,11 +609,12 @@ export function useSolicitudCredito() {
     verificarYContinuar, onCorreoCambia,
     // Estado
     general, persona, laboral, financiera, patrimonio, cuenta,
-    direccionEstructurada,
+    direccionEstructurada, direccionEstructuradaCod1, direccionEstructuradaCod2,
     numCodudores,
     personaCod1, laboralCod1, financieraCod1, patrimonioCod1,
     personaCod2, laboralCod2, financieraCod2, patrimonioCod2,
     ubicacionResidencia, ubicacionExpedicion,
+    ubicacionExpedicionCod1, ubicacionExpedicionCod2,
     ubicacionCod1, ubicacionCod2,
     autorizaciones, firma,
     // Computeds

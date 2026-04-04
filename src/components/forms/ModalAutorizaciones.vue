@@ -1,136 +1,370 @@
 <script setup>
 import { ref } from 'vue'
-import { X, CheckCircle, XCircle, ScrollText } from 'lucide-vue-next'
-import PortalButton from '@/components/ui/PortalButton.vue'
+import { X, CheckCircle, XCircle, ScrollText, ChevronsDown } from 'lucide-vue-next'
 
-defineProps({
+const props = defineProps({
   visible:  { type: Boolean, default: false },
   aceptado: { type: Boolean, default: false },
 })
 const emit = defineEmits(['update:visible', 'aceptar', 'rechazar'])
 
-const scrolledToBottom = ref(false)
+const scrollCompletado  = ref(false)
+const porcentajeScroll  = ref(0)
 
 function onScroll(e) {
   const el = e.target
-  if (el.scrollHeight - el.scrollTop <= el.clientHeight + 50) {
-    scrolledToBottom.value = true
+  const total = el.scrollHeight - el.clientHeight
+  if (total <= 0) {
+    scrollCompletado.value = true
+    porcentajeScroll.value = 100
+    return
+  }
+  const progreso = Math.round((el.scrollTop / total) * 100)
+  porcentajeScroll.value = progreso
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
+    scrollCompletado.value = true
+    porcentajeScroll.value = 100
   }
 }
 
-function aceptar() { emit('aceptar'); emit('update:visible', false) }
-function rechazar() { emit('rechazar'); emit('update:visible', false) }
-function cerrar() { emit('update:visible', false) }
+function aceptar() {
+  if (!scrollCompletado.value) return
+  emit('aceptar')
+  emit('update:visible', false)
+}
+
+function rechazar() {
+  if (!scrollCompletado.value) return
+  emit('rechazar')
+  emit('update:visible', false)
+}
+
+function cerrar() {
+  emit('update:visible', false)
+}
 </script>
 
 <template>
   <Teleport to="body">
     <Transition name="fade-modal">
       <div v-if="visible" :style="{
-        position: 'fixed', inset: '0', zIndex: '70',
+        position: 'fixed', inset: '0', zIndex: '80',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 'var(--sp-lg)',
       }">
-        <div :style="{ position: 'absolute', inset: '0', background: 'rgba(23,43,54,0.55)', backdropFilter: 'blur(3px)' }" @click="cerrar()" />
+        <div :style="{
+          position: 'absolute', inset: '0',
+          background: 'rgba(23,43,54,0.55)',
+          backdropFilter: 'blur(3px)',
+        }" @click="cerrar()" />
 
         <div :style="{
-          position: 'relative', width: '100%', maxWidth: '680px',
-          background: 'var(--color-bg-card)', borderRadius: 'var(--r-2xl)',
-          boxShadow: 'var(--shadow-modal)', overflow: 'hidden',
-          display: 'flex', flexDirection: 'column', maxHeight: '90vh',
+          position:      'relative',
+          width:         '100%',
+          maxWidth:      '640px',
+          maxHeight:     '92vh',
+          background:    'var(--color-bg-card)',
+          borderRadius:  'var(--r-2xl)',
+          boxShadow:     'var(--shadow-modal)',
+          display:       'flex',
+          flexDirection: 'column',
+          overflow:      'hidden',
         }">
-          <!-- Header -->
+
+          <!-- Header fijo -->
           <div :style="{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: 'var(--sp-xl) var(--sp-2xl)',
-            borderBottom: '1px solid var(--color-border-card)',
-            background: 'var(--color-bg-surface)',
-            flexShrink: '0',
+            display:        'flex',
+            alignItems:     'center',
+            justifyContent: 'space-between',
+            padding:        'var(--sp-xl) var(--sp-2xl)',
+            borderBottom:   '1px solid var(--color-border-card)',
+            background:     'var(--color-bg-surface)',
+            flexShrink:     '0',
           }">
             <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)' }">
               <div :style="{
-                width: '36px', height: '36px', borderRadius: '50%',
-                background: 'var(--color-primary)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width:          '40px', height: '40px',
+                borderRadius:   '50%',
+                background:     'var(--color-primary)',
+                display:        'flex',
+                alignItems:     'center',
+                justifyContent: 'center',
+                flexShrink:     '0',
               }">
-                <ScrollText :size="18" style="color: white;" />
+                <ScrollText :size="20" :style="{ color: '#fff' }" />
               </div>
               <div>
-                <div :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)', fontSize: 'var(--text-lg)' }">Autorizaciones y declaraciones</div>
-                <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">Lea hasta el final para aceptar</div>
+                <div :style="{
+                  fontFamily:  'var(--font-display)',
+                  fontWeight:  'var(--fw-extrabold)',
+                  color:       'var(--color-text-1)',
+                  fontSize:    'var(--text-lg)',
+                }">Autorizaciones y declaraciones</div>
+                <div :style="{
+                  fontSize:   'var(--text-sm)',
+                  color:      'var(--color-text-3)',
+                  fontWeight: 'var(--fw-medium)',
+                }">COOPERATIVA MULTIACTIVA LUIS AMIGÓ — Cooperamigó</div>
               </div>
             </div>
-            <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--sp-sm)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center' }" @click="cerrar()">
+            <button :style="{
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: 'var(--sp-sm)', borderRadius: 'var(--r-md)',
+              display: 'flex', alignItems: 'center',
+            }" @click="cerrar()">
               <X :size="20" :style="{ color: 'var(--color-text-3)' }" />
             </button>
           </div>
 
-          <!-- Cuerpo scrollable -->
+          <!-- Barra de progreso de lectura -->
+          <div :style="{ height: '3px', background: 'var(--color-border)', flexShrink: '0' }">
+            <div :style="{
+              height:       '100%',
+              width:        porcentajeScroll + '%',
+              background:   scrollCompletado ? 'var(--color-success)' : 'var(--color-primary)',
+              borderRadius: 'var(--r-pill)',
+              transition:   'width 0.2s ease',
+            }" />
+          </div>
+
+          <!-- Aviso de lectura obligatoria -->
+          <div
+            v-if="!scrollCompletado"
+            :style="{
+              display:      'flex',
+              alignItems:   'center',
+              gap:          'var(--sp-sm)',
+              padding:      'var(--sp-sm) var(--sp-2xl)',
+              background:   'var(--color-warning-bg)',
+              borderBottom: '1px solid var(--color-border)',
+              flexShrink:   '0',
+              fontSize:     'var(--text-sm)',
+              color:        'var(--color-warning-text)',
+              fontWeight:   'var(--fw-semibold)',
+            }"
+          >
+            <ChevronsDown :size="14" :style="{ flexShrink: '0' }" />
+            Desplace hasta el final del texto para habilitar los botones
+          </div>
+
+          <!-- Texto legal — scrolleable -->
           <div
             :style="{
-              flex: '1', overflowY: 'auto', padding: 'var(--sp-2xl)',
-              fontSize: 'var(--text-sm)', color: 'var(--color-text-2)',
-              lineHeight: '1.7', fontWeight: 'var(--fw-medium)',
+              flex:       '1',
+              overflowY:  'auto',
+              padding:    'var(--sp-2xl)',
+              fontSize:   'var(--text-base)',
+              color:      'var(--color-text-2)',
+              fontWeight: 'var(--fw-medium)',
+              lineHeight: '1.8',
             }"
             @scroll="onScroll"
           >
-            <p :style="{ marginBottom: 'var(--sp-md)' }">
-              Autorizo(amos) de manera expresa a la <strong>COOPERATIVA MULTIACTIVA LUIS AMIGÓ</strong>, en adelante <em>"Cooperamigó"</em>, con NIT 890.985.351-7, identificada ante el DANE con código 05001, y domiciliada en la ciudad de Medellín, Colombia, para que de conformidad con las normas vigentes sobre protección de datos personales, especialmente la Ley 1581 de 2012 y sus decretos reglamentarios, realice el tratamiento de mis datos personales.
-            </p>
-
-            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-xs)', marginTop: 'var(--sp-lg)' }">I. AUTORIZACIÓN PARA LA UTILIZACIÓN DE LOS DATOS PERSONALES</p>
-            <p :style="{ marginBottom: 'var(--sp-md)' }">
-              Autorizo a Cooperamigó para que recolecte, almacene, procese, use, circule, transmita, transfiera y en general trate mis datos personales contenidos en el presente formulario y los que en el futuro lleguen a conocer con ocasión de la relación contractual que se derive de la presente solicitud, con las siguientes finalidades: (a) evaluar mi solicitud de crédito; (b) verificar la información suministrada; (c) adelantar las gestiones de cobranza cuando sea pertinente; (d) enviar comunicaciones relacionadas con la gestión de mi crédito; (e) dar cumplimiento a disposiciones legales vigentes; (f) desarrollar actividades de mercadeo y publicidad de los productos y servicios de Cooperamigó; y (g) en general para el adecuado desarrollo del objeto social de la Cooperativa.
-            </p>
-
-            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-xs)', marginTop: 'var(--sp-lg)' }">II. DECLARACIÓN DE INFORMACIÓN</p>
-            <p :style="{ marginBottom: 'var(--sp-md)' }">
-              Declaro bajo la gravedad del juramento que toda la información consignada en el presente formulario es veraz, comprobable y completa, que no he omitido ningún dato relevante para el estudio de la presente solicitud y que asumo plena responsabilidad por cualquier inexactitud u omisión en la información suministrada. Autorizo a Cooperamigó a verificar por los medios que considere pertinentes la veracidad de la información aquí registrada.
-            </p>
-
-            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-xs)', marginTop: 'var(--sp-lg)' }">III. AUTORIZACIÓN PARA CONSULTA Y REPORTE A CENTRALES DE RIESGO</p>
-            <p :style="{ marginBottom: 'var(--sp-md)' }">
-              Autorizo expresamente a Cooperamigó para que consulte mi comportamiento crediticio, financiero y comercial ante las centrales de información crediticia legalmente autorizadas en Colombia (Datacrédito/Experian, TransUnión, CIFIN y similares), así como para que reporte, actualice y rectifique la información que resulte de la relación contractual que se derive de la presente solicitud, de conformidad con lo dispuesto en la Ley 1266 de 2008 y demás normas concordantes.
-            </p>
-
-            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-xs)', marginTop: 'var(--sp-lg)' }">IV. DECLARACIÓN DE RECEPCIÓN DE INFORMACIÓN</p>
-            <p :style="{ marginBottom: 'var(--sp-md)' }">
-              Declaro haber recibido por parte de Cooperamigó información completa, suficiente, clara y con suficiente antelación sobre las condiciones del crédito solicitado, incluyendo: tasa de interés efectiva anual, tasa de mora, plazo, cuota mensual estimada, seguros aplicables y cualquier otro costo asociado al crédito. Igualmente declaro conocer la política de protección de datos personales de Cooperamigó, la cual está disponible en las instalaciones de la Cooperativa y en su sitio web oficial.
-            </p>
-
-            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-xs)', marginTop: 'var(--sp-lg)' }">V. AUTORIZACIÓN USO DE DATOS SENSIBLES</p>
-            <p :style="{ marginBottom: 'var(--sp-lg)' }">
-              En caso de que para el trámite de la solicitud o de la relación crediticia derivada de ella sea necesario el tratamiento de datos sensibles (tales como datos biométricos, estado de salud u otros), autorizo expresamente a Cooperamigó para dicho tratamiento, de conformidad con el artículo 6° de la Ley 1581 de 2012. Entiendo que esta autorización es facultativa y que puedo revocarla en cualquier momento sin que ello afecte el estudio de mi solicitud, siempre que el tratamiento no sea necesario por disposición legal o contractual.
-            </p>
-
-            <!-- Indicador de scroll -->
-            <div v-if="!scrolledToBottom" :style="{
-              textAlign: 'center',
-              fontSize: 'var(--text-xs)',
-              color: 'var(--color-text-3)',
-              fontWeight: 'var(--fw-semibold)',
-              padding: 'var(--sp-sm)',
-              borderTop: '1px dashed var(--color-border)',
-              marginTop: 'var(--sp-md)',
+            <!-- Sección 1 -->
+            <p :style="{
+              fontWeight:   'var(--fw-bold)',
+              color:        'var(--color-text-1)',
+              marginBottom: 'var(--sp-sm)',
+              fontSize:     'var(--text-base)',
             }">
-              ↓ Continúe leyendo para activar los botones
+              AUTORIZACIÓN PARA LA UTILIZACIÓN DE LOS DATOS PERSONALES
+              Y PARA COMPARTIR INFORMACIÓN CON ALIADOS COMERCIALES Y DE CONVENIOS
+            </p>
+            <p :style="{ marginBottom: 'var(--sp-xl)' }">
+              Autorizo(amos) de manera expresa a la COOPERATIVA MULTIACTIVA LUIS AMIGÓ, en adelante
+              "Cooperamigó" o a quien represente sus derechos u ostente en el futuro sus calidades
+              para utilizar los datos que he(mos) suministrado, que llegue(mos) a suministrar o que
+              llegue(mos) a obtener lícitamente de centrales u operadores de información para:
+              i) Evaluación y aprobación de producto(s) y/o servicio(s).
+              ii) Desarrollo de la relación contractual correspondiente a producto(s) y/o servicio(s).
+              iii) Envío de información de novedades o cambios en los producto(s) y/o servicio(s).
+              iv) Envío de información sobre eventos y realización de actos de promoción y publicidad.
+              v) Actualización de datos.
+              Asimismo, autorizo(amos) que dichos datos sean compartidos con sus aliados comerciales
+              de servicios y convenios, con el fin de que me(nos) puedan ser ofrecidos otros productos
+              y servicios. Para todos los fines anteriores, autorizo(amos) el uso de mi(nuestro) e-mail,
+              direcciones electrónicas, contactos, SMS, redes sociales o medios similares.
+            </p>
+
+            <!-- Sección 2 -->
+            <p :style="{
+              fontWeight:   'var(--fw-bold)',
+              color:        'var(--color-text-1)',
+              marginBottom: 'var(--sp-sm)',
+              fontSize:     'var(--text-base)',
+            }">DECLARACIÓN DE INFORMACIÓN</p>
+            <p :style="{ marginBottom: 'var(--sp-xl)' }">
+              En cumplimiento de las disposiciones legales, Ley 1581 de 2012 y Decreto 1377 de 2013,
+              declaro(amos) que he(mos) sido informado(s) de manera clara y expresa de las finalidades
+              con que se recopilan mis(nuestros) datos, del derecho a conocer, actualizar, corregir o
+              suprimir la información entregada, así como que la Política de Tratamiento de Datos
+              Personales de Cooperamigó se encuentra disponible en la página web www.cooperamigo.com.
+              Asimismo, he(mos) sido informado(s) que en el evento en que no desee(mos) recibir
+              información comercial o publicitaria proveniente de Cooperamigó o sus aliados comerciales,
+              podré(mos) manifestarlo a través de cualquiera de los siguientes canales:
+              datospersonales@cooperamigo.com, www.cooperamigo.com y oficina principal Cooperamigó
+              ubicada en la Calle 50 No. 67 – 129 en Medellín.
+            </p>
+
+            <!-- Sección 3 -->
+            <p :style="{
+              fontWeight:   'var(--fw-bold)',
+              color:        'var(--color-text-1)',
+              marginBottom: 'var(--sp-sm)',
+              fontSize:     'var(--text-base)',
+            }">
+              AUTORIZACIÓN PARA CONSULTA Y REPORTE A CENTRALES Y/U OPERADORES DE INFORMACIÓN
+            </p>
+            <p :style="{
+              fontSize:   'var(--text-xs)',
+              color:      'var(--color-text-3)',
+              marginBottom: 'var(--sp-sm)',
+              fontStyle:  'italic',
+            }">
+              (Ley 1266 de 2008 y demás normas que la complementen, modifiquen, adicionen o sustituyan)
+            </p>
+            <p :style="{ marginBottom: 'var(--sp-xl)' }">
+              Autorizo(amos) a Cooperamigó y/o a quien en el futuro ostente la calidad de acreedor de
+              la(s) obligación(es) por mi(nosotros) contraída(s) con Cooperamigó para que con fines
+              estadísticos, de control, supervisión, desarrollo de herramientas que prevengan el fraude
+              y de conocimiento de mi comportamiento financiero y crediticio por parte de los usuarios
+              de la información y de información comercial, reporte a las centrales de información
+              financiera y crediticia que operan en Colombia el nacimiento, modificación, extinción y
+              cumplimiento o incumplimiento de la(s) obligación(es) contraída(s) con Cooperamigó.
+              La presente autorización incluye la posibilidad de ser consultado en las centrales de
+              información, así como de obtener las referencias comerciales necesarias que permitan a
+              Cooperamigó tener un conocimiento adecuado sobre mi comportamiento en el desarrollo de
+              las relaciones financieras, comerciales y/o de servicios. Adicionalmente,
+              autorizo(amos) a Cooperamigó para solicitar, consultar y obtener mi información
+              financiera, datos de seguridad social y parafiscales y/o datos personales que se
+              encuentren en centrales u operadores de información, con el fin de evaluar mi(nuestra)
+              solicitud y realizar mi(nuestro) perfilamiento. Lo anterior, sin perjuicio del
+              cumplimiento de la obligación que me asiste de actualizar anualmente mis(nuestros)
+              datos personales. La presente autorización estará vigente mientras no la revoque mediante
+              comunicación escrita dirigida a Cooperamigó.
+            </p>
+
+            <!-- Sección 4 -->
+            <p :style="{
+              fontWeight:   'var(--fw-bold)',
+              color:        'var(--color-text-1)',
+              marginBottom: 'var(--sp-sm)',
+              fontSize:     'var(--text-base)',
+            }">DECLARACIÓN DE RECEPCIÓN DE INFORMACIÓN</p>
+            <p :style="{ marginBottom: 'var(--sp-xl)' }">
+              Declaro(amos) que he(mos) recibido oportunamente de Cooperamigó los documentos
+              relacionados a esta solicitud y otros contratos y que tales documentos han estado a
+              mi(nuestra) disposición para consulta, correcciones y/o actualizaciones por lo que
+              toda la información es veraz.
+            </p>
+
+            <!-- Sección 5 -->
+            <p :style="{
+              fontWeight:   'var(--fw-bold)',
+              color:        'var(--color-text-1)',
+              marginBottom: 'var(--sp-sm)',
+              fontSize:     'var(--text-base)',
+            }">AUTORIZACIÓN USO DE DATOS SENSIBLES</p>
+            <p :style="{ marginBottom: 'var(--sp-2xl)' }">
+              Autorizo(amos) a Cooperamigó para que utilice mi huella con el fin de dar trámite a
+              lo solicitado y/o autorizado en este documento. Así mismo, declaro(amos) que
+              conozco(emos) y acepto(amos) que por medio de mi(nuestra) huella estoy(amos) otorgando
+              mi(nuestro) consentimiento y aceptación para la realización de los procesos solicitados
+              y/o autorizados en este documento. Conozco(emos) que la huella corresponde a un dato
+              sensible y que no estoy(amos) obligado(s) a autorizar su tratamiento.
+            </p>
+
+            <!-- Mensaje final -->
+            <div :style="{
+              padding:      'var(--sp-lg)',
+              borderRadius: 'var(--r-xl)',
+              background:   scrollCompletado ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
+              border:       `1px solid ${scrollCompletado ? 'var(--color-success)' : 'var(--color-border)'}`,
+              textAlign:    'center',
+              transition:   'all var(--transition-base)',
+            }">
+              <div :style="{
+                fontSize:   'var(--text-base)',
+                fontWeight: 'var(--fw-semibold)',
+                color:      scrollCompletado ? 'var(--color-success-text)' : 'var(--color-text-3)',
+              }">
+                {{ scrollCompletado
+                  ? '✓ Ha leído el documento completo. Puede proceder con su decisión.'
+                  : 'Continúe desplazando para leer el documento completo.' }}
+              </div>
             </div>
           </div>
 
-          <!-- Acciones fijas -->
+          <!-- Footer con botones — siempre visible, fuera del scroll -->
           <div :style="{
-            display: 'flex', gap: 'var(--sp-md)', justifyContent: 'flex-end',
-            padding: 'var(--sp-lg) var(--sp-2xl)',
-            borderTop: '1px solid var(--color-border-card)',
-            background: 'var(--color-bg-surface)',
-            flexShrink: '0',
+            padding:        'var(--sp-xl) var(--sp-2xl)',
+            borderTop:      '1px solid var(--color-border-card)',
+            background:     'var(--color-bg-surface)',
+            flexShrink:     '0',
+            display:        'flex',
+            gap:            'var(--sp-md)',
+            justifyContent: 'flex-end',
+            alignItems:     'center',
           }">
-            <PortalButton variant="secondary" :disabled="!scrolledToBottom" @click="rechazar()">
+            <span
+              v-if="!scrollCompletado"
+              :style="{
+                fontSize:   'var(--text-sm)',
+                color:      'var(--color-text-3)',
+                fontWeight: 'var(--fw-medium)',
+                flex:       '1',
+              }"
+            >
+              Desplace para leer ({{ porcentajeScroll }}%)
+            </span>
+
+            <!-- Botón No acepto -->
+            <button
+              :disabled="!scrollCompletado"
+              :style="{
+                display:      'flex',
+                alignItems:   'center',
+                gap:          'var(--sp-sm)',
+                padding:      'var(--sp-sm) var(--sp-xl)',
+                borderRadius: 'var(--r-pill)',
+                border:       '1px solid var(--color-border)',
+                background:   'transparent',
+                fontFamily:   'var(--font-body)',
+                fontSize:     'var(--text-base)',
+                fontWeight:   'var(--fw-semibold)',
+                color:        scrollCompletado ? 'var(--color-error-text)' : 'var(--color-text-3)',
+                cursor:       scrollCompletado ? 'pointer' : 'not-allowed',
+                opacity:      scrollCompletado ? '1' : '0.45',
+                transition:   'all var(--transition-base)',
+              }"
+              @click="rechazar()"
+            >
               <XCircle :size="15" /> No acepto
-            </PortalButton>
-            <PortalButton variant="primary" :disabled="!scrolledToBottom" @click="aceptar()">
-              <CheckCircle :size="15" /> Aceptar autorizaciones
-            </PortalButton>
+            </button>
+
+            <!-- Botón Acepto -->
+            <button
+              :disabled="!scrollCompletado"
+              :style="{
+                display:      'flex',
+                alignItems:   'center',
+                gap:          'var(--sp-sm)',
+                padding:      'var(--sp-sm) var(--sp-xl)',
+                borderRadius: 'var(--r-pill)',
+                border:       'none',
+                background:   scrollCompletado ? 'var(--color-primary)' : 'var(--color-bg-surface-alt)',
+                fontFamily:   'var(--font-body)',
+                fontSize:     'var(--text-base)',
+                fontWeight:   'var(--fw-bold)',
+                color:        scrollCompletado ? 'var(--color-text-on-primary)' : 'var(--color-text-3)',
+                cursor:       scrollCompletado ? 'pointer' : 'not-allowed',
+                boxShadow:    scrollCompletado ? 'var(--shadow-btn)' : 'none',
+                transition:   'all var(--transition-base)',
+              }"
+              @click="aceptar()"
+            >
+              <CheckCircle :size="15" /> Acepto las autorizaciones
+            </button>
           </div>
         </div>
       </div>

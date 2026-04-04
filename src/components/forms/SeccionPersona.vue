@@ -1,22 +1,22 @@
 <script setup>
 import { ref } from 'vue'
-import CampoTexto            from './CampoTexto.vue'
-import CampoSelect           from './CampoSelect.vue'
-import CampoFecha            from './CampoFecha.vue'
-import ModalDireccion        from './ModalDireccion.vue'
-import SelectorDeptoMunicipio from './SelectorDeptoMunicipio.vue'
-import PortalButton          from '@/components/ui/PortalButton.vue'
-import { MapPin }            from 'lucide-vue-next'
-import { TIPOS_DOCUMENTO }   from '@/data/formularioCredito'
+import CampoTexto              from './CampoTexto.vue'
+import CampoSelect             from './CampoSelect.vue'
+import CampoSelectBuscable     from './CampoSelectBuscable.vue'
+import CampoFecha              from './CampoFecha.vue'
+import ModalDireccion          from './ModalDireccion.vue'
+import SelectorDeptoMunicipio  from './SelectorDeptoMunicipio.vue'
+import PortalButton            from '@/components/ui/PortalButton.vue'
+import { MapPin }              from 'lucide-vue-next'
+import { TIPOS_DOCUMENTO }     from '@/data/formularioCredito'
 
 const props = defineProps({
   modelValue:            { type: Object,  required: true },
   errores:               { type: Object,  default: () => ({}) },
   titulo:                { type: String,  required: true },
-  // Bloquear doc/correo cuando vienen de la verificación previa
   bloquearDocumento:     { type: Boolean, default: false },
   bloquearCorreo:        { type: Boolean, default: false },
-  // Objeto de dirección estructurada (solo para el solicitante; null = campo libre)
+  // Objeto de dirección estructurada (modal) — null = campo libre de texto
   direccionEstructurada: { type: Object,  default: null },
   // Ubicación de residencia (depto/municipio)
   ubicacion: {
@@ -24,12 +24,9 @@ const props = defineProps({
     default: () => ({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' }),
   },
   // Ubicación de expedición del documento
-  ubicacionExpedicion: {
-    type: Object,
-    default: null,
-  },
+  ubicacionExpedicion: { type: Object, default: null },
   // Mostrar selector de nivel educativo
-  showNivelEducativo:    { type: Boolean, default: false },
+  showNivelEducativo: { type: Boolean, default: false },
 })
 const emit = defineEmits([
   'update:modelValue',
@@ -48,7 +45,7 @@ function actualizarDireccion(val) {
   emit('update:direccionEstructurada', val)
 }
 
-// Detecta si los campos son del codeudor
+// Detecta si los campos son del codeudor (sufijo _codeudor o _codeudor2)
 function clave(base) {
   const conSufijo = base + '_codeudor'
   return conSufijo in props.modelValue ? conSufijo : base
@@ -57,6 +54,20 @@ function clave(base) {
 function actualizarUpper(campo, valor) {
   actualizar(campo, valor ? valor.toUpperCase() : valor)
 }
+
+const nivelEducativoOpciones = [
+  { value: 'ninguno',               label: 'Ninguno'                   },
+  { value: 'primaria_incompleta',   label: 'Primaria incompleta'       },
+  { value: 'primaria_completa',     label: 'Primaria completa'         },
+  { value: 'secundaria_incompleta', label: 'Bachillerato incompleto'   },
+  { value: 'secundaria_completa',   label: 'Bachillerato completo'     },
+  { value: 'tecnico',               label: 'Técnico / Técnico laboral' },
+  { value: 'tecnologo',             label: 'Tecnólogo'                 },
+  { value: 'universitario',         label: 'Universitario / Pregrado'  },
+  { value: 'especializacion',       label: 'Especialización'           },
+  { value: 'maestria',              label: 'Maestría'                  },
+  { value: 'doctorado',             label: 'Doctorado'                 },
+]
 </script>
 
 <template>
@@ -85,7 +96,7 @@ function actualizarUpper(campo, valor) {
         @update:model-value="actualizar(clave('tipo_documento'), $event)"
       />
 
-      <!-- Número de identificación — bloqueado tras verificación -->
+      <!-- Número de identificación -->
       <CampoTexto
         :model-value="modelValue[clave('numero_identificacion')]"
         label="Número de documento"
@@ -95,6 +106,17 @@ function actualizarUpper(campo, valor) {
         :helper="bloquearDocumento ? 'Verificado al inicio' : null"
         :error="errores[clave('numero_identificacion')]"
         @update:model-value="actualizar(clave('numero_identificacion'), $event)"
+      />
+
+      <!-- Nivel educativo — ancho completo, solo solicitante -->
+      <CampoSelectBuscable
+        v-if="showNivelEducativo"
+        :model-value="modelValue.nivel_educativo_solicitante"
+        label="Nivel educativo"
+        required
+        :opciones="nivelEducativoOpciones"
+        :style="{ gridColumn: '1 / -1' }"
+        @update:model-value="actualizar('nivel_educativo_solicitante', $event)"
       />
 
       <!-- Nombres -->
@@ -119,7 +141,7 @@ function actualizarUpper(campo, valor) {
         @blur="actualizarUpper(clave('apellidos'), modelValue[clave('apellidos')])"
       />
 
-      <!-- Correo electrónico — bloqueado tras verificación -->
+      <!-- Correo electrónico — ancho completo -->
       <CampoTexto
         :model-value="modelValue[clave('correo_electronico')]"
         label="Correo electrónico"
@@ -133,10 +155,26 @@ function actualizarUpper(campo, valor) {
         @update:model-value="actualizar(clave('correo_electronico'), $event)"
       />
 
-      <!-- Dirección: modal colombiano para solicitante, campo libre para codeudor -->
+      <!-- Fecha de nacimiento -->
+      <CampoFecha
+        :model-value="modelValue[clave('fecha_nacimiento')]"
+        label="Fecha de nacimiento"
+        required
+        :error="errores[clave('fecha_nacimiento')]"
+        @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
+      />
+
+      <!-- Columna vacía para mantener el grid par -->
+      <div v-if="!showNivelEducativo" />
+
+      <!-- Dirección: modal colombiano para quien tenga direccionEstructurada, campo libre para el resto -->
       <div :style="{ gridColumn: '1 / -1' }">
         <div v-if="direccionEstructurada !== null">
-          <label :style="{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-xs)' }">Dirección de residencia *</label>
+          <label :style="{
+            display: 'block', fontSize: 'var(--text-sm)',
+            fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)',
+            marginBottom: 'var(--sp-xs)',
+          }">Dirección de residencia *</label>
           <div :style="{ display: 'flex', gap: 'var(--sp-sm)' }">
             <input
               :value="modelValue[clave('direccion_residencia')] || 'Sin ingresar'"
@@ -169,7 +207,7 @@ function actualizarUpper(campo, valor) {
         />
       </div>
 
-      <!-- ModalDireccion — solo para solicitante -->
+      <!-- ModalDireccion -->
       <ModalDireccion
         v-if="direccionEstructurada !== null"
         :model-value="direccionEstructurada"
@@ -179,7 +217,7 @@ function actualizarUpper(campo, valor) {
         @update:visible="modalVisible = $event"
       />
 
-      <!-- Ciudad y departamento via selector encadenado -->
+      <!-- Departamento y municipio de residencia -->
       <div :style="{ gridColumn: '1 / -1' }">
         <SelectorDeptoMunicipio
           :model-value="ubicacion"
@@ -190,38 +228,7 @@ function actualizarUpper(campo, valor) {
         />
       </div>
 
-      <!-- Fecha de nacimiento -->
-      <CampoFecha
-        :model-value="modelValue[clave('fecha_nacimiento')]"
-        label="Fecha de nacimiento"
-        required
-        :error="errores[clave('fecha_nacimiento')]"
-        @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
-      />
-
-      <!-- Nivel educativo (solo solicitante) -->
-      <CampoSelect
-        v-if="showNivelEducativo"
-        :model-value="modelValue.nivel_educativo_solicitante"
-        label="Nivel educativo"
-        required
-        :opciones="[
-          { value: 'ninguno',               label: 'Ninguno'                   },
-          { value: 'primaria_incompleta',   label: 'Primaria incompleta'       },
-          { value: 'primaria_completa',     label: 'Primaria completa'         },
-          { value: 'secundaria_incompleta', label: 'Bachillerato incompleto'   },
-          { value: 'secundaria_completa',   label: 'Bachillerato completo'     },
-          { value: 'tecnico',               label: 'Técnico / Técnico laboral' },
-          { value: 'tecnologo',             label: 'Tecnólogo'                 },
-          { value: 'universitario',         label: 'Universitario / Pregrado'  },
-          { value: 'especializacion',       label: 'Especialización'           },
-          { value: 'maestria',              label: 'Maestría'                  },
-          { value: 'doctorado',             label: 'Doctorado'                 },
-        ]"
-        @update:model-value="actualizar('nivel_educativo_solicitante', $event)"
-      />
-
-      <!-- Fecha expedición -->
+      <!-- Fecha de expedición -->
       <CampoFecha
         :model-value="modelValue[clave('fecha_expedicion_documento')]"
         label="Fecha de expedición del documento"
@@ -230,7 +237,10 @@ function actualizarUpper(campo, valor) {
         @update:model-value="actualizar(clave('fecha_expedicion_documento'), $event)"
       />
 
-      <!-- Ciudad/municipio de expedición — selector encadenado si hay ubicacionExpedicion prop, texto libre si no -->
+      <!-- Columna vacía para mantener el grid par cuando hay selector de expedición -->
+      <div v-if="ubicacionExpedicion !== null" />
+
+      <!-- Departamento y municipio de expedición -->
       <div v-if="ubicacionExpedicion !== null" :style="{ gridColumn: '1 / -1' }">
         <SelectorDeptoMunicipio
           :model-value="ubicacionExpedicion"

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { DEPARTAMENTOS, getMunicipios } from '@/data/colombiaData.js'
-import CampoSelect from './CampoSelect.vue'
+import CampoSelectBuscable from './CampoSelectBuscable.vue'
 
 const props = defineProps({
   modelValue: {
@@ -50,7 +50,7 @@ function onMuni(codigo) {
 
 <template>
   <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-md)' }">
-    <CampoSelect
+    <CampoSelectBuscable
       :model-value="deptoSel"
       :label="labelDepto"
       :opciones="opcionesDeptos"
@@ -58,7 +58,7 @@ function onMuni(codigo) {
       placeholder="Seleccione departamento"
       @update:model-value="onDepto($event)"
     />
-    <CampoSelect
+    <CampoSelectBuscable
       :model-value="muniSel"
       :label="labelMunicipio"
       :opciones="opcionesMunis"
