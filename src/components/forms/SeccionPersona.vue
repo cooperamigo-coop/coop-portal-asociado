@@ -1,7 +1,6 @@
 <script setup>
 import { ref } from 'vue'
 import CampoTexto              from './CampoTexto.vue'
-import CampoSelect             from './CampoSelect.vue'
 import CampoSelectBuscable     from './CampoSelectBuscable.vue'
 import CampoFecha              from './CampoFecha.vue'
 import ModalDireccion          from './ModalDireccion.vue'
@@ -86,7 +85,7 @@ const nivelEducativoOpciones = [
       gap:                 'var(--sp-lg)',
     }">
       <!-- Tipo de documento -->
-      <CampoSelect
+      <CampoSelectBuscable
         :model-value="modelValue[clave('tipo_documento')]"
         label="Tipo de documento"
         :opciones="TIPOS_DOCUMENTO"

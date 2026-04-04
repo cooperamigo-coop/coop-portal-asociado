@@ -9,7 +9,6 @@ import SeccionPersona         from '@/components/forms/SeccionPersona.vue'
 import SeccionFinanciera      from '@/components/forms/SeccionFinanciera.vue'
 import SeccionPatrimonio      from '@/components/forms/SeccionPatrimonio.vue'
 import CampoTexto             from '@/components/forms/CampoTexto.vue'
-import CampoSelect            from '@/components/forms/CampoSelect.vue'
 import CampoSelectBuscable    from '@/components/forms/CampoSelectBuscable.vue'
 import CampoMoneda            from '@/components/forms/CampoMoneda.vue'
 import CampoCheck             from '@/components/forms/CampoCheck.vue'
@@ -283,7 +282,7 @@ function actualizarLaboralCod2(campo, valor) {
             </div>
           </div>
 
-          <CampoSelect
+          <CampoSelectBuscable
             v-model="verificacion.tipo_documento"
             label="Tipo de documento"
             required
@@ -424,7 +423,7 @@ function actualizarLaboralCod2(campo, valor) {
           display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)',
         }">
           <!-- Tipo de operación — solo para crédito ordinario -->
-          <CampoSelect
+          <CampoSelectBuscable
             v-if="mostrarTipoOperacion"
             :model-value="general.tipo_operacion"
             label="Tipo de operación"
@@ -580,7 +579,7 @@ function actualizarLaboralCod2(campo, valor) {
                 required
                 @update:model-value="actualizarLaboral('cargo_oficio', $event)"
               />
-              <CampoSelect
+              <CampoSelectBuscable
                 :model-value="laboral.tipo_contrato"
                 label="Tipo de contrato"
                 required
@@ -647,7 +646,7 @@ function actualizarLaboralCod2(campo, valor) {
                 required
                 @update:model-value="actualizarLaboral('institucion_educativa', $event)"
               />
-              <CampoSelect
+              <CampoSelectBuscable
                 :model-value="laboral.nivel_educativo"
                 label="Nivel educativo"
                 required
@@ -705,7 +704,7 @@ function actualizarLaboralCod2(campo, valor) {
         <div v-if="paso === 7" :style="{
           display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-lg)',
         }">
-          <CampoSelect
+          <CampoSelectBuscable
             :model-value="cuenta.tipo_cuenta"
             label="Tipo de cuenta"
             required
@@ -788,7 +787,7 @@ function actualizarLaboralCod2(campo, valor) {
             <template v-if="laboralCod1.tipo_trabajador_codeudor === 'empleado'">
               <CampoTexto :model-value="laboralCod1.nombre_empresa_codeudor" label="Nombre de la empresa" placeholder="Empresa donde trabaja" required @update:model-value="actualizarLaboralCod1('nombre_empresa_codeudor', $event)" />
               <CampoTexto :model-value="laboralCod1.cargo_oficio_codeudor" label="Cargo u oficio" placeholder="Ej: Contador, Docente" required @update:model-value="actualizarLaboralCod1('cargo_oficio_codeudor', $event)" />
-              <CampoSelect :model-value="laboralCod1.tipo_contrato_codeudor" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboralCod1('tipo_contrato_codeudor', $event)" />
+              <CampoSelectBuscable :model-value="laboralCod1.tipo_contrato_codeudor" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboralCod1('tipo_contrato_codeudor', $event)" />
               <CampoFecha :model-value="laboralCod1.fecha_ingreso_codeudor" label="Fecha de ingreso" required @update:model-value="actualizarLaboralCod1('fecha_ingreso_codeudor', $event)" />
             </template>
             <template v-if="laboralCod1.tipo_trabajador_codeudor === 'independiente'">
@@ -800,7 +799,7 @@ function actualizarLaboralCod2(campo, valor) {
             </template>
             <template v-if="laboralCod1.tipo_trabajador_codeudor === 'estudiante'">
               <CampoTexto :model-value="laboralCod1.institucion_educativa_codeudor" label="Institución educativa" placeholder="Nombre de la institución" required @update:model-value="actualizarLaboralCod1('institucion_educativa_codeudor', $event)" />
-              <CampoSelect :model-value="laboralCod1.nivel_educativo_codeudor" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboralCod1('nivel_educativo_codeudor', $event)" />
+              <CampoSelectBuscable :model-value="laboralCod1.nivel_educativo_codeudor" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboralCod1('nivel_educativo_codeudor', $event)" />
             </template>
             <template v-if="laboralCod1.tipo_trabajador_codeudor === 'cuidado_hogar'">
               <!-- Sin campos adicionales -->
@@ -858,7 +857,7 @@ function actualizarLaboralCod2(campo, valor) {
             <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'empleado'">
               <CampoTexto :model-value="laboralCod2.nombre_empresa_codeudor2" label="Nombre de la empresa" placeholder="Empresa donde trabaja" required @update:model-value="actualizarLaboralCod2('nombre_empresa_codeudor2', $event)" />
               <CampoTexto :model-value="laboralCod2.cargo_oficio_codeudor2" label="Cargo u oficio" placeholder="Ej: Contador, Docente" required @update:model-value="actualizarLaboralCod2('cargo_oficio_codeudor2', $event)" />
-              <CampoSelect :model-value="laboralCod2.tipo_contrato_codeudor2" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboralCod2('tipo_contrato_codeudor2', $event)" />
+              <CampoSelectBuscable :model-value="laboralCod2.tipo_contrato_codeudor2" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboralCod2('tipo_contrato_codeudor2', $event)" />
               <CampoFecha :model-value="laboralCod2.fecha_ingreso_codeudor2" label="Fecha de ingreso" required @update:model-value="actualizarLaboralCod2('fecha_ingreso_codeudor2', $event)" />
             </template>
             <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'independiente'">
@@ -870,7 +869,7 @@ function actualizarLaboralCod2(campo, valor) {
             </template>
             <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'estudiante'">
               <CampoTexto :model-value="laboralCod2.institucion_educativa_codeudor2" label="Institución educativa" placeholder="Nombre de la institución" required @update:model-value="actualizarLaboralCod2('institucion_educativa_codeudor2', $event)" />
-              <CampoSelect :model-value="laboralCod2.nivel_educativo_codeudor2" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboralCod2('nivel_educativo_codeudor2', $event)" />
+              <CampoSelectBuscable :model-value="laboralCod2.nivel_educativo_codeudor2" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboralCod2('nivel_educativo_codeudor2', $event)" />
             </template>
             <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'cuidado_hogar'">
               <!-- Sin campos adicionales -->

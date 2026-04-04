@@ -1,8 +1,9 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { VIAS_PRINCIPALES, CUADRANTES } from '@/data/colombiaData.js'
+import { VIAS_PRINCIPALES } from '@/data/colombiaData.js'
 import { MapPin, X, Check } from 'lucide-vue-next'
-import PortalButton from '@/components/ui/PortalButton.vue'
+import PortalButton          from '@/components/ui/PortalButton.vue'
+import CampoSelectBuscable   from './CampoSelectBuscable.vue'
 
 const props = defineProps({
   modelValue: { type: Object, default: () => ({}) },
@@ -118,12 +119,14 @@ const labelStyle = {
 
             <!-- Fila 1: Vía # número letra BIS cuadrante -->
             <div :style="{ display: 'flex', alignItems: 'flex-end', gap: 'var(--sp-sm)', marginBottom: 'var(--sp-md)', flexWrap: 'wrap' }">
-              <div :style="{ flex: '0 0 140px' }">
-                <label :style="labelStyle">Tipo de vía *</label>
-                <select v-model="local.via_principal" :style="inputStyle">
-                  <option value="">Seleccione</option>
-                  <option v-for="v in VIAS_PRINCIPALES" :key="v" :value="v">{{ v }}</option>
-                </select>
+              <div :style="{ flex: '0 0 150px' }">
+                <CampoSelectBuscable
+                  :model-value="local.via_principal"
+                  label="Tipo de vía *"
+                  :opciones="VIAS_PRINCIPALES.map(v => ({ value: v, label: v }))"
+                  placeholder="Tipo de vía"
+                  @update:model-value="local.via_principal = $event"
+                />
               </div>
               <div :style="{ flex: '0 0 70px' }">
                 <label :style="labelStyle">Número *</label>
@@ -137,12 +140,20 @@ const labelStyle = {
                 <input type="checkbox" v-model="local.bis" id="dir-bis" :style="{ cursor: 'pointer', width: '16px', height: '16px' }" />
                 <label for="dir-bis" :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)', cursor: 'pointer' }">BIS</label>
               </div>
-              <div :style="{ flex: '0 0 100px' }">
-                <label :style="labelStyle">Cuadrante</label>
-                <select v-model="local.cuadrante_via" :style="inputStyle">
-                  <option value="">-</option>
-                  <option v-for="c in CUADRANTES" :key="c" :value="c">{{ c }}</option>
-                </select>
+              <div :style="{ flex: '0 0 110px' }">
+                <CampoSelectBuscable
+                  :model-value="local.cuadrante_via"
+                  label="Cuadrante"
+                  :opciones="[
+                    { value: '', label: 'Sin cuadrante' },
+                    { value: 'Norte', label: 'Norte' },
+                    { value: 'Sur', label: 'Sur' },
+                    { value: 'Este', label: 'Este' },
+                    { value: 'Oeste', label: 'Oeste' },
+                  ]"
+                  placeholder="-"
+                  @update:model-value="local.cuadrante_via = $event"
+                />
               </div>
             </div>
 
@@ -164,12 +175,20 @@ const labelStyle = {
                 <label :style="labelStyle">Placa *</label>
                 <input v-model="local.numero_placa" placeholder="18" :style="inputStyle" />
               </div>
-              <div :style="{ flex: '0 0 100px' }">
-                <label :style="labelStyle">Cuadrante</label>
-                <select v-model="local.cuadrante_cruce" :style="inputStyle">
-                  <option value="">-</option>
-                  <option v-for="c in CUADRANTES" :key="c" :value="c">{{ c }}</option>
-                </select>
+              <div :style="{ flex: '0 0 110px' }">
+                <CampoSelectBuscable
+                  :model-value="local.cuadrante_cruce"
+                  label="Cuadrante"
+                  :opciones="[
+                    { value: '', label: 'Sin cuadrante' },
+                    { value: 'Norte', label: 'Norte' },
+                    { value: 'Sur', label: 'Sur' },
+                    { value: 'Este', label: 'Este' },
+                    { value: 'Oeste', label: 'Oeste' },
+                  ]"
+                  placeholder="-"
+                  @update:model-value="local.cuadrante_cruce = $event"
+                />
               </div>
             </div>
 

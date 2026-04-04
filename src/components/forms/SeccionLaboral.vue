@@ -1,7 +1,7 @@
 <script setup>
-import CampoTexto  from './CampoTexto.vue'
-import CampoSelect from './CampoSelect.vue'
-import CampoFecha  from './CampoFecha.vue'
+import CampoTexto          from './CampoTexto.vue'
+import CampoSelectBuscable from './CampoSelectBuscable.vue'
+import CampoFecha          from './CampoFecha.vue'
 
 const props = defineProps({
   modelValue: { type: Object, required: true },
@@ -58,7 +58,7 @@ const opsTipoContrato = [
         :error="errores[clave('nombre_empresa')]"
         @update:model-value="actualizar(clave('nombre_empresa'), $event)"
       />
-      <CampoSelect
+      <CampoSelectBuscable
         :model-value="modelValue[clave('tipo_contrato')]"
         label="Tipo de contrato"
         :opciones="opsTipoContrato"
