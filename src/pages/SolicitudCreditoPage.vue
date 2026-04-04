@@ -1,16 +1,6 @@
 <script setup>
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-<<<<<<< HEAD
-import PortalLayout from '@/components/layout/PortalLayout.vue'
-import StepIndicator from '@/components/ui/StepIndicator.vue'
-import PortalButton from '@/components/ui/PortalButton.vue'
-import PortalInput from '@/components/ui/PortalInput.vue'
-import AlertaBanner from '@/components/ui/AlertaBanner.vue'
-import { useCredito } from '@/composables/useCredito'
-import { useBreakpoint } from '@/composables/useBreakpoint'
-import { CheckCircle, Mail } from 'lucide-vue-next'
-=======
 import PortalLayout      from '@/components/layout/PortalLayout.vue'
 import PortalButton      from '@/components/ui/PortalButton.vue'
 import SeccionPersona    from '@/components/forms/SeccionPersona.vue'
@@ -28,22 +18,10 @@ import {
   UserX, MessageCircle, Mail, Phone, RotateCcw,
 } from 'lucide-vue-next'
 import { useSolicitudCredito } from '@/composables/useSolicitudCredito'
->>>>>>> 11ce3e8 (feat: new fields in the credit form)
 
 const router = useRouter()
 
 const {
-<<<<<<< HEAD
-  paso, loading, loadingEmail, error, solicitudCreada, asociadoExistente,
-  erroresCampos, honeypot,
-  emailInicial, errorEmail, borradorDisponible,
-  datosPersonales, datosLaborales, datosCredito,
-  cuotaEstimada, pasoValido,
-  validarCampoActual, schemaPersonales, schemaLaborales, schemaCredito,
-  confirmarEmail, restaurarBorrador, descartarBorrador,
-  verificarCedula, irAPaso, enviarSolicitud, reiniciar,
-} = useCredito()
-=======
   paso, totalPasos, loading, error, enviado,
   porcentaje, pasos,
   verificacion, verificado, loadingVerificacion, errorVerificacion,
@@ -58,7 +36,6 @@ const {
   autorizaciones,
   siguiente, anterior, irAPaso, enviar,
 } = useSolicitudCredito()
->>>>>>> 11ce3e8 (feat: new fields in the credit form)
 
 const pasoActual = computed(() => pasos.find(p => p.numero === paso.value))
 
@@ -84,104 +61,6 @@ const opsTipoDocVerificacion = [
 <template>
   <PortalLayout>
 
-<<<<<<< HEAD
-    <!-- PASO 0: Correo electrónico -->
-    <div v-if="paso === 0" :style="{
-      maxWidth: '480px',
-      margin: '0 auto',
-    }">
-      <div :style="{
-        background: 'var(--color-bg-card)',
-        border: '1px solid var(--color-border-card)',
-        borderRadius: 'var(--r-2xl)',
-        padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
-        boxShadow: 'var(--shadow-card)',
-        textAlign: 'center',
-      }">
-        <!-- Icono -->
-        <div :style="{
-          width: '64px', height: '64px', borderRadius: '50%',
-          background: 'var(--color-primary-light)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto var(--sp-xl)',
-        }">
-          <Mail :size="28" :style="{ color: 'var(--color-primary)' }" />
-        </div>
-
-        <div :style="{
-          fontFamily: 'var(--font-display)',
-          fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-extrabold)',
-          color: 'var(--color-text-1)', marginBottom: 'var(--sp-sm)',
-        }">Solicitud de crédito</div>
-
-        <div :style="{
-          fontSize: 'var(--text-base)', color: 'var(--color-text-2)',
-          fontWeight: 'var(--fw-medium)', lineHeight: '1.6',
-          marginBottom: 'var(--sp-2xl)',
-        }">
-          Ingresa tu correo electrónico para comenzar.<br>
-          Guardaremos tu progreso para que puedas retomar la solicitud en cualquier momento.
-        </div>
-
-        <!-- Estado: borrador encontrado -->
-        <template v-if="borradorDisponible">
-          <AlertaBanner
-            tipo="info"
-            mensaje="Encontramos una solicitud de crédito guardada para este correo. ¿Deseas continuar donde lo dejaste?"
-            :style="{ marginBottom: 'var(--sp-xl)', textAlign: 'left' }"
-          />
-          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
-            <PortalButton variant="primary" @click="restaurarBorrador">
-              Continuar donde lo dejé
-            </PortalButton>
-            <PortalButton variant="secondary" @click="descartarBorrador">
-              Iniciar solicitud nueva
-            </PortalButton>
-          </div>
-        </template>
-
-        <!-- Estado: ingresar email -->
-        <template v-else>
-          <div :style="{ textAlign: 'left', marginBottom: 'var(--sp-xl)' }">
-            <PortalInput
-              label="Correo electrónico"
-              v-model="emailInicial"
-              type="email"
-              placeholder="correo@ejemplo.com"
-              required
-              :error="errorEmail"
-              @keyup.enter="confirmarEmail"
-            />
-          </div>
-          <div :style="{
-            display: 'flex', justifyContent: 'space-between',
-            gap: 'var(--sp-md)',
-          }">
-            <PortalButton variant="secondary" @click="router.push('/')">
-              Volver
-            </PortalButton>
-            <PortalButton
-              variant="primary"
-              :disabled="!pasoValido"
-              :loading="loadingEmail"
-              @click="confirmarEmail"
-            >
-              Continuar
-            </PortalButton>
-          </div>
-        </template>
-      </div>
-    </div>
-
-    <!-- PASO 4: Éxito -->
-    <div v-else-if="paso === 4" :style="{
-      background: 'var(--color-bg-card)',
-      border: '1px solid var(--color-border-card)',
-      borderRadius: 'var(--r-2xl)',
-      padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
-      boxShadow: 'var(--shadow-card)',
-      textAlign: 'center',
-=======
     <!-- ═══ PANTALLA DE ÉXITO ═══════════════════════════════ -->
     <div v-if="enviado" :style="{
       background:   'var(--color-bg-card)',
@@ -190,7 +69,6 @@ const opsTipoDocVerificacion = [
       padding:      '64px var(--sp-2xl)',
       boxShadow:    'var(--shadow-card)',
       textAlign:    'center',
->>>>>>> 11ce3e8 (feat: new fields in the credit form)
     }">
       <div :style="{
         width: '80px', height: '80px', borderRadius: '50%',
@@ -388,313 +266,6 @@ const opsTipoDocVerificacion = [
       </div>
     </div>
 
-<<<<<<< HEAD
-    <!-- PASOS 1–3 -->
-    <template v-else>
-      <!-- Encabezado -->
-      <div :style="{ marginBottom: 'var(--sp-xl)' }">
-        <div :style="{
-          fontFamily: 'var(--font-display)',
-          fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-extrabold)',
-          color: 'var(--color-text-1)', marginBottom: 'var(--sp-xs)',
-        }">Solicitud de crédito</div>
-        <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-text-2)', fontWeight: 'var(--fw-medium)' }">
-          Complete los datos para radicar su solicitud
-        </div>
-      </div>
-
-      <StepIndicator :pasos="pasos" :actual="paso" />
-
-      <div :style="{
-        background: 'var(--color-bg-card)',
-        border: '1px solid var(--color-border-card)',
-        borderRadius: 'var(--r-2xl)',
-        padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
-        boxShadow: 'var(--shadow-card)',
-        position: 'relative',
-      }">
-
-        <!-- Campo honeypot anti-bot — NO modificar este bloque -->
-        <div
-          aria-hidden="true"
-          :style="{
-            position: 'absolute',
-            left: '-9999px',
-            width: '1px',
-            height: '1px',
-            overflow: 'hidden',
-            opacity: '0',
-            pointerEvents: 'none',
-          }"
-        >
-          <input
-            v-model="honeypot"
-            type="text"
-            name="website"
-            autocomplete="off"
-            tabindex="-1"
-          />
-        </div>
-
-        <!-- PASO 1: Datos personales -->
-        <div v-if="paso === 1">
-          <div :style="{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-extrabold)',
-            color: 'var(--color-text-1)', marginBottom: 'var(--sp-xl)',
-          }">Datos personales</div>
-
-          <AlertaBanner
-            v-if="asociadoExistente"
-            tipo="info"
-            :mensaje="`Asociado encontrado: ${asociadoExistente.nombres} ${asociadoExistente.apellidos}. Los datos han sido pre-llenados.`"
-            :style="{ marginBottom: 'var(--sp-lg)' }"
-          />
-
-          <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
-            <div :style="{ gridColumn: '1 / -1' }">
-              <PortalInput
-                label="Número de cédula"
-                v-model="datosPersonales.cedula"
-                placeholder="Ej. 1122334455"
-                required
-                :error="erroresCampos.cedula"
-                @blur="() => {
-                  validarCampoActual(schemaPersonales, 'cedula', datosPersonales.cedula)
-                  verificarCedula()
-                }"
-              />
-            </div>
-            <PortalInput
-              label="Nombres"
-              v-model="datosPersonales.nombres"
-              placeholder="Sus nombres"
-              required
-              :disabled="!!asociadoExistente"
-              :error="erroresCampos.nombres"
-              @blur="() => validarCampoActual(schemaPersonales, 'nombres', datosPersonales.nombres)"
-            />
-            <PortalInput
-              label="Apellidos"
-              v-model="datosPersonales.apellidos"
-              placeholder="Sus apellidos"
-              required
-              :disabled="!!asociadoExistente"
-              :error="erroresCampos.apellidos"
-              @blur="() => validarCampoActual(schemaPersonales, 'apellidos', datosPersonales.apellidos)"
-            />
-            <PortalInput
-              label="Correo electrónico"
-              v-model="datosPersonales.email"
-              type="email"
-              placeholder="correo@ejemplo.com"
-              :disabled="true"
-            />
-            <PortalInput
-              label="Teléfono"
-              v-model="datosPersonales.telefono"
-              placeholder="3001234567"
-              :error="erroresCampos.telefono"
-              @blur="() => validarCampoActual(schemaPersonales, 'telefono', datosPersonales.telefono)"
-            />
-            <PortalInput
-              label="Fecha de nacimiento"
-              v-model="datosPersonales.fecha_nacimiento"
-              type="date"
-              :error="erroresCampos.fecha_nacimiento"
-              @blur="() => validarCampoActual(schemaPersonales, 'fecha_nacimiento', datosPersonales.fecha_nacimiento)"
-            />
-            <PortalInput
-              label="Ciudad"
-              v-model="datosPersonales.ciudad"
-              placeholder="Su ciudad"
-              :error="erroresCampos.ciudad"
-              @blur="() => validarCampoActual(schemaPersonales, 'ciudad', datosPersonales.ciudad)"
-            />
-            <div :style="{ gridColumn: '1 / -1' }">
-              <PortalInput
-                label="Dirección"
-                v-model="datosPersonales.direccion"
-                placeholder="Su dirección de residencia"
-                :error="erroresCampos.direccion"
-                @blur="() => validarCampoActual(schemaPersonales, 'direccion', datosPersonales.direccion)"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- PASO 2: Datos laborales -->
-        <div v-if="paso === 2">
-          <div :style="{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-extrabold)',
-            color: 'var(--color-text-1)', marginBottom: 'var(--sp-xl)',
-          }">Datos laborales</div>
-
-          <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
-            <div :style="{ gridColumn: '1 / -1' }">
-              <PortalInput
-                label="Empresa"
-                v-model="datosLaborales.empresa"
-                placeholder="Nombre de la empresa"
-                required
-                :error="erroresCampos.empresa"
-                @blur="() => validarCampoActual(schemaLaborales, 'empresa', datosLaborales.empresa)"
-              />
-            </div>
-            <PortalInput
-              label="Cargo"
-              v-model="datosLaborales.cargo"
-              placeholder="Su cargo actual"
-              :error="erroresCampos.cargo"
-              @blur="() => validarCampoActual(schemaLaborales, 'cargo', datosLaborales.cargo)"
-            />
-            <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
-              <label :style="{ fontSize: 'var(--text-base)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)' }">
-                Tipo de contrato
-              </label>
-              <select
-                v-model="datosLaborales.tipo_contrato"
-                :style="{
-                  padding: '10px 16px',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 'var(--r-pill)',
-                  fontSize: 'var(--text-base)',
-                  background: 'var(--color-bg-surface)',
-                  color: 'var(--color-text-1)',
-                  fontFamily: 'var(--font-body)',
-                  outline: 'none',
-                  width: '100%',
-                }"
-              >
-                <option value="">Seleccionar...</option>
-                <option value="indefinido">Indefinido</option>
-                <option value="fijo">Término fijo</option>
-                <option value="obra">Obra o labor</option>
-                <option value="prestacion">Prestación de servicios</option>
-              </select>
-            </div>
-            <PortalInput
-              label="Salario mensual"
-              v-model="datosLaborales.salario"
-              type="number"
-              placeholder="Ej. 3000000"
-              required
-              :error="erroresCampos.salario"
-              @blur="() => validarCampoActual(schemaLaborales, 'salario', datosLaborales.salario)"
-            />
-            <PortalInput
-              label="Fecha de ingreso a la empresa"
-              v-model="datosLaborales.fecha_ingreso_empresa"
-              type="date"
-              :error="erroresCampos.fecha_ingreso_empresa"
-              @blur="() => validarCampoActual(schemaLaborales, 'fecha_ingreso_empresa', datosLaborales.fecha_ingreso_empresa)"
-            />
-          </div>
-        </div>
-
-        <!-- PASO 3: Datos del crédito -->
-        <div v-if="paso === 3">
-          <div :style="{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-extrabold)',
-            color: 'var(--color-text-1)', marginBottom: 'var(--sp-xl)',
-          }">Información del crédito</div>
-
-          <!-- Tipo de crédito -->
-          <div :style="{ marginBottom: 'var(--sp-xl)' }">
-            <div :style="{ fontSize: 'var(--text-base)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)' }">
-              Tipo de crédito <span :style="{ color: 'var(--color-error)' }">*</span>
-            </div>
-            <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-md)' }">
-              <div
-                v-for="tipo in tiposCredito" :key="tipo.value"
-                :style="{
-                  padding: 'var(--sp-md) var(--sp-lg)',
-                  border: datosCredito.tipo_credito === tipo.value
-                    ? '2px solid var(--color-primary)'
-                    : '1px solid var(--color-border)',
-                  borderRadius: 'var(--r-lg)',
-                  cursor: 'pointer',
-                  background: datosCredito.tipo_credito === tipo.value
-                    ? 'var(--color-primary-light)'
-                    : 'var(--color-bg-surface)',
-                  transition: 'all var(--transition-fast)',
-                }"
-                @click="datosCredito.tipo_credito = tipo.value"
-              >
-                <div :style="{
-                  fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)',
-                  color: datosCredito.tipo_credito === tipo.value ? 'var(--color-primary)' : 'var(--color-text-1)',
-                  marginBottom: '2px',
-                }">{{ tipo.label }}</div>
-                <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">
-                  {{ tipo.desc }}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)', marginBottom: 'var(--sp-lg)' }">
-            <PortalInput
-              label="Monto solicitado (COP)"
-              v-model="datosCredito.monto_solicitado"
-              type="number"
-              placeholder="Ej. 5000000"
-              required
-              :error="erroresCampos.monto_solicitado"
-              @blur="() => validarCampoActual(schemaCredito, 'monto_solicitado', datosCredito.monto_solicitado)"
-            />
-            <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
-              <label :style="{ fontSize: 'var(--text-base)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)' }">
-                Plazo (meses) <span :style="{ color: 'var(--color-error)' }">*</span>
-              </label>
-              <select
-                v-model="datosCredito.plazo_meses"
-                :style="{
-                  padding: '10px 16px',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 'var(--r-pill)',
-                  fontSize: 'var(--text-base)',
-                  background: 'var(--color-bg-surface)',
-                  color: 'var(--color-text-1)',
-                  fontFamily: 'var(--font-body)',
-                  outline: 'none',
-                  width: '100%',
-                }"
-              >
-                <option value="">Seleccionar...</option>
-                <option v-for="p in plazos" :key="p" :value="p">{{ p }} meses</option>
-              </select>
-            </div>
-            <div :style="{ gridColumn: '1 / -1' }">
-              <PortalInput
-                label="Destino del crédito"
-                v-model="datosCredito.destino"
-                placeholder="Describa para qué usará el crédito"
-                :error="erroresCampos.destino"
-                @blur="() => validarCampoActual(schemaCredito, 'destino', datosCredito.destino)"
-              />
-            </div>
-          </div>
-
-          <!-- Cuota estimada -->
-          <div v-if="cuotaEstimada" :style="{
-            background: 'var(--color-primary-light)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 'var(--r-lg)',
-            padding: 'var(--sp-lg) var(--sp-xl)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }">
-            <div>
-              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', fontWeight: 'var(--fw-semibold)' }">
-                Cuota mensual estimada
-              </div>
-              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '2px' }">
-                Tasa del 1.8% mensual · referencial
-              </div>
-            </div>
-=======
     <!-- ═══ FORMULARIO ACTIVO (17 pasos) ════════════════════ -->
     <div v-else>
 
@@ -721,7 +292,6 @@ const opsTipoDocVerificacion = [
               letterSpacing: '0.06em',
               marginBottom:  'var(--sp-xs)',
             }">{{ pasoActual?.seccion }}</div>
->>>>>>> 11ce3e8 (feat: new fields in the credit form)
             <div :style="{
               fontFamily: 'var(--font-display)',
               fontSize:   'var(--text-xl)',
