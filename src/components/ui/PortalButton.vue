@@ -1,39 +1,130 @@
 <script setup>
 defineProps({
-  variant: { type: String, default: 'primary',
-    validator: v => ['primary', 'secondary', 'accent'].includes(v) },
+  variant: {
+    type: String,
+    default: 'primary',
+    validator: v => ['primary', 'secondary', 'accent'].includes(v),
+  },
   disabled: { type: Boolean, default: false },
   loading:  { type: Boolean, default: false },
-  type:     { type: String, default: 'button' },
+  type:     { type: String,  default: 'button' },
   full:     { type: Boolean, default: false },
 })
-const styles = {
-  primary:   { background: 'var(--color-primary)',       color: 'var(--color-text-on-primary)', border: 'none',                          boxShadow: 'var(--shadow-btn)'    },
-  secondary: { background: 'var(--color-primary-light)', color: 'var(--color-primary)',         border: '1px solid var(--color-border)', boxShadow: 'none'                 },
-  accent:    { background: 'var(--color-accent)',        color: 'var(--color-text-1)',           border: 'none',                          boxShadow: 'var(--shadow-accent)' },
+
+const estilos = {
+  primary: {
+    background: 'var(--color-primary)',
+    color:      'var(--color-text-on-primary)',
+    border:     'none',
+    boxShadow:  'var(--shadow-btn)',
+  },
+  secondary: {
+    background: 'transparent',
+    color:      'var(--color-text-2)',
+    border:     '1px solid var(--color-border)',
+    boxShadow:  'none',
+  },
+  accent: {
+    background: 'var(--color-accent)',
+    color:      'var(--color-text-1)',
+    border:     'none',
+    boxShadow:  'var(--shadow-accent)',
+  },
 }
 </script>
+
 <template>
   <button
     :type="type"
     :disabled="disabled || loading"
     :style="{
-      ...styles[variant],
-      width: full ? '100%' : 'auto',
-      padding: 'var(--sp-sm) var(--sp-xl)',
-      borderRadius: 'var(--r-pill)',
-      fontSize: 'var(--text-base)',
-      fontWeight: 'var(--fw-semibold)',
-      fontFamily: 'var(--font-body)',
-      cursor: disabled || loading ? 'not-allowed' : 'pointer',
-      opacity: disabled ? '0.6' : '1',
-      transition: 'all var(--transition-base)',
-      display: 'inline-flex',
-      alignItems: 'center',
+      ...estilos[variant],
+      width:          full ? '100%' : 'auto',
+      padding:        'var(--sp-sm) var(--sp-xl)',
+      borderRadius:   'var(--r-pill)',
+      fontSize:       'var(--text-base)',
+      fontWeight:     'var(--fw-semibold)',
+      fontFamily:     'var(--font-body)',
+      cursor:         disabled || loading ? 'not-allowed' : 'pointer',
+      opacity:        disabled ? '0.55' : '1',
+      transition:     'all var(--transition-base)',
+      display:        'inline-flex',
+      alignItems:     'center',
       justifyContent: 'center',
-      gap: 'var(--sp-sm)',
+      gap:            'var(--sp-sm)',
+      position:       'relative',
+      minWidth:       loading ? '110px' : 'auto',
     }"
   >
-    <slot />
+    <!-- Spinner centrado — visible solo durante loading -->
+    <span v-if="loading" class="portal-spinner-wrapper">
+      <span
+        class="portal-spinner"
+        :class="`portal-spinner--${variant}`"
+      />
+    </span>
+
+    <!-- Contenido — se oculta suavemente durante loading -->
+    <span
+      :style="{
+        display:    'inline-flex',
+        alignItems: 'center',
+        gap:        'var(--sp-sm)',
+        opacity:    loading ? '0' : '1',
+        transition: 'opacity 0.15s ease',
+      }"
+    >
+      <slot />
+    </span>
   </button>
 </template>
+
+<style scoped>
+/* ─── Wrapper que centra el spinner dentro del botón ─ */
+.portal-spinner-wrapper {
+  position:        absolute;
+  inset:           0;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+}
+
+/* ─── Spinner base ───────────────────────────────────── */
+.portal-spinner {
+  width:         18px;
+  height:        18px;
+  border-radius: 50%;
+  border:        2.5px solid transparent;
+  animation:     portalGirar 0.65s linear infinite;
+  flex-shrink:   0;
+}
+
+/* ─── Color según variante ──────────────────────────── */
+.portal-spinner--primary {
+  border-top-color:   rgba(255, 255, 255, 0.9);
+  border-right-color: rgba(255, 255, 255, 0.25);
+}
+.portal-spinner--secondary {
+  border-top-color:   var(--color-primary);
+  border-right-color: rgba(23, 43, 54, 0.15);
+}
+.portal-spinner--accent {
+  border-top-color:   rgba(23, 43, 54, 0.8);
+  border-right-color: rgba(23, 43, 54, 0.15);
+}
+
+/* ─── Animación de giro ─────────────────────────────── */
+@keyframes portalGirar {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Hover y active — solo cuando no está cargando ─── */
+button:not(:disabled):hover {
+  filter:    brightness(1.07);
+  transform: translateY(-1px);
+}
+button:not(:disabled):active {
+  transform: translateY(0px);
+  filter:    brightness(0.96);
+}
+</style>
