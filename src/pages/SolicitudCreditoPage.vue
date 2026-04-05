@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import PortalLayout           from '@/components/layout/PortalLayout.vue'
 import PortalButton           from '@/components/ui/PortalButton.vue'
@@ -110,6 +110,25 @@ function label(map, val) { return map[val] || val || '—' }
 
 function actualizarGeneral(campo, valor) {
   general.value = { ...general.value, [campo]: valor }
+}
+
+const esEducativo = computed(() => general.value.modalidad_credito === 'educativo')
+const maxPlazo    = computed(() => esEducativo.value ? 6 : 120)
+
+// Clamp plazo si ya tenía un valor mayor cuando se cambia a educativo
+watch(esEducativo, (educativo) => {
+  if (educativo && Number(general.value.plazo_solicitado) > 6) {
+    general.value = { ...general.value, plazo_solicitado: '6' }
+  }
+})
+
+function actualizarPlazo(valor) {
+  const num = Number(valor)
+  if (valor !== '' && num > maxPlazo.value) {
+    actualizarGeneral('plazo_solicitado', String(maxPlazo.value))
+  } else {
+    actualizarGeneral('plazo_solicitado', valor)
+  }
 }
 
 function actualizarLaboral(campo, valor) {
@@ -509,8 +528,8 @@ function actualizarLaboralCod2(campo, valor) {
                 :value="general.plazo_solicitado"
                 type="number"
                 min="1"
-                max="120"
-                placeholder="Ej: 24"
+                :max="maxPlazo"
+                :placeholder="esEducativo ? '1 a 6' : 'Ej: 24'"
                 :style="{
                   padding:      '9px 14px',
                   border:       '1px solid var(--color-border)',
@@ -522,7 +541,7 @@ function actualizarLaboralCod2(campo, valor) {
                   outline:      'none',
                   width:        '120px',
                 }"
-                @input="actualizarGeneral('plazo_solicitado', $event.target.value)"
+                @input="actualizarPlazo($event.target.value)"
               />
               <span :style="{
                 fontSize:   'var(--text-base)',
@@ -530,6 +549,15 @@ function actualizarLaboralCod2(campo, valor) {
                 fontWeight: 'var(--fw-medium)',
               }">meses</span>
             </div>
+            <div
+              v-if="esEducativo"
+              :style="{
+                fontSize:   'var(--text-xs)',
+                color:      'var(--color-text-3)',
+                marginTop:  'var(--sp-xs)',
+                fontWeight: 'var(--fw-medium)',
+              }"
+            >Crédito educativo: máximo 6 meses</div>
           </div>
         </div>
 
