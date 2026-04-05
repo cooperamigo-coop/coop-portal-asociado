@@ -6,7 +6,7 @@ import CampoFecha              from './CampoFecha.vue'
 import ModalDireccion          from './ModalDireccion.vue'
 import SelectorDeptoMunicipio  from './SelectorDeptoMunicipio.vue'
 import PortalButton            from '@/components/ui/PortalButton.vue'
-import { MapPin }              from 'lucide-vue-next'
+import { IconMapPin }          from '@tabler/icons-vue'
 import { TIPOS_DOCUMENTO }     from '@/data/formularioCredito'
 
 const props = defineProps({
@@ -190,7 +190,7 @@ const nivelEducativoOpciones = [
               @click="modalVisible = true"
             />
             <PortalButton variant="secondary" @click="modalVisible = true">
-              <MapPin :size="14" />
+              <IconMapPin :size="14" />
               {{ modelValue[clave('direccion_residencia')] ? 'Editar' : 'Ingresar' }}
             </PortalButton>
           </div>

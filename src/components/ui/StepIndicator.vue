@@ -1,5 +1,5 @@
 <script setup>
-import { CheckCircle } from 'lucide-vue-next'
+import { IconCircleCheck } from '@tabler/icons-vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 defineProps({
   pasos:   { type: Array, required: true },
@@ -25,7 +25,7 @@ const { isMobile } = useBreakpoint()
             ? 'none' : '1px solid var(--color-border)',
           transition: 'all var(--transition-base)',
         }">
-          <CheckCircle v-if="actual > i + 1" :size="16" :style="{ color: 'var(--color-text-on-primary)' }" />
+          <IconCircleCheck v-if="actual > i + 1" :size="16" :style="{ color: 'var(--color-text-on-primary)' }" />
           <span v-else :style="{
             fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)',
             color: actual === i + 1 ? 'var(--color-text-on-primary)' : 'var(--color-text-3)',

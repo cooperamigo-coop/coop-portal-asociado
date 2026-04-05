@@ -37,6 +37,12 @@ export function useAfiliacion() {
   const emailInicial = ref('')
   const errorEmail = ref('')
   const borradorDisponible = ref(null)
+  const tipoDocumentoInicial = ref('cedula_ciudadania')
+  const numeroDocumentoInicial = ref('')
+  const errorNumeroDoc = ref('')
+  const aceptaAutorizacion = ref(false)
+  const loadingVerificacion = ref(false)
+  const mostrarModalYaAsociado = ref(false)
 
   const datosPersonales = ref({
     cedula: '', nombres: '', apellidos: '',
@@ -53,7 +59,13 @@ export function useAfiliacion() {
 
   const pasoValido = computed(() => {
     if (paso.value === 0) {
-      return !!(emailInicial.value.trim() && !errorEmail.value)
+      return !!(
+        emailInicial.value.trim() &&
+        !errorEmail.value &&
+        tipoDocumentoInicial.value &&
+        numeroDocumentoInicial.value.trim().length >= 5 &&
+        aceptaAutorizacion.value
+      )
     }
     if (paso.value === 1) {
       return !!(
@@ -84,6 +96,45 @@ export function useAfiliacion() {
       const copia = { ...erroresCampos.value }
       delete copia[campo]
       erroresCampos.value = copia
+    }
+  }
+
+  async function verificarYContinuar() {
+    errorEmail.value = ''
+    errorNumeroDoc.value = ''
+
+    const email  = emailInicial.value.trim()
+    const numDoc = numeroDocumentoInicial.value.trim()
+
+    if (!email) { errorEmail.value = 'El correo electrónico es requerido'; return }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errorEmail.value = 'Correo electrónico inválido'; return }
+    const errCedula = validarCampo(schemaPersonales, 'cedula', numDoc)
+    if (errCedula) { errorNumeroDoc.value = errCedula; return }
+
+    loadingVerificacion.value = true
+    try {
+      const existente = await buscarAsociadoPorCedula(numDoc)
+      if (existente) {
+        mostrarModalYaAsociado.value = true
+        return
+      }
+      const borrador = await buscarBorrador(email, 'afiliacion')
+      if (borrador) {
+        borradorDisponible.value = borrador
+      } else {
+        datosPersonales.value.email  = email
+        datosPersonales.value.cedula = numDoc
+        paso.value = 1
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    } catch {
+      // Error en verificación — continuar (fail open)
+      datosPersonales.value.email  = email
+      datosPersonales.value.cedula = numDoc
+      paso.value = 1
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } finally {
+      loadingVerificacion.value = false
     }
   }
 
@@ -267,6 +318,12 @@ export function useAfiliacion() {
     emailInicial.value = ''
     errorEmail.value = ''
     borradorDisponible.value = null
+    tipoDocumentoInicial.value = 'cedula_ciudadania'
+    numeroDocumentoInicial.value = ''
+    errorNumeroDoc.value = ''
+    aceptaAutorizacion.value = false
+    loadingVerificacion.value = false
+    mostrarModalYaAsociado.value = false
     loading.value = false
     error.value = null
     solicitudCreada.value = null
@@ -288,10 +345,12 @@ export function useAfiliacion() {
     paso, loading, loadingEmail, error, solicitudCreada, asociadoExistente,
     erroresCampos, honeypot,
     emailInicial, errorEmail, borradorDisponible,
+    tipoDocumentoInicial, numeroDocumentoInicial, errorNumeroDoc,
+    aceptaAutorizacion, loadingVerificacion, mostrarModalYaAsociado,
     datosPersonales, datosLaborales,
     pasoValido,
     validarCampoActual, schemaPersonales, schemaLaborales,
-    confirmarEmail, restaurarBorrador, descartarBorrador,
+    verificarYContinuar, confirmarEmail, restaurarBorrador, descartarBorrador,
     verificarCedula, irAPaso, enviarSolicitud, reiniciar,
   }
 }

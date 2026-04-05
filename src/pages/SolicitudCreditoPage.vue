@@ -17,9 +17,9 @@ import ModalDireccion         from '@/components/forms/ModalDireccion.vue'
 import SelectorDeptoMunicipio from '@/components/forms/SelectorDeptoMunicipio.vue'
 import ModalAutorizaciones    from '@/components/forms/ModalAutorizaciones.vue'
 import {
-  CheckCircle,
-  UserX, Mail, Phone, RotateCcw, Users, UserCheck, ScrollText,
-} from 'lucide-vue-next'
+  IconCircleCheck,
+  IconUserX, IconMail, IconRotate, IconUsers, IconUserCheck, IconFileDescription,
+} from '@tabler/icons-vue'
 import { useSolicitudCredito } from '@/composables/useSolicitudCredito'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 
@@ -183,7 +183,7 @@ function actualizarLaboralCod2(campo, valor) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         margin: '0 auto var(--sp-xl)',
       }">
-        <CheckCircle :size="40" :style="{ color: 'var(--color-success)' }" />
+        <IconCircleCheck :size="40" :style="{ color: 'var(--color-success)' }" />
       </div>
       <div :style="{
         fontFamily:   'var(--font-display)',
@@ -218,7 +218,7 @@ function actualizarLaboralCod2(campo, valor) {
         textAlign: 'left',
       }">
         <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', marginBottom: 'var(--sp-sm)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
-          <Mail :size="16" /> Enlace de firma enviado al codeudor
+          <IconMail :size="16" /> Enlace de firma enviado al codeudor
         </div>
         <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-primary)', fontWeight: 'var(--fw-medium)', lineHeight: '1.6' }">
           Se enviará un enlace al correo del codeudor para que firme la solicitud.
@@ -270,7 +270,7 @@ function actualizarLaboralCod2(campo, valor) {
                 border:       '1px solid var(--color-border)',
               }"
             >
-              <RotateCcw :size="14" :style="{ color: 'var(--color-warning-text)', flexShrink: '0' }" />
+              <IconRotate :size="14" :style="{ color: 'var(--color-warning-text)', flexShrink: '0' }" />
               <span :style="{
                 fontSize:   'var(--text-sm)',
                 color:      'var(--color-warning-text)',
@@ -361,7 +361,7 @@ function actualizarLaboralCod2(campo, valor) {
         maxWidth:     '520px',
         margin:       'var(--sp-lg) auto 0',
       }">
-        <CheckCircle :size="16" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
+        <IconCircleCheck :size="16" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
         <span :style="{
           fontSize:   'var(--text-base)',
           color:      'var(--color-success-text)',
@@ -788,8 +788,8 @@ function actualizarLaboralCod2(campo, valor) {
               }"
               @click="numCodudores = opcion.num"
             >
-              <UserCheck v-if="opcion.num === 1" :size="28" :style="{ color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
-              <Users v-else :size="28" :style="{ color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
+              <IconUserCheck v-if="opcion.num === 1" :size="28" :style="{ color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
+              <IconUsers v-else :size="28" :style="{ color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
               <div :style="{ fontWeight: 'var(--fw-bold)', color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-1)', fontSize: 'var(--text-base)' }">{{ opcion.titulo }}</div>
               <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">{{ opcion.desc }}</div>
             </div>
@@ -959,7 +959,7 @@ function actualizarLaboralCod2(campo, valor) {
                 background: autorizaciones.autorizacion_aceptada ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
                 border: autorizaciones.autorizacion_aceptada ? '1px solid var(--color-success)' : '1px solid var(--color-border)',
               }">
-                <CheckCircle v-if="autorizaciones.autorizacion_aceptada" :size="16" :style="{ color: 'var(--color-success)' }" />
+                <IconCircleCheck v-if="autorizaciones.autorizacion_aceptada" :size="16" :style="{ color: 'var(--color-success)' }" />
                 <span :style="{
                   fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)',
                   color: autorizaciones.autorizacion_aceptada ? 'var(--color-success-text)' : 'var(--color-text-3)',
@@ -973,7 +973,7 @@ function actualizarLaboralCod2(campo, valor) {
               :style="{ marginTop: 'var(--sp-lg)' }"
               @click="modalAutorizacionesVisible = true"
             >
-              <ScrollText :size="15" />
+              <IconFileDescription :size="15" />
               {{ autorizaciones.autorizacion_aceptada ? 'Revisar autorizaciones' : 'Leer y aceptar autorizaciones' }}
             </PortalButton>
           </div>
@@ -1329,7 +1329,7 @@ function actualizarLaboralCod2(campo, valor) {
 
     <!-- ═══ MODAL — Asociado no encontrado ══════════════════ -->
     <Teleport to="body">
-      <Transition name="fade-modal">
+      <Transition :name="isMobile ? 'sheet-modal' : 'fade-modal'">
         <div
           v-if="mostrarModalNoAsociado"
           :style="{
@@ -1337,9 +1337,9 @@ function actualizarLaboralCod2(campo, valor) {
             inset:          '0',
             zIndex:         '60',
             display:        'flex',
-            alignItems:     'center',
+            alignItems:     isMobile ? 'flex-end' : 'center',
             justifyContent: 'center',
-            padding:        'var(--sp-lg)',
+            padding:        isMobile ? '0' : 'var(--sp-lg)',
           }"
         >
           <!-- Backdrop -->
@@ -1354,222 +1354,80 @@ function actualizarLaboralCod2(campo, valor) {
           <div :style="{
             position:     'relative',
             width:        '100%',
-            maxWidth:     '480px',
+            maxWidth:     isMobile ? '100%' : '480px',
             background:   'var(--color-bg-card)',
-            borderRadius: 'var(--r-2xl)',
+            borderRadius: isMobile ? 'var(--r-2xl) var(--r-2xl) 0 0' : 'var(--r-2xl)',
             boxShadow:    'var(--shadow-modal)',
-            padding:      'var(--sp-2xl)',
-            animation:    'entrarModal 0.3s cubic-bezier(0.34,1.56,0.64,1) both',
+            padding:      isMobile ? 'var(--sp-md) var(--sp-lg) var(--sp-2xl)' : 'var(--sp-2xl)',
+            maxHeight:    isMobile ? '55vh' : 'none',
+            overflowY:    isMobile ? 'auto' : 'visible',
+            animation:    isMobile
+              ? 'entrarModalSheet 0.35s cubic-bezier(0.32,0.72,0,1) both'
+              : 'entrarModal 0.3s cubic-bezier(0.34,1.56,0.64,1) both',
           }">
+            <!-- Handle (solo mobile) -->
+            <div v-if="isMobile" :style="{
+              width:        '40px',
+              height:       '4px',
+              borderRadius: 'var(--r-pill)',
+              background:   'var(--color-border)',
+              margin:       '0 auto var(--sp-lg)',
+            }" />
 
+            <!-- Icono -->
             <div :style="{
-              width: '72px', height: '72px', borderRadius: '50%',
+              width: '64px', height: '64px', borderRadius: '50%',
               background: 'var(--color-warning-bg)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto var(--sp-xl)',
+              margin: '0 auto var(--sp-lg)',
+              flexShrink: '0',
             }">
-              <UserX :size="34" :style="{ color: 'var(--color-warning-text)' }" />
+              <IconUserX :size="30" :style="{ color: 'var(--color-warning-text)' }" />
             </div>
 
+            <!-- Título + descripción -->
             <div :style="{ textAlign: 'center', marginBottom: 'var(--sp-xl)' }">
               <div :style="{
                 fontFamily:   'var(--font-display)',
                 fontSize:     'var(--text-lg)',
                 fontWeight:   'var(--fw-extrabold)',
                 color:        'var(--color-text-1)',
-                marginBottom: 'var(--sp-md)',
+                marginBottom: 'var(--sp-sm)',
               }">Documento no encontrado</div>
               <div :style="{
                 fontSize:   'var(--text-base)',
                 color:      'var(--color-text-2)',
                 fontWeight: 'var(--fw-medium)',
-                lineHeight: '1.7',
+                lineHeight: '1.6',
               }">
                 El documento
-                <strong :style="{ color: 'var(--color-text-1)' }">
-                  {{ verificacion.numero_documento }}
-                </strong>
+                <strong :style="{ color: 'var(--color-text-1)' }">{{ verificacion.numero_documento }}</strong>
                 no está registrado como asociado activo de Cooperamigó.
-              </div>
-              <div :style="{
-                fontSize:   'var(--text-base)',
-                color:      'var(--color-text-2)',
-                fontWeight: 'var(--fw-medium)',
-                lineHeight: '1.7',
-                marginTop:  'var(--sp-sm)',
-              }">
-                Para solicitar un crédito debe ser asociado.
-                Contáctenos y con gusto le orientamos en el proceso de afiliación.
+                Para solicitar crédito debe ser asociado.
               </div>
             </div>
 
+            <!-- Divisor -->
             <div :style="{
               height:     '1px',
               background: 'var(--color-border)',
-              margin:     'var(--sp-xl) 0',
+              margin:     'var(--sp-lg) 0',
             }" />
 
+            <!-- Acciones -->
             <div :style="{
-              display:       'flex',
-              flexDirection: 'column',
-              gap:           'var(--sp-md)',
-              marginBottom:  'var(--sp-xl)',
+              display:        'flex',
+              flexDirection:  isMobile ? 'column' : 'row',
+              justifyContent: isMobile ? 'stretch' : 'flex-end',
+              gap:            'var(--sp-sm)',
             }">
-              <div :style="{
-                fontSize:      'var(--text-sm)',
-                fontWeight:    'var(--fw-bold)',
-                color:         'var(--color-text-3)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                marginBottom:  'var(--sp-xs)',
-              }">Canales de atención</div>
-
-              <!-- WhatsApp -->
-              <!-- TODO: Reemplazar con número real -->
-              <a
-                href="https://wa.me/57XXXXXXXXXX"
-                target="_blank"
-                rel="noopener noreferrer"
-                :style="{
-                  display:        'flex',
-                  alignItems:     'center',
-                  gap:            'var(--sp-md)',
-                  padding:        'var(--sp-md) var(--sp-lg)',
-                  borderRadius:   'var(--r-xl)',
-                  background:     'var(--color-bg-surface)',
-                  border:         '1px solid var(--color-border)',
-                  textDecoration: 'none',
-                  transition:     'all var(--transition-fast)',
-                  cursor:         'pointer',
-                }"
-                @mouseenter="e => {
-                  e.currentTarget.style.background = 'var(--color-primary-light)'
-                  e.currentTarget.style.borderColor = 'var(--color-primary)'
-                }"
-                @mouseleave="e => {
-                  e.currentTarget.style.background = 'var(--color-bg-surface)'
-                  e.currentTarget.style.borderColor = 'var(--color-border)'
-                }"
-              >
-                <div :style="{
-                  width: '40px', height: '40px', borderRadius: 'var(--r-lg)',
-                  background: 'var(--color-success)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: '0',
-                }">
-                  <Mail :size="20" :style="{ color: 'var(--color-text-on-primary)' }" />
-                </div>
-                <div>
-                  <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">WhatsApp</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">Atención inmediata</div>
-                </div>
-              </a>
-
-              <!-- Correo -->
-              <!-- TODO: Reemplazar con correo real -->
-              <a
-                href="mailto:info@cooperamigo.com"
-                :style="{
-                  display:        'flex',
-                  alignItems:     'center',
-                  gap:            'var(--sp-md)',
-                  padding:        'var(--sp-md) var(--sp-lg)',
-                  borderRadius:   'var(--r-xl)',
-                  background:     'var(--color-bg-surface)',
-                  border:         '1px solid var(--color-border)',
-                  textDecoration: 'none',
-                  transition:     'all var(--transition-fast)',
-                  cursor:         'pointer',
-                }"
-                @mouseenter="e => {
-                  e.currentTarget.style.background = 'var(--color-primary-light)'
-                  e.currentTarget.style.borderColor = 'var(--color-primary)'
-                }"
-                @mouseleave="e => {
-                  e.currentTarget.style.background = 'var(--color-bg-surface)'
-                  e.currentTarget.style.borderColor = 'var(--color-border)'
-                }"
-              >
-                <div :style="{
-                  width: '40px', height: '40px', borderRadius: 'var(--r-lg)',
-                  background: 'var(--color-primary)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: '0',
-                }">
-                  <Mail :size="20" :style="{ color: 'var(--color-text-on-primary)' }" />
-                </div>
-                <div>
-                  <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">info@cooperamigo.com</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">Respuesta en 24 horas hábiles</div>
-                </div>
-              </a>
-
-              <!-- Teléfono -->
-              <!-- TODO: Reemplazar con número real -->
-              <a
-                href="tel:+57XXXXXXXXXX"
-                :style="{
-                  display:        'flex',
-                  alignItems:     'center',
-                  gap:            'var(--sp-md)',
-                  padding:        'var(--sp-md) var(--sp-lg)',
-                  borderRadius:   'var(--r-xl)',
-                  background:     'var(--color-bg-surface)',
-                  border:         '1px solid var(--color-border)',
-                  textDecoration: 'none',
-                  transition:     'all var(--transition-fast)',
-                  cursor:         'pointer',
-                }"
-                @mouseenter="e => {
-                  e.currentTarget.style.background = 'var(--color-primary-light)'
-                  e.currentTarget.style.borderColor = 'var(--color-primary)'
-                }"
-                @mouseleave="e => {
-                  e.currentTarget.style.background = 'var(--color-bg-surface)'
-                  e.currentTarget.style.borderColor = 'var(--color-border)'
-                }"
-              >
-                <div :style="{
-                  width: '40px', height: '40px', borderRadius: 'var(--r-lg)',
-                  background: 'var(--color-impulso)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: '0',
-                }">
-                  <Phone :size="20" :style="{ color: '#fff' }" />
-                </div>
-                <div>
-                  <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">+57 XXX XXX XXXX</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">Línea directa de atención</div>
-                </div>
-              </a>
-            </div>
-
-            <div :style="{
-              padding:      'var(--sp-lg)',
-              borderRadius: 'var(--r-xl)',
-              background:   'var(--color-primary-light)',
-              border:       '1px solid var(--color-border)',
-              textAlign:    'center',
-              marginBottom: 'var(--sp-xl)',
-            }">
-              <div :style="{
-                fontSize:     'var(--text-base)',
-                color:        'var(--color-primary)',
-                fontWeight:   'var(--fw-semibold)',
-                marginBottom: 'var(--sp-sm)',
-              }">¿Aún no es asociado?</div>
-              <PortalButton variant="primary" @click="router.push('/solicitar-afiliacion')">
+              <PortalButton variant="secondary" :full="isMobile" @click="mostrarModalNoAsociado = false">
+                Volver e intentar
+              </PortalButton>
+              <PortalButton variant="primary" :full="isMobile" @click="router.push('/solicitar-afiliacion')">
                 Solicitar afiliación
               </PortalButton>
             </div>
-
-            <PortalButton
-              variant="secondary"
-              :full="true"
-              @click="mostrarModalNoAsociado = false"
-            >
-              Volver e intentar con otro documento
-            </PortalButton>
 
           </div>
         </div>
@@ -1590,8 +1448,21 @@ function actualizarLaboralCod2(campo, valor) {
     transform: translateY(0) scale(1);
   }
 }
+
+@keyframes entrarModalSheet {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* Transición desktop */
 .fade-modal-enter-active { transition: opacity 0.2s ease; }
 .fade-modal-leave-active { transition: opacity 0.15s ease; }
 .fade-modal-enter-from,
 .fade-modal-leave-to     { opacity: 0; }
+
+/* Transición bottom sheet mobile */
+.sheet-modal-enter-active { transition: opacity 0.3s ease; }
+.sheet-modal-leave-active { transition: opacity 0.2s ease; }
+.sheet-modal-enter-from,
+.sheet-modal-leave-to     { opacity: 0; }
 </style>

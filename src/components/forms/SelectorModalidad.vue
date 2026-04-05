@@ -1,12 +1,12 @@
 <script setup>
-import { CreditCard, GraduationCap } from 'lucide-vue-next'
+import { IconCreditCard, IconSchool } from '@tabler/icons-vue'
 
 defineProps({
   modelValue: { type: String, default: '' },
 })
 defineEmits(['update:modelValue'])
 
-const iconos = { CreditCard, GraduationCap }
+const iconos = { CreditCard: IconCreditCard, GraduationCap: IconSchool }
 
 const opciones = [
   {

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { VIAS_PRINCIPALES } from '@/data/colombiaData.js'
-import { MapPin, X, Check } from 'lucide-vue-next'
+import { IconMapPin, IconX, IconCheck } from '@tabler/icons-vue'
 import PortalButton          from '@/components/ui/PortalButton.vue'
 import CampoSelectBuscable   from './CampoSelectBuscable.vue'
 
@@ -102,7 +102,7 @@ const labelStyle = {
                 background: 'var(--color-primary)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }">
-                <MapPin :size="18" style="color: white;" />
+                <IconMapPin :size="18" style="color: white;" />
               </div>
               <div>
                 <div :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)', fontSize: 'var(--text-lg)' }">Ingresar dirección</div>
@@ -110,7 +110,7 @@ const labelStyle = {
               </div>
             </div>
             <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--sp-sm)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center' }" @click="cerrar()">
-              <X :size="20" :style="{ color: 'var(--color-text-3)' }" />
+              <IconX :size="20" :style="{ color: 'var(--color-text-3)' }" />
             </button>
           </div>
 
@@ -227,7 +227,7 @@ const labelStyle = {
           }">
             <PortalButton variant="secondary" @click="cerrar()">Cancelar</PortalButton>
             <PortalButton variant="primary" :disabled="!preview" @click="confirmar()">
-              <Check :size="15" /> Confirmar dirección
+              <IconCheck :size="15" /> Confirmar dirección
             </PortalButton>
           </div>
         </div>

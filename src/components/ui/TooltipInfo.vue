@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { Info } from 'lucide-vue-next'
+import { IconInfoCircle } from '@tabler/icons-vue'
 
 defineProps({
   texto:    { type: String, required: true },
@@ -16,7 +16,7 @@ const visible = ref(false)
     @mouseenter="visible = true"
     @mouseleave="visible = false"
   >
-    <Info
+    <IconInfoCircle
       :size="14"
       :style="{ color: 'var(--color-text-3)', cursor: 'help', flexShrink: '0' }"
     />

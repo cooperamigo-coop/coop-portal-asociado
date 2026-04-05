@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { ChevronDown, Search, X, Check } from 'lucide-vue-next'
+import { IconChevronDown, IconSearch, IconX, IconCheck } from '@tabler/icons-vue'
 
 const props = defineProps({
   modelValue:  { type: String, default: '' },
@@ -131,10 +131,10 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickFuera))
         }"
         @click.stop="limpiar($event)"
       >
-        <X :size="14" />
+        <IconX :size="14" />
       </button>
 
-      <ChevronDown
+      <IconChevronDown
         :size="16"
         :style="{
           color:      'var(--color-text-3)',
@@ -171,7 +171,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickFuera))
           alignItems:   'center',
           gap:          'var(--sp-sm)',
         }">
-          <Search :size="14" :style="{ color: 'var(--color-text-3)', flexShrink: '0' }" />
+          <IconSearch :size="14" :style="{ color: 'var(--color-text-3)', flexShrink: '0' }" />
           <input
             ref="inputRef"
             v-model="busqueda"
@@ -224,7 +224,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickFuera))
             @click="seleccionar(opcion)"
           >
             <span>{{ opcion.label }}</span>
-            <Check
+            <IconCheck
               v-if="modelValue === opcion.value"
               :size="14"
               :style="{ color: 'var(--color-primary)', flexShrink: '0' }"

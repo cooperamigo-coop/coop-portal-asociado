@@ -1,23 +1,10 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import { IconArrowLeft, IconWorld } from '@tabler/icons-vue'
 
 const { isMobile } = useBreakpoint()
-
-const ipUsuario = ref(null)
-const d = new Date()
-const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
-const fechaHoy = `${String(d.getDate()).padStart(2,'0')} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`
-
-onMounted(async () => {
-  try {
-    const res = await fetch('https://api.ipify.org?format=json')
-    const data = await res.json()
-    ipUsuario.value = data.ip
-  } catch {
-    ipUsuario.value = null
-  }
-})
+const router = useRouter()
 </script>
 
 <template>
@@ -26,6 +13,37 @@ onMounted(async () => {
     background: '#ffffff',
     display: 'flex', flexDirection: 'column',
   }">
+    <!-- Topbar -->
+    <header class="portal-topbar">
+      <!-- Desktop: Visitar sitio, izquierda -->
+      <div class="topbar-desktop">
+        <a
+          href="https://www.cooperamigo.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="topbar-visit"
+        ><IconWorld :size="14" />Visitar sitio</a>
+      </div>
+      <!-- Mobile: botón retroceso -->
+      <button class="topbar-back" @click="router.back()" aria-label="Volver">
+        <IconArrowLeft :size="18" />
+      </button>
+      <!-- Mobile: logo centrado blanco -->
+      <img src="/logo-principal.svg" alt="Cooperamigó" class="topbar-logo" />
+    </header>
+
+    <!-- Badge VIGILADA lateral (solo desktop) -->
+    <div class="vigilada-badge" aria-hidden="true">
+      <div class="vb-inner">
+        <div class="vb-block">
+          <span class="vb-line"></span>
+          <span class="vb-vigilada">VIGILADA</span>
+          <span class="vb-line"></span>
+        </div>
+        <span class="vb-nombre">SUPERSOLIDARIA</span>
+      </div>
+    </div>
+
     <!-- Contenido -->
     <main class="portal-main">
       <div class="portal-main__inner">
@@ -37,32 +55,27 @@ onMounted(async () => {
     <footer class="portal-footer">
       <div class="footer-inner">
 
-        <!-- Izquierda: logo + copyright + vigilado -->
-        <div class="footer-left">
+        <!-- Col 1: logo -->
+        <div class="footer-col-logo">
           <img src="/logo-principal.svg" alt="Cooperamigó" class="footer-logo" />
-          <p class="footer-copy footer-copy--full">© 2026 Cooperativa Multiactiva Luis Amigó</p>
-          <p class="footer-copy footer-copy--mobile">© 2026 Cooperamigó</p>
-          <div class="vigilado">
-            <div class="vg-block">
-              <span class="vg-line"></span>
-              <span class="vg-vigilada">VIGILADA</span>
-              <span class="vg-line"></span>
+        </div>
+
+        <!-- Col 2: copyright + vigilada mobile -->
+        <div class="footer-col-copy">
+          <p class="footer-copy footer-copy--desktop">© 2026 Cooperativa Multiactiva Luis Amigó</p>
+          <p class="footer-copy footer-copy--mobile">Copyright © 2026 Cooperativa Multiactiva Luis Amigó</p>
+          <div class="footer-vigilada-mobile">
+            <div class="fvm-block">
+              <span class="fvm-line"></span>
+              <span class="fvm-vigilada">VIGILADA</span>
+              <span class="fvm-line"></span>
             </div>
-            <span class="vg-nombre">SUPERSOLIDARIA</span>
+            <span class="fvm-nombre">SUPERSOLIDARIA</span>
           </div>
         </div>
 
-        <!-- Derecha: IP + fecha -->
-        <div class="footer-right">
-          <div class="fst-item">
-            <span class="fst-text">Dirección IP</span>
-            <span class="fst-text">{{ ipUsuario || '···' }}</span>
-          </div>
-          <div class="fst-item">
-            <span class="fst-text">Fecha actual</span>
-            <span class="fst-text">{{ fechaHoy }}</span>
-          </div>
-        </div>
+        <!-- Col 3: vacía (balance visual) -->
+        <div class="footer-col-spacer"></div>
 
       </div>
     </footer>
@@ -70,26 +83,25 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+/* ─── Footer ─── */
 .portal-footer {
   background: var(--color-primary);
-  padding: 28px 48px;
+  padding: 44px 48px;
   flex-shrink: 0;
 }
 
 .footer-inner {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 32px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
   max-width: 900px;
   margin: 0 auto;
 }
 
-.footer-left {
+.footer-col-logo {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .footer-logo {
@@ -99,72 +111,25 @@ onMounted(async () => {
   opacity: 0.9;
 }
 
+.footer-col-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
 .footer-copy {
   font-size: 0.66rem;
   color: rgba(255, 255, 255, 0.38);
   font-weight: var(--fw-medium);
   margin: 0;
-}
-
-.footer-copy--mobile { display: none; }
-
-.vigilado {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.vg-block {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 2px;
-}
-
-.vg-line {
-  display: block;
-  height: 1.5px;
-  background: rgba(255, 255, 255, 0.45);
-  border-radius: 1px;
-}
-
-.vg-vigilada {
-  font-size: 0.56rem;
-  font-weight: var(--fw-extrabold);
-  letter-spacing: 0.2em;
-  color: rgba(255, 255, 255, 0.65);
   text-align: center;
-  line-height: 1.5;
 }
 
-.vg-nombre {
-  font-size: 0.6rem;
-  font-weight: var(--fw-semibold);
-  letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.45);
-}
+.footer-copy--mobile    { display: none; }
+.footer-vigilada-mobile { display: none; }
 
-.footer-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.fst-item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-}
-
-.fst-text {
-  font-size: 0.68rem;
-  font-weight: var(--fw-medium);
-  color: rgba(255, 255, 255, 0.55);
-  line-height: 1.4;
-}
+.footer-col-spacer { /* balance visual */ }
 
 .portal-main {
   flex: 1;
@@ -179,17 +144,171 @@ onMounted(async () => {
   max-width: 720px;
 }
 
-@media (max-width: 767px) {
-  .portal-main {
-    padding: 28px 32px;
-  }
+/* ─── Topbar ─── */
+.portal-topbar {
+  position: relative;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 32px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.topbar-desktop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-visit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+.topbar-visit:hover { color: var(--color-primary-dark); text-decoration: underline; }
+
+/* Mobile: ocultos en desktop */
+.topbar-back { display: none; }
+.topbar-logo { display: none; }
+
+/* ─── Badge VIGILADA lateral (position fixed, solo desktop) ─── */
+.vigilada-badge {
+  position: fixed;
+  top: 50%;
+  left: 12px;
+  z-index: 40;
+  transform: rotate(-90deg) translateX(-50%);
+  transform-origin: 0 0;
+  white-space: nowrap;
+}
+
+.vb-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vb-block {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.vb-line {
+  display: block;
+  height: 1.5px;
+  background: var(--color-text-3);
+  border-radius: 1px;
+}
+
+.vb-vigilada {
+  font-size: 0.56rem;
+  font-weight: var(--fw-extrabold);
+  letter-spacing: 0.2em;
+  color: var(--color-text-2);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.vb-nombre {
+  font-size: 0.6rem;
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.06em;
+  color: var(--color-text-3);
 }
 
 @media (max-width: 960px) {
-  .portal-footer { padding: 20px 20px; }
-  .footer-inner { flex-direction: column; gap: 16px; align-items: flex-start; }
-  .footer-right { align-items: flex-start; }
-  .footer-copy--full   { display: none; }
-  .footer-copy--mobile { display: block; }
+  .portal-topbar {
+    background: var(--color-primary);
+    justify-content: flex-start;
+    padding: 0 16px;
+    height: 52px;
+  }
+
+  /* Desktop elements: ocultos */
+  .topbar-desktop { display: none; }
+
+  /* Badge lateral: oculto en mobile */
+  .vigilada-badge { display: none; }
+
+  /* Flecha retroceso */
+  .topbar-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--r-pill);
+    color: rgba(255, 255, 255, 0.7);
+    background: none;
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background var(--transition-fast), color var(--transition-fast);
+  }
+  .topbar-back:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+  }
+
+  /* Logo blanco centrado */
+  .topbar-logo {
+    display: block;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 24px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
+
+  /* Main ocupa toda la pantalla → footer queda fuera del viewport (hay que hacer scroll) */
+  .portal-main { min-height: calc(100vh - 52px); padding: 28px 20px; }
+
+  .portal-footer { padding: 20px 24px; }
+  .footer-inner   { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .footer-col-logo   { display: none; }
+  .footer-col-spacer { display: none; }
+  .footer-col-copy   { gap: 14px; }
+  .footer-copy--desktop { display: none; }
+  .footer-copy--mobile  { display: block; }
+  .footer-vigilada-mobile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .fvm-block {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+  }
+  .fvm-line {
+    display: block;
+    height: 1.5px;
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 1px;
+  }
+  .fvm-vigilada {
+    font-size: 0.5rem;
+    font-weight: var(--fw-extrabold);
+    letter-spacing: 0.2em;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.5;
+  }
+  .fvm-nombre {
+    font-size: 0.5rem;
+    font-weight: var(--fw-semibold);
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.38);
+  }
 }
 </style>

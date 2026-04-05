@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { X, CheckCircle, XCircle, ScrollText, ChevronsDown } from 'lucide-vue-next'
+import { IconX, IconCircleCheck, IconCircleX, IconFileDescription, IconChevronsDown } from '@tabler/icons-vue'
 
 const props = defineProps({
   visible:  { type: Boolean, default: false },
@@ -91,7 +91,7 @@ function cerrar() {
                 justifyContent: 'center',
                 flexShrink:     '0',
               }">
-                <ScrollText :size="20" :style="{ color: '#fff' }" />
+                <IconFileDescription :size="20" :style="{ color: '#fff' }" />
               </div>
               <div>
                 <div :style="{
@@ -112,7 +112,7 @@ function cerrar() {
               padding: 'var(--sp-sm)', borderRadius: 'var(--r-md)',
               display: 'flex', alignItems: 'center',
             }" @click="cerrar()">
-              <X :size="20" :style="{ color: 'var(--color-text-3)' }" />
+              <IconX :size="20" :style="{ color: 'var(--color-text-3)' }" />
             </button>
           </div>
 
@@ -143,7 +143,7 @@ function cerrar() {
               fontWeight:   'var(--fw-semibold)',
             }"
           >
-            <ChevronsDown :size="14" :style="{ flexShrink: '0' }" />
+            <IconChevronsDown :size="14" :style="{ flexShrink: '0' }" />
             Desplace hasta el final del texto para habilitar los botones
           </div>
 
@@ -339,7 +339,7 @@ function cerrar() {
               }"
               @click="rechazar()"
             >
-              <XCircle :size="15" /> No acepto
+              <IconCircleX :size="15" /> No acepto
             </button>
 
             <!-- Botón Acepto -->
@@ -363,7 +363,7 @@ function cerrar() {
               }"
               @click="aceptar()"
             >
-              <CheckCircle :size="15" /> Acepto las autorizaciones
+              <IconCircleCheck :size="15" /> Acepto las autorizaciones
             </button>
           </div>
         </div>

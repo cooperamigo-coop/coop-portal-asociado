@@ -1,5 +1,5 @@
 <script setup>
-import { Briefcase, Store, HeartHandshake, BookOpen, Home } from 'lucide-vue-next'
+import { IconBriefcase, IconBuildingStore, IconHeartHandshake, IconBook, IconHome } from '@tabler/icons-vue'
 
 defineProps({
   modelValue: { type: String, default: '' },
@@ -8,11 +8,11 @@ defineProps({
 defineEmits(['update:modelValue'])
 
 const opciones = [
-  { value: 'empleado',      label: 'Empleado',       icono: Briefcase      },
-  { value: 'independiente', label: 'Independiente',   icono: Store          },
-  { value: 'pensionado',    label: 'Pensionado',      icono: HeartHandshake },
-  { value: 'estudiante',    label: 'Estudiante',      icono: BookOpen       },
-  { value: 'cuidado_hogar', label: 'Cuidado del hogar', icono: Home         },
+  { value: 'empleado',      label: 'Empleado',       icono: IconBriefcase      },
+  { value: 'independiente', label: 'Independiente',   icono: IconBuildingStore  },
+  { value: 'pensionado',    label: 'Pensionado',      icono: IconHeartHandshake },
+  { value: 'estudiante',    label: 'Estudiante',      icono: IconBook           },
+  { value: 'cuidado_hogar', label: 'Cuidado del hogar', icono: IconHome         },
 ]
 </script>
 
