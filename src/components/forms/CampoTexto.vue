@@ -1,16 +1,26 @@
 <script setup>
-defineProps({
-  modelValue:  { type: [String, Number], default: '' },
-  label:       { type: String, required: true },
-  placeholder: { type: String, default: '' },
-  type:        { type: String, default: 'text' },
-  required:    { type: Boolean, default: false },
-  disabled:    { type: Boolean, default: false },
-  error:       { type: String, default: null },
-  maxlength:   { type: Number, default: null },
-  helper:      { type: String, default: null },
+const props = defineProps({
+  modelValue:   { type: [String, Number], default: '' },
+  label:        { type: String, required: true },
+  placeholder:  { type: String, default: '' },
+  type:         { type: String, default: 'text' },
+  required:     { type: Boolean, default: false },
+  disabled:     { type: Boolean, default: false },
+  error:        { type: String, default: null },
+  maxlength:    { type: Number, default: null },
+  helper:       { type: String, default: null },
+  soloNumeros:  { type: Boolean, default: false },
 })
-defineEmits(['update:modelValue', 'blur'])
+const emit = defineEmits(['update:modelValue', 'blur'])
+
+function onInput(e) {
+  let val = e.target.value
+  if (props.soloNumeros) {
+    val = val.replace(/\D/g, '')
+    e.target.value = val
+  }
+  emit('update:modelValue', val)
+}
 </script>
 
 <template>
@@ -29,6 +39,7 @@ defineEmits(['update:modelValue', 'blur'])
       :placeholder="placeholder"
       :disabled="disabled"
       :maxlength="maxlength"
+      :inputmode="soloNumeros ? 'numeric' : undefined"
       :style="{
         padding: '9px 14px',
         border: `1px solid ${error ? 'var(--color-error)' : 'var(--color-border)'}`,
@@ -41,7 +52,7 @@ defineEmits(['update:modelValue', 'blur'])
         width: '100%',
         transition: 'border-color var(--transition-fast)',
       }"
-      @input="$emit('update:modelValue', $event.target.value)"
+      @input="onInput"
       @blur="$emit('blur')"
     />
     <span v-if="error" :style="{

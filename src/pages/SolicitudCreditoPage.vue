@@ -17,10 +17,13 @@ import ModalDireccion         from '@/components/forms/ModalDireccion.vue'
 import SelectorDeptoMunicipio from '@/components/forms/SelectorDeptoMunicipio.vue'
 import ModalAutorizaciones    from '@/components/forms/ModalAutorizaciones.vue'
 import {
-  ShieldCheck, ArrowRight, ArrowLeft, CheckCircle, Send,
+  CheckCircle,
   UserX, Mail, Phone, RotateCcw, Users, UserCheck, ScrollText,
 } from 'lucide-vue-next'
 import { useSolicitudCredito } from '@/composables/useSolicitudCredito'
+import { useBreakpoint } from '@/composables/useBreakpoint'
+
+const { isMobile } = useBreakpoint()
 import { TIPOS_CONTRATO, ENTIDADES_PENSIONES } from '@/data/formularioCredito'
 import { ENTIDADES_BANCARIAS } from '@/data/colombiaData.js'
 
@@ -49,6 +52,22 @@ const {
 } = useSolicitudCredito()
 
 const modalAutorizacionesVisible = ref(false)
+const aceptaCondiciones = ref(false)
+const errorCorreo = ref(null)
+
+function validarCorreo(valor) {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  errorCorreo.value = valor && !re.test(valor) ? 'Ingrese un correo electrónico válido' : null
+}
+
+function onCorreoCambiaConValidacion(valor) {
+  onCorreoCambia(valor)
+  errorCorreo.value = null
+}
+
+function onCorreoBlur() {
+  validarCorreo(verificacion.value.correo)
+}
 
 const indexPasoActual = computed(() =>
   pasosActivos.value.findIndex(p => p.numero === paso.value) + 1
@@ -66,10 +85,8 @@ const opsTipoCuenta = [
 ]
 
 const opsTipoDocVerificacion = [
-  { value: 'cedula_ciudadania',  label: 'Cédula de ciudadanía'  },
-  { value: 'cedula_extranjeria', label: 'Cédula de extranjería' },
-  { value: 'pasaporte',          label: 'Pasaporte'             },
-  { value: 'otro',               label: 'Otro'                  },
+  { value: 'cedula_ciudadania',  label: 'C.C.' },
+  { value: 'cedula_extranjeria', label: 'C.E.' },
 ]
 
 const opsNivelEducativo = [
@@ -213,53 +230,16 @@ function actualizarLaboralCod2(campo, valor) {
     <!-- ═══ PANTALLA PREVIA — Verificación de identidad ═════ -->
     <div v-else-if="!verificado">
 
-      <div :style="{
-        background:   'var(--color-bg-card)',
-        border:       '1px solid var(--color-border-card)',
-        borderRadius: 'var(--r-xl)',
-        padding:      'var(--sp-2xl)',
-        boxShadow:    'var(--shadow-card)',
-        maxWidth:     '520px',
-        margin:       '0 auto',
-      }">
+      <div :style="{ maxWidth: '380px', margin: '0 auto' }">
 
-        <!-- Ícono y título -->
-        <div :style="{
-          display:       'flex',
-          flexDirection: 'column',
-          alignItems:    'center',
-          textAlign:     'center',
-          marginBottom:  'var(--sp-2xl)',
-        }">
+        <!-- Título -->
+        <div :style="{ marginBottom: 'var(--sp-2xl)' }">
           <div :style="{
-            width:          '64px',
-            height:         '64px',
-            borderRadius:   '50%',
-            background:     'var(--color-primary-light)',
-            display:        'flex',
-            alignItems:     'center',
-            justifyContent: 'center',
-            marginBottom:   'var(--sp-lg)',
-          }">
-            <ShieldCheck :size="30" :style="{ color: 'var(--color-primary)' }" />
-          </div>
-          <div :style="{
-            fontFamily:   'var(--font-display)',
-            fontSize:     'var(--text-xl)',
-            fontWeight:   'var(--fw-extrabold)',
-            color:        'var(--color-text-1)',
-            marginBottom: 'var(--sp-xs)',
-          }">Verificación de identidad</div>
-          <div :style="{
-            fontSize:   'var(--text-base)',
-            color:      'var(--color-text-2)',
-            fontWeight: 'var(--fw-medium)',
-            lineHeight: '1.6',
-            maxWidth:   '380px',
-          }">
-            Para iniciar su solicitud necesitamos verificar
-            que usted es asociado activo de Cooperamigó.
-          </div>
+            fontFamily: 'var(--font-display)',
+            fontSize:   'var(--text-xl)',
+            fontWeight: 'var(--fw-extrabold)',
+            color:      'var(--color-text-1)',
+          }">Comencemos con algunos datos</div>
         </div>
 
         <!-- Campos de verificación -->
@@ -273,8 +253,9 @@ function actualizarLaboralCod2(campo, valor) {
               type="email"
               placeholder="su.correo@ejemplo.com"
               required
-              helper="Usaremos este correo para guardar su progreso automáticamente"
-              @update:model-value="onCorreoCambia($event)"
+              :error="errorCorreo"
+              @update:model-value="onCorreoCambiaConValidacion($event)"
+              @blur="onCorreoBlur"
             />
             <div
               v-if="tieneBorradorPrevio"
@@ -301,24 +282,25 @@ function actualizarLaboralCod2(campo, valor) {
             </div>
           </div>
 
-          <CampoSelectBuscable
-            v-model="verificacion.tipo_documento"
-            label="Tipo de documento"
-            required
-            :opciones="opsTipoDocVerificacion"
-          />
-
-          <CampoTexto
-            v-model="verificacion.numero_documento"
-            label="Número de documento"
-            placeholder="Sin puntos ni espacios"
-            required
-            :helper="
-              ['cedula_ciudadania','cedula_extranjeria'].includes(verificacion.tipo_documento)
-                ? 'Verificaremos que es asociado activo de Cooperamigó'
-                : null
-            "
-          />
+          <div :style="{ display: 'flex', gap: 'var(--sp-md)', alignItems: 'flex-start' }">
+            <div :style="{ flex: '0 0 90px' }">
+              <CampoSelectBuscable
+                v-model="verificacion.tipo_documento"
+                label="Tipo de doc."
+                required
+                :opciones="opsTipoDocVerificacion"
+              />
+            </div>
+            <div :style="{ flex: '1' }">
+              <CampoTexto
+                v-model="verificacion.numero_documento"
+                label="Número de documento"
+                placeholder="Sin puntos ni espacios"
+                required
+                solo-numeros
+              />
+            </div>
+          </div>
 
           <div v-if="errorVerificacion" :style="{
             background:   'var(--color-error-bg)',
@@ -329,15 +311,41 @@ function actualizarLaboralCod2(campo, valor) {
             fontWeight:   'var(--fw-medium)',
           }">{{ errorVerificacion }}</div>
 
+          <!-- Checkbox de aceptación -->
+          <label :style="{
+            display:    'flex',
+            alignItems: 'flex-start',
+            gap:        'var(--sp-sm)',
+            cursor:     'pointer',
+          }">
+            <input
+              v-model="aceptaCondiciones"
+              type="checkbox"
+              :style="{ marginTop: '3px', flexShrink: '0', accentColor: 'var(--color-primary)', width: '16px', height: '16px', cursor: 'pointer' }"
+            />
+            <span :style="{
+              fontSize:   'var(--text-sm)',
+              color:      'var(--color-text-2)',
+              fontWeight: 'var(--fw-medium)',
+              lineHeight: '1.5',
+            }">
+              Autorizo a la Cooperativa Multiactiva Luis Amigó para que el número de celular y el correo electrónico sean tratados para contactarme y enviarme la información relacionada con la solicitud del producto; igualmente para que me consulten ante operadores de información y riesgo con el fin de verificar mi información personal, junto a los
+              <span :style="{ color: 'var(--color-primary)', cursor: 'pointer', textDecoration: 'underline' }">Términos y condiciones</span>
+              y
+              <span :style="{ color: 'var(--color-primary)', cursor: 'pointer', textDecoration: 'underline' }">Política de privacidad</span>.
+            </span>
+          </label>
+
           <PortalButton
             variant="primary"
             :loading="loadingVerificacion"
+            :disabled="!aceptaCondiciones || !!errorCorreo"
             :full="true"
             @click="verificarYContinuar()"
           >
-            <ArrowRight :size="16" />
             Verificar y continuar
           </PortalButton>
+
         </div>
       </div>
 
@@ -425,7 +433,7 @@ function actualizarLaboralCod2(campo, valor) {
         background:   'var(--color-bg-card)',
         border:       '1px solid var(--color-border-card)',
         borderRadius: 'var(--r-xl)',
-        padding:      'var(--sp-2xl)',
+        padding:      isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
         boxShadow:    'var(--shadow-card)',
         marginBottom: 'var(--sp-lg)',
       }">
@@ -451,7 +459,7 @@ function actualizarLaboralCod2(campo, valor) {
             @update:model-value="actualizarGeneral('tipo_operacion', $event)"
           />
 
-          <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-lg)' }">
+          <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
             <!-- Valor del crédito (nuevo o educativo) -->
             <CampoMoneda
               v-if="mostrarValorCredito"
@@ -589,7 +597,7 @@ function actualizarLaboralCod2(campo, valor) {
           <!-- Campos dinámicos por tipo de trabajador -->
           <div
             v-if="laboral.tipo_trabajador"
-            :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-lg)' }"
+            :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }"
           >
             <!-- Empleado -->
             <template v-if="laboral.tipo_trabajador === 'empleado'">
@@ -730,7 +738,7 @@ function actualizarLaboralCod2(campo, valor) {
 
         <!-- ── PASO 7: Cuenta de desembolso (condicional) ─────── -->
         <div v-if="paso === 7" :style="{
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-lg)',
+          display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)',
         }">
           <CampoSelectBuscable
             :model-value="cuenta.tipo_cuenta"
@@ -762,7 +770,7 @@ function actualizarLaboralCod2(campo, valor) {
           <div :style="{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-sm)' }">
             ¿Desea agregar codeudores a su solicitud?
           </div>
-          <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--sp-md)' }">
+          <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-md)' }">
             <div
               v-for="opcion in [
                 { num: 0, titulo: 'Sin codeudor',   desc: 'Continúo solo'          },
@@ -810,7 +818,7 @@ function actualizarLaboralCod2(campo, valor) {
           />
           <div
             v-if="laboralCod1.tipo_trabajador_codeudor"
-            :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-lg)' }"
+            :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }"
           >
             <template v-if="laboralCod1.tipo_trabajador_codeudor === 'empleado'">
               <CampoTexto :model-value="laboralCod1.nombre_empresa_codeudor" label="Nombre de la empresa" placeholder="Empresa donde trabaja" required @update:model-value="actualizarLaboralCod1('nombre_empresa_codeudor', $event)" />
@@ -880,7 +888,7 @@ function actualizarLaboralCod2(campo, valor) {
           />
           <div
             v-if="laboralCod2.tipo_trabajador_codeudor2"
-            :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-lg)' }"
+            :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }"
           >
             <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'empleado'">
               <CampoTexto :model-value="laboralCod2.nombre_empresa_codeudor2" label="Nombre de la empresa" placeholder="Empresa donde trabaja" required @update:model-value="actualizarLaboralCod2('nombre_empresa_codeudor2', $event)" />
@@ -996,7 +1004,7 @@ function actualizarLaboralCod2(campo, valor) {
               <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Solicitud</span>
             </div>
             <div :style="{ background: 'var(--color-bg-surface)' }">
-              <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr' }">
+              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }">
                 <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
                   <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Modalidad</div>
                   <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ label(LABEL_MODALIDAD, general.modalidad_credito) }}</div>
@@ -1031,7 +1039,7 @@ function actualizarLaboralCod2(campo, valor) {
               <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Datos personales</span>
             </div>
             <div :style="{ background: 'var(--color-bg-surface)' }">
-              <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr' }">
+              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }">
                 <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
                   <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Nombre completo</div>
                   <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ [persona.nombres, persona.apellidos].filter(Boolean).join(' ') || '—' }}</div>
@@ -1074,7 +1082,7 @@ function actualizarLaboralCod2(campo, valor) {
               <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Situación financiera y patrimonio</span>
             </div>
             <div :style="{ background: 'var(--color-bg-surface)' }">
-              <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr' }">
+              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }">
                 <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
                   <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Salario / Ingresos fijos</div>
                   <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ formatMonto(financiera.salario_ingresos_fijos) || '—' }}</div>
@@ -1117,7 +1125,7 @@ function actualizarLaboralCod2(campo, valor) {
               <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Cuenta de desembolso</span>
             </div>
             <div :style="{ background: 'var(--color-bg-surface)' }">
-              <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr' }">
+              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr' }">
                 <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)' }">
                   <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Tipo</div>
                   <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ label(LABEL_TIPO_CUENTA, cuenta.tipo_cuenta) }}</div>
@@ -1140,7 +1148,7 @@ function actualizarLaboralCod2(campo, valor) {
               <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Codeudor 1</span>
             </div>
             <div :style="{ background: 'var(--color-bg-surface)' }">
-              <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr' }">
+              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }">
                 <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
                   <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Nombre</div>
                   <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ [personaCod1.nombres_codeudor, personaCod1.apellidos_codeudor].filter(Boolean).join(' ') || '—' }}</div>
@@ -1167,7 +1175,7 @@ function actualizarLaboralCod2(campo, valor) {
               <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Codeudor 2</span>
             </div>
             <div :style="{ background: 'var(--color-bg-surface)' }">
-              <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr' }">
+              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }">
                 <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
                   <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Nombre</div>
                   <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ [personaCod2.nombres_codeudor2, personaCod2.apellidos_codeudor2].filter(Boolean).join(' ') || '—' }}</div>
@@ -1256,33 +1264,37 @@ function actualizarLaboralCod2(campo, valor) {
       <!-- Navegación -->
       <div :style="{
         display:        'flex',
-        justifyContent: paso === pasosActivos[0]?.numero ? 'flex-end' : 'space-between',
-        alignItems:     'center',
+        flexDirection:  isMobile ? 'column-reverse' : 'row',
+        justifyContent: (!isMobile && paso === pasosActivos[0]?.numero) ? 'flex-end' : 'space-between',
+        alignItems:     'stretch',
         gap:            'var(--sp-md)',
       }">
         <PortalButton
           v-if="paso !== pasosActivos[0]?.numero"
           variant="secondary"
+          :full="isMobile"
           @click="anterior()"
         >
-          <ArrowLeft :size="15" /> Anterior
+          Anterior
         </PortalButton>
         <PortalButton
           v-if="!esUltimoPaso"
           variant="primary"
           :loading="loading"
           :disabled="paso === 17 && !autorizaciones.autorizacion_aceptada"
+          :full="isMobile"
           @click="siguiente()"
         >
-          Continuar <ArrowRight :size="15" />
+          Continuar
         </PortalButton>
         <PortalButton
           v-if="esUltimoPaso"
           variant="accent"
           :loading="loading"
+          :full="isMobile"
           @click="enviar()"
         >
-          <Send :size="15" /> Enviar solicitud
+          Enviar solicitud
         </PortalButton>
       </div>
 

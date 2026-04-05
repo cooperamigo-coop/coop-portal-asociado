@@ -11,21 +11,23 @@ export async function buscarAsociadoPorCedula(cedula) {
 }
 
 export async function crearSolicitudAfiliacion(payload) {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('solicitudes_afiliacion')
     .insert({ ...payload, estado: 'en_revision' })
-    .select()
-    .single()
   if (error) throw error
-  return data
 }
 
 export async function crearAsociadoAfiliacion(payload) {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('asociados')
     .insert({ ...payload, activo: false })
-    .select()
-    .single()
+
+  // Si ya existe (reintento tras error parcial), buscar y devolver el existente
+  if (error?.code === '23505') {
+    return buscarAsociadoPorCedula(payload.cedula)
+  }
+
   if (error) throw error
-  return data
+  // INSERT exitoso: buscar la fila recién creada con el SELECT policy conocido
+  return buscarAsociadoPorCedula(payload.cedula)
 }

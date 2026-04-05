@@ -387,11 +387,15 @@ const pasos = [
 
         <!-- Navegación -->
         <div :style="{
-          display: 'flex', justifyContent: 'space-between',
+          display: 'flex',
+          flexDirection: isMobile ? 'column-reverse' : 'row',
+          justifyContent: 'space-between',
+          alignItems: 'stretch',
           marginTop: 'var(--sp-2xl)', gap: 'var(--sp-md)',
         }">
           <PortalButton
             variant="secondary"
+            :full="isMobile"
             @click="paso > 1 ? irAPaso(paso - 1) : router.push('/')"
           >
             {{ paso === 1 ? 'Cancelar' : 'Anterior' }}
@@ -400,6 +404,7 @@ const pasos = [
             variant="primary"
             :disabled="!pasoValido"
             :loading="loading"
+            :full="isMobile"
             @click="paso < 2 ? irAPaso(paso + 1) : enviarSolicitud()"
           >
             {{ paso === 2 ? (loading ? 'Enviando...' : 'Enviar solicitud') : 'Siguiente' }}

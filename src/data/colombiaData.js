@@ -539,7 +539,7 @@ export function getMunicipios(codigoDepto) {
 }
 
 export const ENTIDADES_BANCARIAS = [
-  'Bancolombia',
+  'Cooperamigó',
   'Banco de Bogotá',
   'Banco Popular',
   'Banco de Occidente',

@@ -9,6 +9,7 @@ const props = defineProps({
   placeholder: { type: String, default: 'Seleccione...' },
   required:    { type: Boolean, default: false },
   disabled:    { type: Boolean, default: false },
+  clearable:   { type: Boolean, default: false },
   error:       { type: String,  default: null },
   helper:      { type: String,  default: null },
 })
@@ -122,7 +123,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickFuera))
       </span>
 
       <button
-        v-if="modelValue && !disabled"
+        v-if="clearable && modelValue && !disabled"
         :style="{
           background: 'none', border: 'none', padding: '0',
           cursor: 'pointer', display: 'flex', alignItems: 'center',
@@ -152,7 +153,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickFuera))
           position:     'absolute',
           top:          'calc(100% + 4px)',
           left:         '0',
-          right:        '0',
+          minWidth:     '180px',
           zIndex:       '50',
           background:   'var(--color-bg-card)',
           border:       '1px solid var(--color-border)',
