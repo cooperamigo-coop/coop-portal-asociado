@@ -1,9 +1,7 @@
 <script setup>
 import { useRouter } from 'vue-router'
-import { useBreakpoint } from '@/composables/useBreakpoint'
 import { IconArrowLeft, IconWorld } from '@tabler/icons-vue'
 
-const { isMobile } = useBreakpoint()
 const router = useRouter()
 </script>
 
@@ -15,8 +13,13 @@ const router = useRouter()
   }">
     <!-- Topbar -->
     <header class="portal-topbar">
-      <!-- Desktop: Visitar sitio, izquierda -->
+      <!-- Desktop: Inicio + Visitar sitio -->
       <div class="topbar-desktop">
+        <RouterLink to="/" class="topbar-home">
+          <IconArrowLeft :size="14" />
+          Inicio
+        </RouterLink>
+        <span class="topbar-sep-v"></span>
         <a
           href="https://www.cooperamigo.com"
           target="_blank"
@@ -25,7 +28,7 @@ const router = useRouter()
         ><IconWorld :size="14" />Visitar sitio</a>
       </div>
       <!-- Mobile: botón retroceso -->
-      <button class="topbar-back" @click="router.back()" aria-label="Volver">
+      <button class="topbar-back" @click="router.push('/')" aria-label="Inicio">
         <IconArrowLeft :size="18" />
       </button>
       <!-- Mobile: logo centrado blanco -->
@@ -129,13 +132,17 @@ const router = useRouter()
 .footer-copy--mobile    { display: none; }
 .footer-vigilada-mobile { display: none; }
 
-.footer-col-spacer { /* balance visual */ }
+.footer-col-spacer { }
 
+/* ─── Main ───
+   flex-direction: column + align-items: center centra horizontalmente el inner.
+   El contenido siempre arranca desde arriba, nunca desborda por encima del topbar.
+*/
 .portal-main {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
   padding: 40px 32px;
 }
 
@@ -159,7 +166,26 @@ const router = useRouter()
 .topbar-desktop {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+}
+
+.topbar-home {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-2);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+.topbar-home:hover { color: var(--color-text-1); }
+
+.topbar-sep-v {
+  width: 1px;
+  height: 13px;
+  background: var(--color-border);
+  flex-shrink: 0;
 }
 
 .topbar-visit {
@@ -270,8 +296,7 @@ const router = useRouter()
     filter: brightness(0) invert(1);
   }
 
-  /* Main ocupa toda la pantalla → footer queda fuera del viewport (hay que hacer scroll) */
-  .portal-main { min-height: calc(100vh - 52px); padding: 28px 20px; }
+  .portal-main { padding: 28px 20px; }
 
   .portal-footer { padding: 20px 24px; }
   .footer-inner   { display: flex; flex-direction: column; align-items: center; gap: 12px; }

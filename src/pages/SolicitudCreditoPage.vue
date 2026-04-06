@@ -442,7 +442,7 @@ function actualizarLaboralCod2(campo, valor) {
         <SelectorModalidad
           v-if="paso === 1"
           :model-value="general.modalidad_credito"
-          @update:model-value="actualizarGeneral('modalidad_credito', $event)"
+          @update:model-value="v => { actualizarGeneral('modalidad_credito', v); setTimeout(siguiente, 280) }"
         />
 
         <!-- ── PASO 2: Datos de la solicitud ────────────────── -->
@@ -1278,7 +1278,7 @@ function actualizarLaboralCod2(campo, valor) {
           Anterior
         </PortalButton>
         <PortalButton
-          v-if="!esUltimoPaso"
+          v-if="!esUltimoPaso && paso !== 1"
           variant="primary"
           :loading="loading"
           :disabled="paso === 17 && !autorizaciones.autorizacion_aceptada"

@@ -2,10 +2,10 @@
 import { useRouter } from 'vue-router'
 import PortalLayout       from '@/components/layout/PortalLayout.vue'
 import StepIndicator      from '@/components/ui/StepIndicator.vue'
-import PortalButton       from '@/components/ui/PortalButton.vue'
-import PortalInput        from '@/components/ui/PortalInput.vue'
-import AlertaBanner       from '@/components/ui/AlertaBanner.vue'
-import CampoTexto         from '@/components/forms/CampoTexto.vue'
+import PortalButton        from '@/components/ui/PortalButton.vue'
+import AlertaBanner        from '@/components/ui/AlertaBanner.vue'
+import CampoTexto          from '@/components/forms/CampoTexto.vue'
+import CampoSelect         from '@/components/forms/CampoSelect.vue'
 import CampoSelectBuscable from '@/components/forms/CampoSelectBuscable.vue'
 import { useAfiliacion }  from '@/composables/useAfiliacion'
 import { useBreakpoint }  from '@/composables/useBreakpoint'
@@ -14,7 +14,7 @@ import { IconCircleCheck, IconUserCheck } from '@tabler/icons-vue'
 const router = useRouter()
 
 const {
-  paso, loading, loadingEmail, error, solicitudCreada, asociadoExistente,
+  paso, loading, error, solicitudCreada, asociadoExistente,
   erroresCampos, honeypot,
   emailInicial, errorEmail, borradorDisponible,
   tipoDocumentoInicial, numeroDocumentoInicial, errorNumeroDoc,
@@ -29,6 +29,13 @@ const {
 const opsTipoDocVerificacion = [
   { value: 'cedula_ciudadania',  label: 'C.C.' },
   { value: 'cedula_extranjeria', label: 'C.E.' },
+]
+
+const opsTipoContrato = [
+  { value: 'indefinido',  label: 'Término indefinido'     },
+  { value: 'fijo',        label: 'Término fijo'           },
+  { value: 'obra',        label: 'Obra o labor'           },
+  { value: 'prestacion',  label: 'Prestación de servicios'},
 ]
 
 const { isMobile } = useBreakpoint()
@@ -285,11 +292,12 @@ const pasos = [
 
           <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
             <div :style="{ gridColumn: '1 / -1' }">
-              <PortalInput
+              <CampoTexto
                 label="Número de cédula"
                 v-model="datosPersonales.cedula"
                 placeholder="Ej. 1122334455"
                 required
+                solo-numeros
                 :error="erroresCampos.cedula"
                 @blur="() => {
                   validarCampoActual(schemaPersonales, 'cedula', datosPersonales.cedula)
@@ -297,7 +305,7 @@ const pasos = [
                 }"
               />
             </div>
-            <PortalInput
+            <CampoTexto
               label="Nombres"
               v-model="datosPersonales.nombres"
               placeholder="Sus nombres"
@@ -306,7 +314,7 @@ const pasos = [
               :error="erroresCampos.nombres"
               @blur="() => validarCampoActual(schemaPersonales, 'nombres', datosPersonales.nombres)"
             />
-            <PortalInput
+            <CampoTexto
               label="Apellidos"
               v-model="datosPersonales.apellidos"
               placeholder="Sus apellidos"
@@ -315,28 +323,28 @@ const pasos = [
               :error="erroresCampos.apellidos"
               @blur="() => validarCampoActual(schemaPersonales, 'apellidos', datosPersonales.apellidos)"
             />
-            <PortalInput
+            <CampoTexto
               label="Correo electrónico"
               v-model="datosPersonales.email"
               type="email"
               placeholder="correo@ejemplo.com"
               :disabled="true"
             />
-            <PortalInput
+            <CampoTexto
               label="Teléfono"
               v-model="datosPersonales.telefono"
               placeholder="3001234567"
               :error="erroresCampos.telefono"
               @blur="() => validarCampoActual(schemaPersonales, 'telefono', datosPersonales.telefono)"
             />
-            <PortalInput
+            <CampoTexto
               label="Fecha de nacimiento"
               v-model="datosPersonales.fecha_nacimiento"
               type="date"
               :error="erroresCampos.fecha_nacimiento"
               @blur="() => validarCampoActual(schemaPersonales, 'fecha_nacimiento', datosPersonales.fecha_nacimiento)"
             />
-            <PortalInput
+            <CampoTexto
               label="Ciudad"
               v-model="datosPersonales.ciudad"
               placeholder="Su ciudad"
@@ -344,7 +352,7 @@ const pasos = [
               @blur="() => validarCampoActual(schemaPersonales, 'ciudad', datosPersonales.ciudad)"
             />
             <div :style="{ gridColumn: '1 / -1' }">
-              <PortalInput
+              <CampoTexto
                 label="Dirección"
                 v-model="datosPersonales.direccion"
                 placeholder="Su dirección de residencia"
@@ -365,7 +373,7 @@ const pasos = [
 
           <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
             <div :style="{ gridColumn: '1 / -1' }">
-              <PortalInput
+              <CampoTexto
                 label="Empresa"
                 v-model="datosLaborales.empresa"
                 placeholder="Nombre de la empresa"
@@ -374,39 +382,20 @@ const pasos = [
                 @blur="() => validarCampoActual(schemaLaborales, 'empresa', datosLaborales.empresa)"
               />
             </div>
-            <PortalInput
+            <CampoTexto
               label="Cargo"
               v-model="datosLaborales.cargo"
               placeholder="Su cargo actual"
               :error="erroresCampos.cargo"
               @blur="() => validarCampoActual(schemaLaborales, 'cargo', datosLaborales.cargo)"
             />
-            <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
-              <label :style="{ fontSize: 'var(--text-base)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)' }">
-                Tipo de contrato
-              </label>
-              <select
-                v-model="datosLaborales.tipo_contrato"
-                :style="{
-                  padding: '10px 16px',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 'var(--r-pill)',
-                  fontSize: 'var(--text-base)',
-                  background: 'var(--color-bg-surface)',
-                  color: 'var(--color-text-1)',
-                  fontFamily: 'var(--font-body)',
-                  outline: 'none',
-                  width: '100%',
-                }"
-              >
-                <option value="">Seleccionar...</option>
-                <option value="indefinido">Indefinido</option>
-                <option value="fijo">Término fijo</option>
-                <option value="obra">Obra o labor</option>
-                <option value="prestacion">Prestación de servicios</option>
-              </select>
-            </div>
-            <PortalInput
+            <CampoSelect
+              label="Tipo de contrato"
+              v-model="datosLaborales.tipo_contrato"
+              :opciones="opsTipoContrato"
+              placeholder="Seleccione..."
+            />
+            <CampoTexto
               label="Salario mensual"
               v-model="datosLaborales.salario"
               type="number"
@@ -415,7 +404,7 @@ const pasos = [
               :error="erroresCampos.salario"
               @blur="() => validarCampoActual(schemaLaborales, 'salario', datosLaborales.salario)"
             />
-            <PortalInput
+            <CampoTexto
               label="Fecha de ingreso a la empresa"
               v-model="datosLaborales.fecha_ingreso_empresa"
               type="date"

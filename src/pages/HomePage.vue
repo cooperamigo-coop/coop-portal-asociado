@@ -166,7 +166,7 @@ const SERVICIOS_NO_ASOCIADO = [
                 <div class="row-desc">{{ srv.descripcion }}</div>
               </div>
               <div class="row-action">
-                <span class="row-arrow"><ArrowRight :size="16" /></span>
+                <span class="row-arrow"><IconArrowRight :size="16" /></span>
               </div>
             </div>
           </div>
