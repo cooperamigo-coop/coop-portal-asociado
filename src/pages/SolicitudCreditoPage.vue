@@ -17,7 +17,7 @@ import ModalDireccion         from '@/components/forms/ModalDireccion.vue'
 import SelectorDeptoMunicipio from '@/components/forms/SelectorDeptoMunicipio.vue'
 import ModalAutorizaciones    from '@/components/forms/ModalAutorizaciones.vue'
 import {
-  IconCircleCheck,
+  IconCircleCheck, IconShieldCheck,
   IconUserX, IconMail, IconRotate, IconUsers, IconUserCheck, IconFileDescription,
 } from '@tabler/icons-vue'
 import { useSolicitudCredito } from '@/composables/useSolicitudCredito'
@@ -124,6 +124,11 @@ const LABEL_TIPO_TRABAJADOR = {
 const LABEL_TIPO_CUENTA = { ahorros: 'Cuenta de ahorros', corriente: 'Cuenta corriente' }
 
 function label(map, val) { return map[val] || val || '—' }
+
+function seleccionarModalidad(v) {
+  actualizarGeneral('modalidad_credito', v)
+  setTimeout(siguiente, 280)
+}
 
 function actualizarGeneral(campo, valor) {
   general.value = { ...general.value, [campo]: valor }
@@ -442,7 +447,7 @@ function actualizarLaboralCod2(campo, valor) {
         <SelectorModalidad
           v-if="paso === 1"
           :model-value="general.modalidad_credito"
-          @update:model-value="v => { actualizarGeneral('modalidad_credito', v); setTimeout(siguiente, 280) }"
+          @update:model-value="seleccionarModalidad"
         />
 
         <!-- ── PASO 2: Datos de la solicitud ────────────────── -->
@@ -1209,7 +1214,7 @@ function actualizarLaboralCod2(campo, valor) {
               alignItems: 'center',
               gap:        'var(--sp-xs)',
             }">
-              <ShieldCheck :size="16" style="color: var(--color-dark);" />
+              <IconShieldCheck :size="16" style="color: var(--color-dark);" />
               <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-dark)', textTransform: 'uppercase', letterSpacing: '0.07em' }">Firma digital</span>
             </div>
             <div :style="{
