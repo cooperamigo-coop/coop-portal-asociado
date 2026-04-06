@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { VIAS_PRINCIPALES } from '@/data/colombiaData.js'
+import { VIAS_PRINCIPALES, DEPARTAMENTOS, getMunicipios } from '@/data/colombiaData.js'
 import { IconMapPin, IconX, IconCheck } from '@tabler/icons-vue'
 import PortalButton          from '@/components/ui/PortalButton.vue'
 import CampoSelectBuscable   from './CampoSelectBuscable.vue'
@@ -12,6 +12,8 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'update:visible', 'confirmar'])
 
 const local = ref({
+  depto_codigo: '', depto_nombre: '',
+  municipio_codigo: '', municipio_nombre: '',
   via_principal: '', numero_via: '', letra_via: '', bis: false,
   cuadrante_via: '', numero_cruce: '', letra_cruce: '', cuadrante_cruce: '',
   numero_placa: '', complemento: '', barrio: '',
@@ -22,6 +24,27 @@ watch(() => props.modelValue, v => { local.value = { ...local.value, ...v } }, {
 watch(() => props.visible, v => {
   if (v) local.value = { ...local.value, ...props.modelValue }
 })
+
+const opcionesDeptos = computed(() =>
+  DEPARTAMENTOS.map(d => ({ value: d.codigo, label: d.nombre }))
+)
+const opcionesMunicipios = computed(() =>
+  getMunicipios(local.value.depto_codigo || '')
+    .map(m => ({ value: m.codigo, label: m.nombre }))
+)
+
+function onDeptoChange(codigo) {
+  local.value.depto_codigo    = codigo
+  local.value.municipio_codigo  = ''
+  local.value.municipio_nombre  = ''
+  const depto = DEPARTAMENTOS.find(d => d.codigo === codigo)
+  local.value.depto_nombre = depto?.nombre || ''
+}
+function onMunicipioChange(codigo) {
+  local.value.municipio_codigo = codigo
+  const muni = getMunicipios(local.value.depto_codigo).find(m => m.codigo === codigo)
+  local.value.municipio_nombre = muni?.nombre || ''
+}
 
 const preview = computed(() => {
   const d = local.value
@@ -41,7 +64,7 @@ const preview = computed(() => {
 })
 
 function confirmar() {
-  emit('update:modelValue', { ...local.value })
+  emit('update:modelValue', { ...local.value, texto: preview.value })
   emit('confirmar', preview.value)
   emit('update:visible', false)
 }
@@ -116,6 +139,44 @@ const labelStyle = {
 
           <!-- Contenido scrollable -->
           <div :style="{ padding: 'var(--sp-2xl)', overflowY: 'auto', flex: '1' }">
+
+            <!-- Sección 1: Ubicación -->
+            <div :style="{
+              display:             'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap:                 'var(--sp-md)',
+              marginBottom:        'var(--sp-xl)',
+              paddingBottom:       'var(--sp-xl)',
+              borderBottom:        '1px solid var(--color-border-light)',
+            }">
+              <CampoSelectBuscable
+                :model-value="local.depto_codigo"
+                label="Departamento"
+                required
+                :opciones="opcionesDeptos"
+                placeholder="Seleccione departamento"
+                @update:model-value="onDeptoChange($event)"
+              />
+              <CampoSelectBuscable
+                :model-value="local.municipio_codigo"
+                label="Ciudad / Municipio"
+                required
+                :disabled="!local.depto_codigo"
+                :opciones="opcionesMunicipios"
+                placeholder="Seleccione ciudad"
+                @update:model-value="onMunicipioChange($event)"
+              />
+            </div>
+
+            <!-- Separador sección dirección -->
+            <div :style="{
+              fontSize:      'var(--text-sm)',
+              fontWeight:    'var(--fw-bold)',
+              color:         'var(--color-text-3)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              marginBottom:  'var(--sp-md)',
+            }">Dirección</div>
 
             <!-- Fila 1: Vía # número letra BIS cuadrante -->
             <div :style="{ display: 'flex', alignItems: 'flex-end', gap: 'var(--sp-sm)', marginBottom: 'var(--sp-md)', flexWrap: 'wrap' }">

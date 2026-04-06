@@ -119,7 +119,7 @@ const SERVICIOS_NO_ASOCIADO = [
           </button>
           <div class="services-list">
             <div
-              v-for="srv in SERVICIOS_ASOCIADO"
+              v-for="srv in SERVICIOS_ASOCIADO.filter(s => s.id === 'credito')"
               :key="srv.id"
               class="service-row"
               :class="srv.disponible ? 'service-row--on' : 'service-row--off'"
@@ -188,6 +188,27 @@ const SERVICIOS_NO_ASOCIADO = [
         <div class="footer-col-copy">
           <p class="footer-copy footer-copy--desktop">© 2026 Cooperativa Multiactiva Luis Amigó</p>
           <p class="footer-copy footer-copy--mobile">Copyright © 2026 Cooperativa Multiactiva Luis Amigó</p>
+          <div :style="{
+            fontSize:       'var(--text-sm)',
+            color:          'rgba(255,255,255,0.38)',
+            fontWeight:     'var(--fw-medium)',
+            marginTop:      'var(--sp-xs)',
+            display:        'flex',
+            flexWrap:       'wrap',
+            justifyContent: 'center',
+            gap:            'var(--sp-md)',
+          }">
+            <span>NIT 800.191.482-7</span>
+            <span :style="{ opacity: '0.4' }">·</span>
+            <a
+              href="mailto:info@cooperamigo.com"
+              :style="{
+                color:          'rgba(255,255,255,0.38)',
+                textDecoration: 'none',
+                fontWeight:     'var(--fw-medium)',
+              }"
+            >info@cooperamigo.com</a>
+          </div>
           <div class="footer-vigilada-mobile">
             <div class="fvm-block">
               <span class="fvm-line"></span>

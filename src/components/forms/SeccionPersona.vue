@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import CampoTexto              from './CampoTexto.vue'
 import CampoSelectBuscable     from './CampoSelectBuscable.vue'
-import CampoFecha              from './CampoFecha.vue'
+import SelectorFecha           from './SelectorFecha.vue'
 import ModalDireccion          from './ModalDireccion.vue'
 import SelectorDeptoMunicipio  from './SelectorDeptoMunicipio.vue'
 import PortalButton            from '@/components/ui/PortalButton.vue'
@@ -41,7 +41,11 @@ function actualizar(campo, valor) {
 }
 
 function actualizarDireccion(val) {
-  emit('update:direccionEstructurada', val)
+  const { depto_codigo, depto_nombre, municipio_codigo, municipio_nombre, ...direccionSolo } = val
+  emit('update:direccionEstructurada', direccionSolo)
+  if (depto_codigo) {
+    emit('update:ubicacion', { depto_codigo, depto_nombre, municipio_codigo, municipio_nombre })
+  }
 }
 
 // Detecta si los campos son del codeudor (sufijo _codeudor o _codeudor2)
@@ -155,11 +159,13 @@ const nivelEducativoOpciones = [
       />
 
       <!-- Fecha de nacimiento -->
-      <CampoFecha
+      <SelectorFecha
         :model-value="modelValue[clave('fecha_nacimiento')]"
         label="Fecha de nacimiento"
         required
         :error="errores[clave('fecha_nacimiento')]"
+        :max-year="new Date().getFullYear() - 18"
+        :min-year="1930"
         @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
       />
 
@@ -228,11 +234,13 @@ const nivelEducativoOpciones = [
       </div>
 
       <!-- Fecha de expedición -->
-      <CampoFecha
+      <SelectorFecha
         :model-value="modelValue[clave('fecha_expedicion_documento')]"
         label="Fecha de expedición del documento"
         required
         :error="errores[clave('fecha_expedicion_documento')]"
+        :max-year="new Date().getFullYear()"
+        :min-year="1950"
         @update:model-value="actualizar(clave('fecha_expedicion_documento'), $event)"
       />
 

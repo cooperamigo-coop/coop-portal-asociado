@@ -12,7 +12,7 @@ import CampoTexto             from '@/components/forms/CampoTexto.vue'
 import CampoSelectBuscable    from '@/components/forms/CampoSelectBuscable.vue'
 import CampoMoneda            from '@/components/forms/CampoMoneda.vue'
 import CampoCheck             from '@/components/forms/CampoCheck.vue'
-import CampoFecha             from '@/components/forms/CampoFecha.vue'
+import SelectorFecha          from '@/components/forms/SelectorFecha.vue'
 import ModalDireccion         from '@/components/forms/ModalDireccion.vue'
 import SelectorDeptoMunicipio from '@/components/forms/SelectorDeptoMunicipio.vue'
 import ModalAutorizaciones    from '@/components/forms/ModalAutorizaciones.vue'
@@ -47,7 +47,7 @@ const {
   autorizaciones, firma,
   mostrarTipoOperacion, mostrarValorCredito,
   mostrarValorReestructura, mostrarValorDesembolso, mostrarCuentaDesembolso,
-  salarioBloqueado, montoTotalOperacion,
+  salarioBloqueado, montoTotalOperacion, pasoSolicitudValido,
   siguiente, anterior, irAPaso, enviar, formatMonto,
 } = useSolicitudCredito()
 
@@ -135,12 +135,18 @@ function actualizarGeneral(campo, valor) {
 }
 
 const esEducativo = computed(() => general.value.modalidad_credito === 'educativo')
-const maxPlazo    = computed(() => esEducativo.value ? 6 : 120)
+const esOrdinario = computed(() => general.value.modalidad_credito === 'ordinario')
+const maxPlazo    = computed(() => esEducativo.value ? 6 : esOrdinario.value ? 60 : 120)
 
-// Clamp plazo si ya tenía un valor mayor cuando se cambia a educativo
+// Clamp plazo si ya tenía un valor mayor cuando se cambia la modalidad
 watch(esEducativo, (educativo) => {
   if (educativo && Number(general.value.plazo_solicitado) > 6) {
     general.value = { ...general.value, plazo_solicitado: '6' }
+  }
+})
+watch(esOrdinario, (ordinario) => {
+  if (ordinario && Number(general.value.plazo_solicitado) > 60) {
+    general.value = { ...general.value, plazo_solicitado: '60' }
   }
 })
 
@@ -334,10 +340,10 @@ function actualizarLaboralCod2(campo, valor) {
               fontWeight: 'var(--fw-medium)',
               lineHeight: '1.5',
             }">
-              Autorizo a la Cooperativa Multiactiva Luis Amigó para que el número de celular y el correo electrónico sean tratados para contactarme y enviarme la información relacionada con la solicitud del producto; igualmente para que me consulten ante operadores de información y riesgo con el fin de verificar mi información personal, junto a los
-              <span :style="{ color: 'var(--color-primary)', cursor: 'pointer', textDecoration: 'underline' }">Términos y condiciones</span>
-              y
-              <span :style="{ color: 'var(--color-primary)', cursor: 'pointer', textDecoration: 'underline' }">Política de privacidad</span>.
+              Autorizo a la Cooperativa Multiactiva Luis Amigó para que mi número de celular y correo electrónico sean tratados con el fin de contactarme y enviarme información relacionada con la solicitud del producto. Igualmente, autorizo la consulta de mi información ante centrales de información financiera y crediticia, con el propósito de verificar mis datos personales. Declaro que conozco y acepto los
+              <span :style="{ color: 'var(--color-primary)', cursor: 'pointer', textDecoration: 'underline' }">Términos y Condiciones</span>,
+              así como la
+              <span :style="{ color: 'var(--color-primary)', cursor: 'pointer', textDecoration: 'underline' }">Política de Privacidad</span>.
             </span>
           </label>
 
@@ -563,14 +569,14 @@ function actualizarLaboralCod2(campo, valor) {
               }">meses</span>
             </div>
             <div
-              v-if="esEducativo"
+              v-if="esEducativo || esOrdinario"
               :style="{
                 fontSize:   'var(--text-xs)',
                 color:      'var(--color-text-3)',
                 marginTop:  'var(--sp-xs)',
                 fontWeight: 'var(--fw-medium)',
               }"
-            >Crédito educativo: máximo 6 meses</div>
+            >{{ esEducativo ? 'Crédito educativo: máximo 6 meses' : 'Crédito ordinario: máximo 60 meses' }}</div>
           </div>
         </div>
 
@@ -634,10 +640,12 @@ function actualizarLaboralCod2(campo, valor) {
                 placeholder="Describa el contrato"
                 @update:model-value="actualizarLaboral('tipo_contrato_otro', $event)"
               />
-              <CampoFecha
+              <SelectorFecha
                 :model-value="laboral.fecha_ingreso"
                 label="Fecha de ingreso"
                 required
+                :max-year="new Date().getFullYear()"
+                :min-year="1970"
                 @update:model-value="actualizarLaboral('fecha_ingreso', $event)"
               />
             </template>
@@ -658,10 +666,12 @@ function actualizarLaboralCod2(campo, valor) {
                 required
                 @update:model-value="actualizarLaboral('ocupacion', $event)"
               />
-              <CampoFecha
+              <SelectorFecha
                 :model-value="laboral.fecha_inicio_actividad"
                 label="Fecha de inicio de la actividad"
                 required
+                :max-year="new Date().getFullYear()"
+                :min-year="1970"
                 @update:model-value="actualizarLaboral('fecha_inicio_actividad', $event)"
               />
             </template>
@@ -829,7 +839,7 @@ function actualizarLaboralCod2(campo, valor) {
               <CampoTexto :model-value="laboralCod1.nombre_empresa_codeudor" label="Nombre de la empresa" placeholder="Empresa donde trabaja" required @update:model-value="actualizarLaboralCod1('nombre_empresa_codeudor', $event)" />
               <CampoTexto :model-value="laboralCod1.cargo_oficio_codeudor" label="Cargo u oficio" placeholder="Ej: Contador, Docente" required @update:model-value="actualizarLaboralCod1('cargo_oficio_codeudor', $event)" />
               <CampoSelectBuscable :model-value="laboralCod1.tipo_contrato_codeudor" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboralCod1('tipo_contrato_codeudor', $event)" />
-              <CampoFecha :model-value="laboralCod1.fecha_ingreso_codeudor" label="Fecha de ingreso" required @update:model-value="actualizarLaboralCod1('fecha_ingreso_codeudor', $event)" />
+              <SelectorFecha :model-value="laboralCod1.fecha_ingreso_codeudor" label="Fecha de ingreso" required :max-year="new Date().getFullYear()" :min-year="1970" @update:model-value="actualizarLaboralCod1('fecha_ingreso_codeudor', $event)" />
             </template>
             <template v-if="laboralCod1.tipo_trabajador_codeudor === 'independiente'">
               <CampoTexto :model-value="laboralCod1.actividad_comercial_codeudor" label="Actividad comercial" placeholder="Ej: Comercio" required @update:model-value="actualizarLaboralCod1('actividad_comercial_codeudor', $event)" />
@@ -899,7 +909,7 @@ function actualizarLaboralCod2(campo, valor) {
               <CampoTexto :model-value="laboralCod2.nombre_empresa_codeudor2" label="Nombre de la empresa" placeholder="Empresa donde trabaja" required @update:model-value="actualizarLaboralCod2('nombre_empresa_codeudor2', $event)" />
               <CampoTexto :model-value="laboralCod2.cargo_oficio_codeudor2" label="Cargo u oficio" placeholder="Ej: Contador, Docente" required @update:model-value="actualizarLaboralCod2('cargo_oficio_codeudor2', $event)" />
               <CampoSelectBuscable :model-value="laboralCod2.tipo_contrato_codeudor2" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboralCod2('tipo_contrato_codeudor2', $event)" />
-              <CampoFecha :model-value="laboralCod2.fecha_ingreso_codeudor2" label="Fecha de ingreso" required @update:model-value="actualizarLaboralCod2('fecha_ingreso_codeudor2', $event)" />
+              <SelectorFecha :model-value="laboralCod2.fecha_ingreso_codeudor2" label="Fecha de ingreso" required :max-year="new Date().getFullYear()" :min-year="1970" @update:model-value="actualizarLaboralCod2('fecha_ingreso_codeudor2', $event)" />
             </template>
             <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'independiente'">
               <CampoTexto :model-value="laboralCod2.actividad_comercial_codeudor2" label="Actividad comercial" placeholder="Ej: Comercio" required @update:model-value="actualizarLaboralCod2('actividad_comercial_codeudor2', $event)" />
@@ -1286,7 +1296,11 @@ function actualizarLaboralCod2(campo, valor) {
           v-if="!esUltimoPaso && paso !== 1"
           variant="primary"
           :loading="loading"
-          :disabled="paso === 17 && !autorizaciones.autorizacion_aceptada"
+          :disabled="(paso === 2 && !pasoSolicitudValido) || (paso === 17 && !autorizaciones.autorizacion_aceptada)"
+          :style="{
+            opacity: (paso === 2 && !pasoSolicitudValido) ? '0.45' : '1',
+            cursor:  (paso === 2 && !pasoSolicitudValido) ? 'not-allowed' : 'pointer',
+          }"
           :full="isMobile"
           @click="siguiente()"
         >
@@ -1407,8 +1421,7 @@ function actualizarLaboralCod2(campo, valor) {
               }">
                 El documento
                 <strong :style="{ color: 'var(--color-text-1)' }">{{ verificacion.numero_documento }}</strong>
-                no está registrado como asociado activo de Cooperamigó.
-                Para solicitar crédito debe ser asociado.
+                no se encuentra en la base de asociados de Cooperamigó. Recuerde que, para el trámite de créditos, debe ser asociado activo de la entidad.
               </div>
             </div>
 
@@ -1430,7 +1443,7 @@ function actualizarLaboralCod2(campo, valor) {
                 Volver e intentar
               </PortalButton>
               <PortalButton variant="primary" :full="isMobile" @click="router.push('/solicitar-afiliacion')">
-                Solicitar afiliación
+                Gestionar afiliación
               </PortalButton>
             </div>
 

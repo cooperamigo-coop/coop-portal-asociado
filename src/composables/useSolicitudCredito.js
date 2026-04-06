@@ -308,6 +308,31 @@ export function useSolicitudCredito() {
     pasosActivos.value.find(p => p.numero === paso.value)
   )
 
+  // ── Validación paso 2: campos * ───────────────────────────
+  const pasoSolicitudValido = computed(() => {
+    const d = general.value
+    const esOrdinario  = d.modalidad_credito === 'ordinario'
+    const esEducativo  = d.modalidad_credito === 'educativo'
+    const tipoOp       = d.tipo_operacion
+
+    if (esOrdinario && !tipoOp) return false
+
+    const esReest      = ['reestructura', 'reestructura_desembolso'].includes(tipoOp)
+    const esReestDesem = tipoOp === 'reestructura_desembolso'
+    const esCreditoNew = tipoOp === 'credito_nuevo'
+
+    const necesitaValorCredito = esEducativo || esCreditoNew || (esOrdinario && !tipoOp)
+    const necesitaReestructura = esReest
+    const necesitaDesembolso   = esReestDesem
+
+    if (necesitaValorCredito && !d.valor_credito) return false
+    if (necesitaReestructura  && !d.valor_reestructura) return false
+    if (necesitaDesembolso    && !d.valor_desembolso) return false
+    if (!d.destino_credito) return false
+    if (!d.plazo_solicitado) return false
+    return true
+  })
+
   // ── Dirección → texto ─────────────────────────────────────
   function construirDireccion() {
     const m = direccionEstructurada.value
@@ -621,7 +646,7 @@ export function useSolicitudCredito() {
     mostrarTipoOperacion, mostrarValorCredito,
     mostrarValorReestructura, mostrarValorDesembolso,
     mostrarCuentaDesembolso, salarioBloqueado,
-    montoTotalOperacion,
+    montoTotalOperacion, pasoSolicitudValido,
     // Acciones
     siguiente, anterior, irAPaso, enviar, guardarPaso, formatMonto,
   }
