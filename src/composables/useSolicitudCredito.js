@@ -120,7 +120,6 @@ export function useSolicitudCredito() {
   const financiera = ref({
     salario_ingresos_fijos:   '',
     ingresos_independiente:   '',
-    otros_ingresos:           '',
     gastos_familiares:        '',
     otros_gastos:             '',
     obligaciones_financieras: '',
@@ -133,15 +132,14 @@ export function useSolicitudCredito() {
     valor_propiedad_raiz: '',
     tiene_vehiculo:       false,
     valor_vehiculo:       '',
-    total_activos:        '',
-    total_pasivos:        '',
   })
 
   // ── Sección 7: Cuenta de desembolso ──────────────────────
   const cuenta = ref({
-    tipo_cuenta:      '',
-    entidad_bancaria: '',
-    numero_cuenta:    '',
+    tipo_cuenta:           '',
+    entidad_bancaria:      '',
+    entidad_bancaria_otro: '',
+    numero_cuenta:         '',
   })
 
   // ── Sección 8: Número de codeudores ──────────────────────
@@ -178,7 +176,6 @@ export function useSolicitudCredito() {
   const financieraCod1 = ref({
     salario_codeudor:                  '',
     ingresos_independiente_codeudor:   '',
-    otros_ingresos_codeudor:           '',
     gastos_familiares_codeudor:        '',
     otros_gastos_codeudor:             '',
     obligaciones_financieras_codeudor: '',
@@ -189,8 +186,6 @@ export function useSolicitudCredito() {
     valor_propiedad_raiz_codeudor: '',
     tiene_vehiculo_codeudor:       false,
     valor_vehiculo_codeudor:       '',
-    total_activos_codeudor:        '',
-    total_pasivos_codeudor:        '',
   })
   const ubicacionCod1 = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
 
@@ -225,7 +220,6 @@ export function useSolicitudCredito() {
   const financieraCod2 = ref({
     salario_codeudor2:                  '',
     ingresos_independiente_codeudor2:   '',
-    otros_ingresos_codeudor2:           '',
     gastos_familiares_codeudor2:        '',
     otros_gastos_codeudor2:             '',
     obligaciones_financieras_codeudor2: '',
@@ -236,8 +230,6 @@ export function useSolicitudCredito() {
     valor_propiedad_raiz_codeudor2: '',
     tiene_vehiculo_codeudor2:       false,
     valor_vehiculo_codeudor2:       '',
-    total_activos_codeudor2:        '',
-    total_pasivos_codeudor2:        '',
   })
   const ubicacionCod2 = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
 

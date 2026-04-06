@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import PortalLayout           from '@/components/layout/PortalLayout.vue'
 import PortalButton           from '@/components/ui/PortalButton.vue'
 import SelectorModalidad      from '@/components/forms/SelectorModalidad.vue'
+import SeccionDocumentos      from '@/components/forms/SeccionDocumentos.vue'
 import SelectorTipoTrabajador from '@/components/forms/SelectorTipoTrabajador.vue'
 import SeccionPersona         from '@/components/forms/SeccionPersona.vue'
 import SeccionFinanciera      from '@/components/forms/SeccionFinanciera.vue'
@@ -746,8 +747,6 @@ function actualizarLaboralCod2(campo, valor) {
           v-if="paso === 6"
           :model-value="patrimonio"
           titulo="Patrimonio"
-          tooltip-activos="Suma de todos sus bienes: inmuebles, vehículos, cuentas bancarias, inversiones y otros activos."
-          tooltip-pasivos="Suma de todas sus deudas: créditos, tarjetas, hipotecas y demás obligaciones financieras."
           @update:model-value="patrimonio = $event"
         />
 
@@ -766,15 +765,26 @@ function actualizarLaboralCod2(campo, valor) {
             :model-value="cuenta.entidad_bancaria"
             label="Entidad bancaria"
             required
-            :opciones="ENTIDADES_BANCARIAS.map(e => ({ value: e, label: e }))"
+            :disabled="!cuenta.tipo_cuenta"
+            :opciones="[...ENTIDADES_BANCARIAS.map(e => ({ value: e, label: e })), { value: 'otro', label: 'Otro' }]"
             placeholder="Seleccione su banco"
             @update:model-value="actualizarCuenta('entidad_bancaria', $event)"
+          />
+          <CampoTexto
+            v-if="cuenta.entidad_bancaria === 'otro'"
+            :model-value="cuenta.entidad_bancaria_otro"
+            label="Especifique la entidad bancaria"
+            placeholder="Nombre del banco o entidad"
+            required
+            :style="{ gridColumn: '1 / -1' }"
+            @update:model-value="actualizarCuenta('entidad_bancaria_otro', $event)"
           />
           <CampoTexto
             :model-value="cuenta.numero_cuenta"
             label="Número de cuenta"
             placeholder="Sin guiones ni espacios"
             required
+            :disabled="!cuenta.entidad_bancaria || (cuenta.entidad_bancaria === 'otro' && !cuenta.entidad_bancaria_otro)"
             :style="{ gridColumn: '1 / -1' }"
             @update:model-value="actualizarCuenta('numero_cuenta', $event)"
           />
@@ -876,8 +886,6 @@ function actualizarLaboralCod2(campo, valor) {
           v-if="paso === 12"
           :model-value="patrimonioCod1"
           titulo="Patrimonio — Codeudor 1"
-          tooltip-activos="Suma de todos los bienes del codeudor 1."
-          tooltip-pasivos="Suma de todas las deudas del codeudor 1."
           @update:model-value="patrimonioCod1 = $event"
         />
 
@@ -946,13 +954,17 @@ function actualizarLaboralCod2(campo, valor) {
           v-if="paso === 16"
           :model-value="patrimonioCod2"
           titulo="Patrimonio — Codeudor 2"
-          tooltip-activos="Suma de todos los bienes del codeudor 2."
-          tooltip-pasivos="Suma de todas las deudas del codeudor 2."
           @update:model-value="patrimonioCod2 = $event"
         />
 
-        <!-- ── PASO 17: Autorizaciones ────────────────────────── -->
-        <div v-if="paso === 17" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+        <!-- ── PASO 17: Documentos ──────────────────────────────── -->
+        <SeccionDocumentos
+          v-if="paso === 17"
+          :tipo-trabajador="laboral.tipo_trabajador"
+        />
+
+        <!-- ── PASO 18: Autorizaciones ────────────────────────── -->
+        <div v-if="paso === 18" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
           <div :style="{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)' }">Autorizaciones y declaraciones legales</div>
 
           <div :style="{
@@ -1001,8 +1013,8 @@ function actualizarLaboralCod2(campo, valor) {
           />
         </div>
 
-        <!-- ── PASO 18: Confirmación y firma ─────────────────── -->
-        <div v-if="paso === 18" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+        <!-- ── PASO 19: Confirmación y firma ─────────────────── -->
+        <div v-if="paso === 19" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
 
           <!-- Título -->
           <div :style="{
@@ -1104,7 +1116,7 @@ function actualizarLaboralCod2(campo, valor) {
                 </div>
                 <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
                   <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Otros ingresos</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ formatMonto(financiera.ingresos_independiente || financiera.otros_ingresos) || '—' }}</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ formatMonto(financiera.ingresos_independiente) || '—' }}</div>
                 </div>
                 <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
                   <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Gastos familiares</div>
@@ -1113,14 +1125,6 @@ function actualizarLaboralCod2(campo, valor) {
                 <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
                   <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Obligaciones financieras</div>
                   <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ formatMonto(financiera.obligaciones_financieras) || '—' }}</div>
-                </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Total activos</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ formatMonto(patrimonio.total_activos) || '—' }}</div>
-                </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Total pasivos</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ formatMonto(patrimonio.total_pasivos) || '—' }}</div>
                 </div>
                 <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)' }">
                   <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Propiedad raíz</div>
@@ -1296,7 +1300,7 @@ function actualizarLaboralCod2(campo, valor) {
           v-if="!esUltimoPaso && paso !== 1"
           variant="primary"
           :loading="loading"
-          :disabled="(paso === 2 && !pasoSolicitudValido) || (paso === 17 && !autorizaciones.autorizacion_aceptada)"
+          :disabled="(paso === 2 && !pasoSolicitudValido) || (paso === 18 && !autorizaciones.autorizacion_aceptada)"
           :style="{
             opacity: (paso === 2 && !pasoSolicitudValido) ? '0.45' : '1',
             cursor:  (paso === 2 && !pasoSolicitudValido) ? 'not-allowed' : 'pointer',

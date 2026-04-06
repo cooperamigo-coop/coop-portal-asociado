@@ -74,15 +74,9 @@ function claveFuente() {
 
       <CampoMoneda
         :model-value="modelValue[clave('ingresos_independiente')]"
-        label="Ingresos como independiente"
+        label="Ingresos como independiente / otros ingresos"
         :error="errores[clave('ingresos_independiente')]"
         @update:model-value="actualizar(clave('ingresos_independiente'), $event)"
-      />
-      <CampoMoneda
-        :model-value="modelValue[clave('otros_ingresos')]"
-        label="Otros ingresos"
-        :error="errores[clave('otros_ingresos')]"
-        @update:model-value="actualizar(clave('otros_ingresos'), $event)"
       />
       <CampoMoneda
         :model-value="modelValue[clave('gastos_familiares')]"
@@ -100,6 +94,7 @@ function claveFuente() {
       <CampoMoneda
         :model-value="modelValue[clave('obligaciones_financieras')]"
         label="Obligaciones financieras"
+        tooltip="Cuánto pagas mensual en obligaciones con comercios, bancos, cooperativas u otras entidades."
         :error="errores[clave('obligaciones_financieras')]"
         @update:model-value="actualizar(clave('obligaciones_financieras'), $event)"
       />

@@ -3,11 +3,9 @@ import CampoCheck  from './CampoCheck.vue'
 import CampoMoneda from './CampoMoneda.vue'
 
 const props = defineProps({
-  modelValue:    { type: Object, required: true },
-  errores:       { type: Object, default: () => ({}) },
-  titulo:        { type: String, required: true },
-  tooltipActivos:{ type: String, default: null },
-  tooltipPasivos:{ type: String, default: null },
+  modelValue: { type: Object, required: true },
+  errores:    { type: Object, default: () => ({}) },
+  titulo:     { type: String, required: true },
 })
 const emit = defineEmits(['update:modelValue'])
 
@@ -63,28 +61,6 @@ function clave(base) {
         @update:model-value="actualizar(clave('valor_vehiculo'), $event)"
       />
 
-      <div :style="{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 'var(--sp-lg)',
-      }">
-        <CampoMoneda
-          :model-value="modelValue[clave('total_activos')]"
-          label="Total activos"
-          required
-          :tooltip="tooltipActivos"
-          :error="errores[clave('total_activos')]"
-          @update:model-value="actualizar(clave('total_activos'), $event)"
-        />
-        <CampoMoneda
-          :model-value="modelValue[clave('total_pasivos')]"
-          label="Total pasivos"
-          required
-          :tooltip="tooltipPasivos"
-          :error="errores[clave('total_pasivos')]"
-          @update:model-value="actualizar(clave('total_pasivos'), $event)"
-        />
-      </div>
     </div>
   </div>
 </template>

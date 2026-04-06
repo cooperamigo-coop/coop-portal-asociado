@@ -289,7 +289,7 @@ function cerrar() {
                 color:      scrollCompletado ? 'var(--color-success-text)' : 'var(--color-text-3)',
               }">
                 {{ scrollCompletado
-                  ? '✓ Ha leído el documento completo. Puede proceder con su decisión.'
+                  ? '✓ Ha leído el documento completo. Puede proceder al rechazo o aceptación de las autorizaciones.'
                   : 'Continúe desplazando para leer el documento completo.' }}
               </div>
             </div>

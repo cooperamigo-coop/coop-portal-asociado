@@ -53,6 +53,7 @@ export const PASOS_FORMULARIO = [
   { numero: 14, titulo: 'Información laboral — Codeudor 2',    seccion: 'Codeudor 2'  },
   { numero: 15, titulo: 'Información financiera — Codeudor 2', seccion: 'Codeudor 2'  },
   { numero: 16, titulo: 'Patrimonio — Codeudor 2',             seccion: 'Codeudor 2'  },
-  { numero: 17, titulo: 'Autorizaciones',                      seccion: 'Legal'       },
-  { numero: 18, titulo: 'Firmas',                              seccion: 'Legal'       },
+  { numero: 17, titulo: 'Documentos',                          seccion: 'Legal'       },
+  { numero: 18, titulo: 'Autorizaciones',                      seccion: 'Legal'       },
+  { numero: 19, titulo: 'Firmas',                              seccion: 'Legal'       },
 ]

@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { IconCreditCard, IconUserPlus, IconClipboardList, IconFileText, IconArrowRight, IconArrowLeft, IconClock, IconWorld } from '@tabler/icons-vue'
+import PortalFooter from '@/components/layout/PortalFooter.vue'
 
 const router = useRouter()
 const paso = ref('pregunta') // 'pregunta' | 'asociado' | 'no-asociado'
@@ -176,54 +177,7 @@ const SERVICIOS_NO_ASOCIADO = [
     </main>
 
     <!-- ── Footer ─────────────────────────────────────────── -->
-    <footer class="portal-footer">
-      <div class="footer-inner">
-
-        <!-- Col 1: logo -->
-        <div class="footer-col-logo">
-          <img src="/logo-principal.svg" alt="Cooperamigó" class="footer-logo" />
-        </div>
-
-        <!-- Col 2: copyright + vigilada mobile -->
-        <div class="footer-col-copy">
-          <p class="footer-copy footer-copy--desktop">© 2026 Cooperativa Multiactiva Luis Amigó</p>
-          <p class="footer-copy footer-copy--mobile">Copyright © 2026 Cooperativa Multiactiva Luis Amigó</p>
-          <div :style="{
-            fontSize:       'var(--text-sm)',
-            color:          'rgba(255,255,255,0.38)',
-            fontWeight:     'var(--fw-medium)',
-            marginTop:      'var(--sp-xs)',
-            display:        'flex',
-            flexWrap:       'wrap',
-            justifyContent: 'center',
-            gap:            'var(--sp-md)',
-          }">
-            <span>NIT 800.191.482-7</span>
-            <span :style="{ opacity: '0.4' }">·</span>
-            <a
-              href="mailto:info@cooperamigo.com"
-              :style="{
-                color:          'rgba(255,255,255,0.38)',
-                textDecoration: 'none',
-                fontWeight:     'var(--fw-medium)',
-              }"
-            >info@cooperamigo.com</a>
-          </div>
-          <div class="footer-vigilada-mobile">
-            <div class="fvm-block">
-              <span class="fvm-line"></span>
-              <span class="fvm-vigilada">VIGILADA</span>
-              <span class="fvm-line"></span>
-            </div>
-            <span class="fvm-nombre">SUPERSOLIDARIA</span>
-          </div>
-        </div>
-
-        <!-- Col 3: vacía (balance visual) -->
-        <div class="footer-col-spacer"></div>
-
-      </div>
-    </footer>
+    <PortalFooter />
 
   </div>
 </template>
@@ -458,54 +412,6 @@ const SERVICIOS_NO_ASOCIADO = [
   white-space: nowrap;
 }
 
-/* ─── Footer ─── */
-.portal-footer {
-  background: var(--color-primary);
-  padding: 44px 48px;
-  flex-shrink: 0;
-}
-
-.footer-inner {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  align-items: center;
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.footer-col-logo {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.footer-logo {
-  height: 26px;
-  object-fit: contain;
-  filter: brightness(0) invert(1);
-  opacity: 0.9;
-}
-
-.footer-col-copy {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.footer-copy {
-  font-size: 0.66rem;
-  color: rgba(255, 255, 255, 0.38);
-  font-weight: var(--fw-medium);
-  margin: 0;
-  text-align: center;
-}
-
-.footer-copy--mobile    { display: none; }
-.footer-vigilada-mobile { display: none; }
-
-.footer-col-spacer { /* balance visual */ }
-
 /* ─── Animación ─── */
 .animate-in {
   animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -642,43 +548,5 @@ const SERVICIOS_NO_ASOCIADO = [
 
   /* Main ocupa toda la pantalla → footer queda fuera del viewport (hay que hacer scroll) */
   .home-main { min-height: calc(100vh - 52px); align-items: center; }
-
-  .portal-footer { padding: 20px 24px; }
-  .footer-inner   { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-  .footer-col-logo   { display: none; }
-  .footer-col-spacer { display: none; }
-  .footer-col-copy   { gap: 14px; }
-  .footer-copy--desktop { display: none; }
-  .footer-copy--mobile  { display: block; }
-  .footer-vigilada-mobile {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .fvm-block {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 2px;
-  }
-  .fvm-line {
-    display: block;
-    height: 1.5px;
-    background: rgba(255, 255, 255, 0.35);
-    border-radius: 1px;
-  }
-  .fvm-vigilada {
-    font-size: 0.5rem;
-    font-weight: var(--fw-extrabold);
-    letter-spacing: 0.2em;
-    color: rgba(255, 255, 255, 0.55);
-    line-height: 1.5;
-  }
-  .fvm-nombre {
-    font-size: 0.5rem;
-    font-weight: var(--fw-semibold);
-    letter-spacing: 0.08em;
-    color: rgba(255, 255, 255, 0.38);
-  }
 }
 </style>
