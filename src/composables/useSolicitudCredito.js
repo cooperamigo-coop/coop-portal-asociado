@@ -238,6 +238,12 @@ export function useSolicitudCredito() {
     autorizacion_aceptada: false,
   })
 
+  // ── Documentos capturados ─────────────────────────────────
+  const documentos = ref({
+    doc_cedula_frente_url: '',
+    doc_cedula_reverso_url: '',
+  })
+
   // ── Sección firma ─────────────────────────────────────────
   const firma = ref({
     nombre_firma: '',
@@ -479,6 +485,8 @@ export function useSolicitudCredito() {
         ciudad_expedicion_codeudor2:  ubicacionExpedicionCod2.value.municipio_nombre || personaCod2.value.ciudad_expedicion_codeudor2,
         depto_expedicion_codeudor2:   ubicacionExpedicionCod2.value.depto_nombre,
       } : {}),
+      // Documentos capturados
+      ...documentos.value,
       // Autorizaciones
       ...autorizaciones.value,
       // Firma
@@ -634,6 +642,7 @@ export function useSolicitudCredito() {
     ubicacionExpedicionCod1, ubicacionExpedicionCod2,
     ubicacionCod1, ubicacionCod2,
     autorizaciones, firma,
+    documentos,
     // Computeds
     mostrarTipoOperacion, mostrarValorCredito,
     mostrarValorReestructura, mostrarValorDesembolso,

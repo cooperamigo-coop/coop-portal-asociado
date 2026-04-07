@@ -46,6 +46,8 @@ const {
   ubicacionExpedicionCod1, ubicacionExpedicionCod2,
   ubicacionCod1, ubicacionCod2,
   autorizaciones, firma,
+  documentos,
+  solicitudId,
   mostrarTipoOperacion, mostrarValorCredito,
   mostrarValorReestructura, mostrarValorDesembolso, mostrarCuentaDesembolso,
   salarioBloqueado, montoTotalOperacion, pasoSolicitudValido,
@@ -962,6 +964,8 @@ watch(paso, (nuevoPaso) => {
         <SeccionDocumentos
           v-if="paso === 17"
           :tipo-trabajador="laboral.tipo_trabajador"
+          :solicitud-id="solicitudId"
+          @completado-cedula="urls => { documentos.doc_cedula_frente_url = urls.frente; documentos.doc_cedula_reverso_url = urls.reverso }"
         />
 
         <!-- ── PASO 18: Autorizaciones ────────────────────────── -->

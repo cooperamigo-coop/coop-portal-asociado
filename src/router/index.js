@@ -17,6 +17,12 @@ const routes = [
     component: () => import('@/pages/SolicitudAfiliacionPage.vue'),
   },
   {
+    path: '/captura-movil/:token',
+    name: 'captura-movil',
+    component: () => import('@/pages/CapturaMovilPage.vue'),
+    meta: { publico: true, sinLayout: true },
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/',
   },
