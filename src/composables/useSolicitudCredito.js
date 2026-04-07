@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, toRaw } from 'vue'
 import {
   crearBorrador,
   actualizarBorrador,
@@ -541,6 +541,39 @@ export function useSolicitudCredito() {
     }
   }
 
+  // ── Helper: construir snapshot plano (sin Proxies Vue) ───────────────────
+  function _snapshotBorrador() {
+    return {
+      general:                  toRaw(general.value),
+      persona:                  toRaw(persona.value),
+      laboral:                  toRaw(laboral.value),
+      financiera:               toRaw(financiera.value),
+      patrimonio:               toRaw(patrimonio.value),
+      cuenta:                   toRaw(cuenta.value),
+      direccionEstructurada:    toRaw(direccionEstructurada.value),
+      direccionEstructuradaCod1:toRaw(direccionEstructuradaCod1.value),
+      direccionEstructuradaCod2:toRaw(direccionEstructuradaCod2.value),
+      numCodudores:             numCodudores.value,
+      personaCod1:              toRaw(personaCod1.value),
+      laboralCod1:              toRaw(laboralCod1.value),
+      financieraCod1:           toRaw(financieraCod1.value),
+      patrimonioCod1:           toRaw(patrimonioCod1.value),
+      personaCod2:              toRaw(personaCod2.value),
+      laboralCod2:              toRaw(laboralCod2.value),
+      financieraCod2:           toRaw(financieraCod2.value),
+      patrimonioCod2:           toRaw(patrimonioCod2.value),
+      ubicacionResidencia:      toRaw(ubicacionResidencia.value),
+      ubicacionExpedicion:      toRaw(ubicacionExpedicion.value),
+      ubicacionExpedicionCod1:  toRaw(ubicacionExpedicionCod1.value),
+      ubicacionExpedicionCod2:  toRaw(ubicacionExpedicionCod2.value),
+      ubicacionCod1:            toRaw(ubicacionCod1.value),
+      ubicacionCod2:            toRaw(ubicacionCod2.value),
+      autorizaciones:           toRaw(autorizaciones.value),
+      firma:                    toRaw(firma.value),
+      paso:                     paso.value,
+    }
+  }
+
   // ── Auto-guardado en localStorage mientras el usuario escribe ─
   watch(
     [general, persona, laboral, financiera, patrimonio, cuenta,
@@ -553,18 +586,7 @@ export function useSolicitudCredito() {
       if (!verificado.value || !verificacion.value.correo) return
       clearTimeout(_debounceTimer)
       _debounceTimer = setTimeout(() => {
-        guardarBorradorLocal(verificacion.value.correo, {
-          general, persona, laboral, financiera, patrimonio, cuenta,
-          direccionEstructurada, direccionEstructuradaCod1, direccionEstructuradaCod2,
-          autorizaciones, firma,
-          numCodudores: numCodudores.value,
-          personaCod1, laboralCod1, financieraCod1, patrimonioCod1,
-          personaCod2, laboralCod2, financieraCod2, patrimonioCod2,
-          ubicacionResidencia, ubicacionExpedicion,
-          ubicacionExpedicionCod1, ubicacionExpedicionCod2,
-          ubicacionCod1, ubicacionCod2,
-          paso: paso.value,
-        })
+        guardarBorradorLocal(verificacion.value.correo, _snapshotBorrador())
         ultimoGuardado.value = new Date()
       }, 800)
     },
@@ -575,18 +597,7 @@ export function useSolicitudCredito() {
   async function guardarPaso() {
     try {
       if (verificacion.value.correo) {
-        guardarBorradorLocal(verificacion.value.correo, {
-          general, persona, laboral, financiera, patrimonio, cuenta,
-          direccionEstructurada, direccionEstructuradaCod1, direccionEstructuradaCod2,
-          autorizaciones, firma,
-          numCodudores: numCodudores.value,
-          personaCod1, laboralCod1, financieraCod1, patrimonioCod1,
-          personaCod2, laboralCod2, financieraCod2, patrimonioCod2,
-          ubicacionResidencia, ubicacionExpedicion,
-          ubicacionExpedicionCod1, ubicacionExpedicionCod2,
-          ubicacionCod1, ubicacionCod2,
-          paso: paso.value,
-        })
+        guardarBorradorLocal(verificacion.value.correo, _snapshotBorrador())
       }
       const datos = sanitizarObjeto(aplanarDatos())
       if (!solicitudId.value) {

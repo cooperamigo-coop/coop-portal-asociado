@@ -6,20 +6,104 @@ function claveStorage(correo) {
 }
 
 /**
+ * Serializa de forma segura un objeto antes de guardarlo en localStorage.
+ * Elimina Proxies de Vue, referencias circulares, imágenes base64 y funciones.
+ */
+function sanitizarParaStorage(obj) {
+  try {
+    return JSON.parse(
+      JSON.stringify(obj, (key, value) => {
+        // Ignorar campos internos de Vue reactivity
+        if (key.startsWith('__v_') || key === 'dep' || key === '_rawValue' || key === '_value') {
+          return undefined
+        }
+        // Excluir imágenes base64 (pesan varios MB)
+        if (typeof value === 'string' && value.startsWith('data:image')) {
+          return '[imagen]'
+        }
+        // Excluir URLs de archivos subidos (se guardan en Supabase Storage)
+        if ((key.endsWith('_url') || key.endsWith('_b64')) && typeof value === 'string' && value.length > 300) {
+          return '[archivo]'
+        }
+        // Excluir funciones y símbolos
+        if (typeof value === 'function' || typeof value === 'symbol') {
+          return undefined
+        }
+        // Convertir Date a ISO string
+        if (value instanceof Date) {
+          return value.toISOString()
+        }
+        return value
+      })
+    )
+  } catch (e) {
+    console.error('[Borrador] Error al sanitizar estado:', e.message)
+    return null
+  }
+}
+
+/**
+ * Limpia entradas antiguas de borrador (más de 7 días) para liberar cuota.
+ */
+function limpiarEntradasAntiguas() {
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (!key.startsWith(PREFIJO)) continue
+      try {
+        const payload = JSON.parse(localStorage.getItem(key) || '{}')
+        const hace7Dias = Date.now() - 7 * 24 * 60 * 60 * 1000
+        if (new Date(payload.guardadoEn).getTime() < hace7Dias) {
+          localStorage.removeItem(key)
+        }
+      } catch {
+        localStorage.removeItem(key)
+      }
+    }
+  } catch { /* ignorar */ }
+}
+
+/**
  * Guarda el estado actual del formulario en localStorage.
- * Se llama al avanzar cada paso.
  */
 export function guardarBorradorLocal(correo, datos) {
   if (!correo) return
   try {
+    const sanitizado = sanitizarParaStorage(datos)
+    if (!sanitizado) {
+      console.warn('[Borrador] Estado no serializable — borrador no guardado')
+      return
+    }
+
     const payload = {
-      datos,
+      datos:      sanitizado,
       guardadoEn: new Date().toISOString(),
       version:    VERSION,
     }
-    localStorage.setItem(claveStorage(correo), JSON.stringify(payload))
-  } catch {
-    console.warn('No se pudo guardar el borrador local')
+
+    const serializado = JSON.stringify(payload)
+    const tamanoKB = (serializado.length * 2) / 1024
+
+    if (tamanoKB > 3000) {
+      console.warn(`[Borrador] Estado muy grande (${tamanoKB.toFixed(0)}KB) — no se guarda`)
+      return
+    }
+
+    console.log(`[Borrador] Guardando ${tamanoKB.toFixed(1)}KB, paso ${sanitizado.paso || '?'}`)
+    localStorage.setItem(claveStorage(correo), serializado)
+  } catch (e) {
+    if (e.name === 'QuotaExceededError') {
+      console.warn('[Borrador] localStorage lleno — limpiando entradas antiguas')
+      limpiarEntradasAntiguas()
+      try {
+        localStorage.setItem(claveStorage(correo), JSON.stringify({
+          datos: { paso: datos.paso || 1, _reducido: true },
+          guardadoEn: new Date().toISOString(),
+          version: VERSION,
+        }))
+      } catch { /* nada más se puede hacer */ }
+    } else {
+      console.error('[Borrador] Error guardando en localStorage:', e.message)
+    }
   }
 }
 
