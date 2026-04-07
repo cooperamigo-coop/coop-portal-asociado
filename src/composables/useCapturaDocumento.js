@@ -24,7 +24,8 @@ export function useCapturaDocumento() {
   // null | 'frente' | 'reverso' | 'ambos'
   const progreso    = ref(null)
 
-  let canalRealtime = null
+  let canalRealtime   = null
+  let pollingInterval = null
 
   // ── Crear sesión QR ───────────────────────────────────────────────────────
   async function crearSesionQR(solicitudId, campo = 'documento_identidad') {
@@ -45,8 +46,9 @@ export function useCapturaDocumento() {
       urlCaptura.value = data.url_captura
 
       qrDataUrl.value = generarUrlQR(data.url_captura)
-      estado.value = 'esperando_qr'
+      estado.value    = 'esperando_qr'
       suscribirRealtime(data.sesion_id)
+      iniciarPolling(data.sesion_id)
     } catch (e) {
       estado.value = 'error'
       error.value  = e.message
@@ -58,39 +60,91 @@ export function useCapturaDocumento() {
   function suscribirRealtime(sId) {
     if (canalRealtime) supabase.removeChannel(canalRealtime)
 
+    console.log('[Realtime] Suscribiendo a sesión:', sId)
+
     canalRealtime = supabase
-      .channel(`captura-${sId}`)
+      .channel(`captura-doc-${sId}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'sesiones_captura_documento', filter: `id=eq.${sId}` },
         (payload) => {
-          const row = payload.new
-          if (row.url_frente)  urlFrente.value  = row.url_frente
-          if (row.url_reverso) urlReverso.value = row.url_reverso
-
-          if (row.url_frente && row.url_reverso) {
-            progreso.value = 'ambos'
-          } else if (row.url_frente) {
-            progreso.value = 'frente'
-          } else if (row.url_reverso) {
-            progreso.value = 'reverso'
-          }
-
-          if (row.estado === 'completado') {
-            estado.value = 'completado'
-            desuscribir()
-          } else {
-            estado.value = 'capturando_movil'
-          }
+          console.log('[Realtime] Evento recibido:', payload)
+          aplicarActualizacion(payload.new)
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('[Realtime] Estado suscripción:', status)
+      })
   }
 
   function desuscribir() {
     if (canalRealtime) {
       supabase.removeChannel(canalRealtime)
       canalRealtime = null
+    }
+  }
+
+  // ── Polling fallback cada 3 s ─────────────────────────────────────────────
+  function iniciarPolling(sId) {
+    detenerPolling()
+    pollingInterval = setInterval(async () => {
+      if (!['esperando_qr', 'capturando_movil'].includes(estado.value)) {
+        detenerPolling()
+        return
+      }
+      try {
+        const { data, error: err } = await supabase
+          .from('sesiones_captura_documento')
+          .select('estado, url_frente, url_reverso')
+          .eq('id', sId)
+          .single()
+
+        if (err || !data) return
+
+        if (data.url_frente && !urlFrente.value) {
+          console.log('[Polling] Frente detectado')
+        }
+        if (data.url_reverso && !urlReverso.value) {
+          console.log('[Polling] Reverso detectado')
+        }
+        aplicarActualizacion(data)
+
+        if (data.estado === 'completado') {
+          detenerPolling()
+          desuscribir()
+        }
+      } catch (e) {
+        console.warn('[Polling] Error:', e.message)
+      }
+    }, 3000)
+  }
+
+  function detenerPolling() {
+    if (pollingInterval) {
+      clearInterval(pollingInterval)
+      pollingInterval = null
+    }
+  }
+
+  // ── Lógica compartida entre Realtime y Polling ───────────────────────────
+  function aplicarActualizacion(row) {
+    if (row.url_frente)  urlFrente.value  = row.url_frente
+    if (row.url_reverso) urlReverso.value = row.url_reverso
+
+    if (row.url_frente && row.url_reverso) {
+      progreso.value = 'ambos'
+    } else if (row.url_frente) {
+      progreso.value = 'frente'
+    } else if (row.url_reverso) {
+      progreso.value = 'reverso'
+    }
+
+    if (row.estado === 'completado') {
+      estado.value = 'completado'
+      desuscribir()
+      detenerPolling()
+    } else if (row.url_frente || row.url_reverso) {
+      estado.value = 'capturando_movil'
     }
   }
 
@@ -129,6 +183,7 @@ export function useCapturaDocumento() {
   // ── Cancelar y limpiar ────────────────────────────────────────────────────
   function cancelar() {
     desuscribir()
+    detenerPolling()
     estado.value     = 'idle'
     qrDataUrl.value  = null
     urlCaptura.value = null
@@ -140,7 +195,10 @@ export function useCapturaDocumento() {
     urlReverso.value = null
   }
 
-  onUnmounted(desuscribir)
+  onUnmounted(() => {
+    desuscribir()
+    detenerPolling()
+  })
 
   return {
     esMovil,
