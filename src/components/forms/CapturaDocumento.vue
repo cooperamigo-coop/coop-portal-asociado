@@ -328,7 +328,7 @@ const LADOS = [
     }">
       <div :style="{
         display:             'grid',
-        gridTemplateColumns: qrDataUrl ? '1fr auto' : '1fr',
+        gridTemplateColumns: !esMovil ? '1fr 200px' : '1fr',
         gap:                 'var(--sp-xl)',
         padding:             'var(--sp-xl)',
         alignItems:          'start',
@@ -460,16 +460,33 @@ const LADOS = [
           </button>
         </div>
 
-        <!-- QR Image -->
-        <div v-if="qrDataUrl" :style="{
+        <!-- QR Image (solo en PC) -->
+        <div v-if="!esMovil" :style="{
           display:       'flex',
           flexDirection: 'column',
           alignItems:    'center',
           gap:           'var(--sp-sm)',
         }">
+          <!-- Skeleton mientras carga la URL de imagen -->
+          <div v-if="!qrDataUrl" :style="{
+            width:          '180px',
+            height:         '180px',
+            borderRadius:   'var(--r-xl)',
+            border:         '2px dashed var(--color-border)',
+            display:        'flex',
+            alignItems:     'center',
+            justifyContent: 'center',
+            background:     'var(--color-bg-surface)',
+          }">
+            <svg class="spin" width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="var(--color-border)" stroke-width="2"/>
+              <path d="M12 2a10 10 0 0 1 10 10" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
           <img
+            v-else
             :src="qrDataUrl"
-            alt="QR para capturar documento"
+            alt="Código QR"
             :style="{
               width:        '180px',
               height:       '180px',

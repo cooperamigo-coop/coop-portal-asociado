@@ -1,7 +1,11 @@
 import { ref, onUnmounted } from 'vue'
-import QRCode from 'qrcode'
 import { supabase } from '@/services/supabase'
 import { crearSesionCaptura, subirFotoCaptura, vincularSolicitudCaptura } from '@/services/captura.service'
+
+function generarUrlQR(texto) {
+  const encoded = encodeURIComponent(texto)
+  return `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encoded}&bgcolor=ffffff&color=172B36&margin=10`
+}
 
 export function useCapturaDocumento() {
   // ── Detección de dispositivo ──────────────────────────────────────────────
@@ -40,12 +44,7 @@ export function useCapturaDocumento() {
       token.value      = data.token
       urlCaptura.value = data.url_captura
 
-      qrDataUrl.value = await QRCode.toDataURL(data.url_captura, {
-        width:  280,
-        margin: 2,
-        color:  { dark: '#172B36', light: '#FFFFFF' },
-      })
-
+      qrDataUrl.value = generarUrlQR(data.url_captura)
       estado.value = 'esperando_qr'
       suscribirRealtime(data.sesion_id)
     } catch (e) {
