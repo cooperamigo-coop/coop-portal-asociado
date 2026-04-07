@@ -1,36 +1,35 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { consultarEstadoCaptura, subirFotoCaptura } from '@/services/captura.service'
-import {
-  Camera, CheckCircle, AlertCircle, RotateCcw,
-} from 'lucide-vue-next'
 
 const route = useRoute()
 const token = computed(() => route.params.token)
+const EF    = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/captura-documento`
 
-// ── Estado del flujo ──────────────────────────────────────────────────────────
-// verificando | listo | previsualizando | confirmado
-// previsualizando2 | completado | expirado | error
-const fase          = ref('verificando')
-const errorMsg      = ref('')
-const subiendo      = ref(false)
+// ── Estados del flujo ──────────────────────────────────────────────────────
+// verificando → listo_frente → visor → previsualizando
+// → listo_reverso → visor → previsualizando2 → completado
+// También: expirado | error | sin_camara
+const fase = ref('verificando')
 
-const fotoFrenteBlob     = ref(null)
-const fotoFrentePreview  = ref(null)
-const fotoReversoBlob    = ref(null)
-const fotoReversoPreview = ref(null)
-const urlFrente          = ref(null)
-const urlReverso         = ref(null)
+const urlFrente   = ref(null)
+const urlReverso  = ref(null)
+const fotoBlob    = ref(null)
+const fotoPreview = ref(null)
+const errorMsg    = ref('')
+const subiendo    = ref(false)
 
-const inputCamaraFrente  = ref(null)
-const inputCamaraReverso = ref(null)
+const videoRef  = ref(null)
+const canvasRef = ref(null)
 
-// ── Verificar sesión al cargar ────────────────────────────────────────────────
+let stream = null
+
+// ── Verificar sesión ───────────────────────────────────────────────────────
 onMounted(async () => {
   try {
-    const data = await consultarEstadoCaptura(token.value)
-    if (data.estado === 'expirado') { fase.value = 'expirado'; return }
+    const res  = await fetch(`${EF}/estado/${token.value}`)
+    const data = await res.json()
+    if (!res.ok || data.estado === 'expirado') { fase.value = 'expirado'; return }
     if (data.estado === 'completado') {
       urlFrente.value  = data.url_frente
       urlReverso.value = data.url_reverso
@@ -38,450 +37,600 @@ onMounted(async () => {
     }
     if (data.url_frente) {
       urlFrente.value = data.url_frente
-      fase.value = 'confirmado'
+      fase.value = 'listo_reverso'
     } else {
-      fase.value = 'listo'
+      fase.value = 'listo_frente'
     }
   } catch {
     fase.value = 'error'
-    errorMsg.value = 'No se pudo verificar el enlace. Intenta de nuevo.'
+    errorMsg.value = 'No se pudo verificar el enlace.'
   }
 })
 
-// ── Cámara ────────────────────────────────────────────────────────────────────
-function abrirCamaraFrente()  { inputCamaraFrente.value?.click() }
-function abrirCamaraReverso() { inputCamaraReverso.value?.click() }
+onUnmounted(detenerCamara)
 
-function onFotoFrente(e) {
+function detenerCamara() {
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop())
+    stream = null
+  }
+}
+
+// ── Abrir visor de cámara ──────────────────────────────────────────────────
+async function abrirVisor() {
+  errorMsg.value = ''
+  fase.value = 'visor'
+  await nextTick()
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+      audio: false,
+    })
+    if (videoRef.value) {
+      videoRef.value.srcObject = stream
+      await videoRef.value.play()
+    }
+  } catch (e) {
+    console.error('getUserMedia error:', e)
+    detenerCamara()
+    fase.value = 'sin_camara'
+  }
+}
+
+// ── Capturar foto desde el visor ──────────────────────────────────────────
+function capturar() {
+  const video  = videoRef.value
+  const canvas = canvasRef.value
+  if (!video || !canvas) return
+  canvas.width  = video.videoWidth
+  canvas.height = video.videoHeight
+  canvas.getContext('2d').drawImage(video, 0, 0)
+  canvas.toBlob((blob) => {
+    fotoBlob.value    = blob
+    fotoPreview.value = URL.createObjectURL(blob)
+    detenerCamara()
+    fase.value = urlFrente.value ? 'previsualizando2' : 'previsualizando'
+  }, 'image/jpeg', 0.92)
+}
+
+// ── Fallback galería ───────────────────────────────────────────────────────
+function onArchivoFallback(e) {
   const archivo = e.target.files?.[0]
   if (!archivo) return
-  fotoFrenteBlob.value    = archivo
-  fotoFrentePreview.value = URL.createObjectURL(archivo)
-  fase.value = 'previsualizando'
+  fotoBlob.value    = archivo
+  fotoPreview.value = URL.createObjectURL(archivo)
+  fase.value = urlFrente.value ? 'previsualizando2' : 'previsualizando'
   e.target.value = ''
 }
 
-function onFotoReverso(e) {
-  const archivo = e.target.files?.[0]
-  if (!archivo) return
-  fotoReversoBlob.value    = archivo
-  fotoReversoPreview.value = URL.createObjectURL(archivo)
-  fase.value = 'previsualizando2'
-  e.target.value = ''
+// ── Retomar foto ───────────────────────────────────────────────────────────
+function retomar() {
+  fotoBlob.value    = null
+  fotoPreview.value = null
+  errorMsg.value    = ''
+  abrirVisor()
 }
 
-// ── Confirmar y subir ────────────────────────────────────────────────────────
-async function confirmarFrente() {
+// ── Cancelar visor ─────────────────────────────────────────────────────────
+function cancelarVisor() {
+  detenerCamara()
+  fase.value = urlFrente.value ? 'listo_reverso' : 'listo_frente'
+}
+
+// ── Confirmar y subir ──────────────────────────────────────────────────────
+async function confirmar() {
+  if (!fotoBlob.value) return
   subiendo.value = true
   errorMsg.value = ''
+  const lado = urlFrente.value ? 'reverso' : 'frente'
   try {
-    const data = await subirFotoCaptura(token.value, 'frente', fotoFrenteBlob.value)
-    urlFrente.value = data.url
-    fase.value = 'confirmado'
+    const fd = new FormData()
+    fd.append('lado', lado)
+    fd.append('foto', fotoBlob.value, `${lado}.jpg`)
+    const res  = await fetch(`${EF}/subir/${token.value}`, { method: 'POST', body: fd })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
+    if (lado === 'frente') {
+      urlFrente.value = data.url
+      fase.value = 'listo_reverso'
+    } else {
+      urlReverso.value = data.url
+      fase.value = 'completado'
+    }
+    fotoBlob.value    = null
+    fotoPreview.value = null
   } catch (e) {
-    errorMsg.value = e.message || 'Error al subir la foto. Intenta de nuevo.'
-    fase.value = 'previsualizando'
+    errorMsg.value = e.message || 'Error al enviar la foto'
   } finally {
     subiendo.value = false
   }
 }
 
-async function confirmarReverso() {
-  subiendo.value = true
-  errorMsg.value = ''
-  try {
-    const data = await subirFotoCaptura(token.value, 'reverso', fotoReversoBlob.value)
-    urlReverso.value = data.url
-    fase.value = 'completado'
-  } catch (e) {
-    errorMsg.value = e.message || 'Error al subir la foto. Intenta de nuevo.'
-    fase.value = 'previsualizando2'
-  } finally {
-    subiendo.value = false
-  }
-}
-
-// ── Retomar foto ──────────────────────────────────────────────────────────────
-function retomarFrente() {
-  fotoFrenteBlob.value    = null
-  fotoFrentePreview.value = null
-  errorMsg.value          = ''
-  fase.value = 'listo'
-}
-
-function retomarReverso() {
-  fotoReversoBlob.value    = null
-  fotoReversoPreview.value = null
-  errorMsg.value           = ''
-  fase.value = 'confirmado'
-}
+const labelPaso  = computed(() => !urlFrente.value ? 'Frente de la cédula' : 'Reverso de la cédula')
+const numeroPaso = computed(() => !urlFrente.value ? 1 : 2)
 </script>
 
 <template>
   <div :style="{
-    minHeight:     '100dvh',
-    background:    '#0f1923',
+    position:      'fixed',
+    inset:         '0',
+    background:    '#0d1117',
     display:       'flex',
     flexDirection: 'column',
-    fontFamily:    'var(--font-body)',
+    fontFamily:    'system-ui, -apple-system, sans-serif',
     color:         '#fff',
-    overflowX:     'hidden',
+    overflow:      'hidden',
+    userSelect:    'none',
   }">
-
-    <!-- Inputs de cámara ocultos -->
-    <input ref="inputCamaraFrente"  type="file" accept="image/*" capture="environment"
-      style="display:none" @change="onFotoFrente" />
-    <input ref="inputCamaraReverso" type="file" accept="image/*" capture="environment"
-      style="display:none" @change="onFotoReverso" />
 
     <!-- ══ HEADER ════════════════════════════════════════════════ -->
     <div :style="{
-      padding:        '16px 20px 12px',
+      padding:        '14px 20px 10px',
       display:        'flex',
       alignItems:     'center',
-      justifyContent: 'center',
-      borderBottom:   '1px solid rgba(255,255,255,0.08)',
+      justifyContent: 'space-between',
       flexShrink:     '0',
+      zIndex:         '10',
     }">
-      <div :style="{ textAlign: 'center' }">
+      <div>
         <div :style="{
-          fontFamily:    'var(--font-display)',
+          fontSize:      '17px',
           fontWeight:    '800',
-          fontSize:      '18px',
-          letterSpacing: '-0.02em',
+          letterSpacing: '-0.03em',
+          lineHeight:    '1',
         }">
-          Cooper<span :style="{ color: 'var(--color-accent)' }">amigó</span>
+          Cooper<span :style="{ color: '#FFC801' }">amigó</span>
         </div>
         <div :style="{
-          fontSize:      '11px',
-          color:         'rgba(255,255,255,0.45)',
-          fontWeight:    '500',
-          marginTop:     '2px',
-          letterSpacing: '0.04em',
+          fontSize:      '10px',
+          color:         'rgba(255,255,255,0.4)',
+          fontWeight:    '600',
+          letterSpacing: '0.05em',
           textTransform: 'uppercase',
+          marginTop:     '2px',
         }">Captura de documento</div>
+      </div>
+
+      <!-- Indicador de paso -->
+      <div v-if="['listo_frente','listo_reverso','visor','previsualizando','previsualizando2'].includes(fase)"
+        :style="{ display: 'flex', alignItems: 'center', gap: '6px' }">
+        <div v-for="n in 2" :key="n" :style="{
+          width:        n === numeroPaso ? '20px' : '8px',
+          height:       '8px',
+          borderRadius: '4px',
+          background:   n === numeroPaso ? '#FFC801'
+            : n < numeroPaso ? '#22c55e' : 'rgba(255,255,255,0.15)',
+          transition:   'all 0.3s ease',
+        }" />
       </div>
     </div>
 
-    <!-- ══ VERIFICANDO ══════════════════════════════════════════ -->
+    <!-- ══ VERIFICANDO ════════════════════════════════════════════ -->
     <div v-if="fase === 'verificando'" :style="{
-      flex: '1', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', flexDirection: 'column', gap: '16px',
+      flex: '1', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: '14px',
     }">
-      <div class="spinner-ring" />
-      <p :style="{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', margin: '0' }">
+      <div :style="{
+        width: '36px', height: '36px',
+        border: '3px solid rgba(255,255,255,0.1)',
+        borderTopColor: '#FFC801', borderRadius: '50%',
+        animation: 'spin 0.7s linear infinite',
+      }" />
+      <p :style="{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontWeight: '500', margin: '0' }">
         Verificando enlace...
       </p>
     </div>
 
-    <!-- ══ ERROR / EXPIRADO ══════════════════════════════════════ -->
-    <div v-else-if="fase === 'expirado' || fase === 'error'" :style="{
-      flex: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      flexDirection: 'column', gap: '16px', padding: '32px',
-    }">
-      <div :style="{
-        width: '64px', height: '64px', borderRadius: '50%',
-        background: 'rgba(239,68,68,0.15)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }">
-        <AlertCircle :size="30" :style="{ color: '#ef4444' }" />
-      </div>
-      <div :style="{ textAlign: 'center' }">
-        <p :style="{ fontWeight: '700', fontSize: '18px', marginBottom: '8px', margin: '0 0 8px' }">
-          {{ fase === 'expirado' ? 'Enlace expirado' : 'Error de conexión' }}
-        </p>
-        <p :style="{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', lineHeight: '1.6', margin: '0' }">
-          {{ fase === 'expirado'
-            ? 'Este enlace ya no es válido. Genera uno nuevo desde el formulario en tu computador.'
-            : errorMsg }}
-        </p>
-      </div>
-    </div>
-
-    <!-- ══ LISTO — frente ════════════════════════════════════════ -->
-    <div v-else-if="fase === 'listo'" :style="{
+    <!-- ══ EXPIRADO ═══════════════════════════════════════════════ -->
+    <div v-else-if="fase === 'expirado'" :style="{
       flex: '1', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      padding: '32px 24px', gap: '28px',
+      padding: '32px', gap: '20px', textAlign: 'center',
     }">
-      <!-- Indicador de pasos -->
-      <div :style="{ display: 'flex', alignItems: 'center', gap: '8px' }">
-        <div :style="{
-          width: '28px', height: '28px', borderRadius: '50%',
-          background: 'var(--color-accent)', color: '#172B36',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: '800', fontSize: '13px',
-        }">1</div>
-        <span :style="{ fontWeight: '600', fontSize: '14px', color: 'rgba(255,255,255,0.7)' }">de 2 fotos</span>
-        <div :style="{
-          width: '28px', height: '28px', borderRadius: '50%',
-          background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: '800', fontSize: '13px',
-        }">2</div>
-      </div>
-
-      <!-- Ilustración -->
-      <div :style="{
-        width: '220px', height: '140px', borderRadius: '12px',
-        border: '2px dashed rgba(255,255,255,0.2)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexDirection: 'column', gap: '8px',
-        background: 'rgba(255,255,255,0.04)',
-      }">
-        <span :style="{ fontSize: '36px', lineHeight: '1' }">🪪</span>
-        <span :style="{
-          fontSize: '11px', fontWeight: '600',
-          color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase',
-          letterSpacing: '0.1em',
-        }">Parte frontal</span>
-      </div>
-
-      <div :style="{ textAlign: 'center' }">
-        <p :style="{
-          fontWeight: '700', fontSize: '20px', letterSpacing: '-0.02em',
-          margin: '0 0 8px',
-        }">Fotografía el frente<br/>de tu cédula</p>
-        <p :style="{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', lineHeight: '1.6', margin: '0' }">
-          Asegúrate de que haya buena luz<br/>y el texto sea completamente legible
+      <div :style="{ fontSize: '48px', lineHeight: '1' }">⏱️</div>
+      <div>
+        <p :style="{ fontSize: '20px', fontWeight: '800', margin: '0 0 8px' }">Enlace expirado</p>
+        <p :style="{ color: 'rgba(255,255,255,0.45)', fontSize: '14px', lineHeight: '1.6', margin: '0' }">
+          Genera un nuevo código QR<br/>desde el formulario en tu computador.
         </p>
       </div>
-
-      <button class="btn-primary" @click="abrirCamaraFrente">
-        <Camera :size="20" />
-        Tomar foto del frente
-      </button>
-
-      <label class="btn-galeria">
-        o elige desde la galería
-        <input type="file" accept="image/*" style="display:none" @change="onFotoFrente" />
-      </label>
     </div>
 
-    <!-- ══ PREVISUALIZANDO — frente ══════════════════════════════ -->
-    <div v-else-if="fase === 'previsualizando'" :style="{
-      flex: '1', display: 'flex', flexDirection: 'column',
-    }">
-      <!-- Imagen a pantalla completa -->
-      <div :style="{
-        flex: '1', background: '#000',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        overflow: 'hidden', position: 'relative',
-      }">
-        <img :src="fotoFrentePreview" alt="Frente" :style="{
-          maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block',
-        }" />
-        <div class="badge-foto" :style="{ color: 'var(--color-accent)' }">FRENTE</div>
-      </div>
-
-      <!-- Acciones -->
-      <div :style="{
-        padding: '20px 24px', background: '#0f1923',
-        display: 'flex', flexDirection: 'column', gap: '12px', flexShrink: '0',
-      }">
-        <p :style="{
-          textAlign: 'center', fontSize: '14px',
-          color: 'rgba(255,255,255,0.6)', margin: '0 0 4px',
-        }">¿El texto es legible y bien iluminado?</p>
-
-        <button class="btn-primary" :disabled="subiendo" @click="confirmarFrente">
-          <div v-if="subiendo" class="spinner-sm" />
-          <CheckCircle v-else :size="18" />
-          {{ subiendo ? 'Subiendo...' : 'Usar esta foto' }}
-        </button>
-
-        <button class="btn-secondary" :disabled="subiendo" @click="retomarFrente">
-          <RotateCcw :size="16" />
-          Tomar de nuevo
-        </button>
-
-        <div v-if="errorMsg" class="error-banner">
-          <AlertCircle :size="14" style="flex-shrink:0" />
-          {{ errorMsg }}
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ CONFIRMADO — listo para reverso ══════════════════════ -->
-    <div v-else-if="fase === 'confirmado'" :style="{
+    <!-- ══ ERROR ══════════════════════════════════════════════════ -->
+    <div v-else-if="fase === 'error'" :style="{
       flex: '1', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      padding: '32px 24px', gap: '28px',
+      padding: '32px', gap: '20px', textAlign: 'center',
     }">
-      <!-- Progreso -->
-      <div :style="{ display: 'flex', alignItems: 'center', gap: '8px' }">
-        <div :style="{
-          width: '28px', height: '28px', borderRadius: '50%', background: '#22c55e',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+      <div :style="{ fontSize: '48px' }">⚠️</div>
+      <div>
+        <p :style="{ fontSize: '18px', fontWeight: '700', margin: '0 0 8px' }">Algo salió mal</p>
+        <p :style="{ color: 'rgba(255,255,255,0.45)', fontSize: '14px', margin: '0' }">{{ errorMsg }}</p>
+      </div>
+    </div>
+
+    <!-- ══ LISTO (frente o reverso) ══════════════════════════════ -->
+    <div v-else-if="['listo_frente','listo_reverso'].includes(fase)" :style="{
+      flex: '1', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'space-between',
+      padding: '24px 28px 36px',
+    }">
+      <!-- Texto -->
+      <div :style="{ textAlign: 'center', paddingTop: '8px' }">
+        <p :style="{
+          fontSize: '11px', fontWeight: '700',
+          color: fase === 'listo_reverso' ? '#86efac' : '#FFC801',
+          textTransform: 'uppercase', letterSpacing: '0.1em',
+          margin: '0 0 10px',
         }">
-          <CheckCircle :size="16" :style="{ color: '#fff' }" />
-        </div>
-        <div :style="{ width: '32px', height: '2px', background: 'rgba(255,255,255,0.2)' }" />
-        <div :style="{
-          width: '28px', height: '28px', borderRadius: '50%',
-          background: 'var(--color-accent)', color: '#172B36',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: '800', fontSize: '13px',
-        }">2</div>
-      </div>
-
-      <!-- Confirmación frente -->
-      <div :style="{
-        display: 'flex', alignItems: 'center', gap: '12px',
-        padding: '14px 16px', borderRadius: '14px',
-        background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
-        width: '100%', maxWidth: '320px',
-      }">
-        <img
-          v-if="fotoFrentePreview || urlFrente"
-          :src="fotoFrentePreview || urlFrente"
-          :style="{
-            width: '52px', height: '36px', objectFit: 'cover',
-            borderRadius: '6px', flexShrink: '0',
-            border: '2px solid rgba(34,197,94,0.5)',
-          }"
-        />
-        <div>
-          <div :style="{ fontSize: '13px', fontWeight: '700', color: '#86efac' }">✓ Frente capturado</div>
-          <div :style="{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }">Foto guardada correctamente</div>
-        </div>
-      </div>
-
-      <!-- Ilustración reverso -->
-      <div :style="{
-        width: '220px', height: '140px', borderRadius: '12px',
-        border: '2px dashed rgba(255,255,255,0.2)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexDirection: 'column', gap: '8px',
-        background: 'rgba(255,255,255,0.04)',
-      }">
-        <span :style="{ fontSize: '36px', lineHeight: '1' }">🪪</span>
-        <span :style="{
-          fontSize: '11px', fontWeight: '600',
-          color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase',
-          letterSpacing: '0.1em',
-        }">Parte trasera</span>
-      </div>
-
-      <div :style="{ textAlign: 'center' }">
+          {{ fase === 'listo_reverso' ? '✓ Frente capturado · Paso 2 de 2' : 'Paso 1 de 2' }}
+        </p>
+        <h1 :style="{
+          fontSize: '26px', fontWeight: '800',
+          letterSpacing: '-0.03em', lineHeight: '1.2',
+          margin: '0 0 10px',
+        }">
+          {{ fase === 'listo_reverso' ? 'Ahora el reverso' : 'Fotografía el frente' }}<br/>
+          <span :style="{ color: 'rgba(255,255,255,0.5)' }">de tu cédula</span>
+        </h1>
         <p :style="{
-          fontWeight: '700', fontSize: '20px', letterSpacing: '-0.02em',
-          margin: '0 0 8px',
-        }">Ahora fotografía el reverso<br/>de tu cédula</p>
-        <p :style="{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', lineHeight: '1.6', margin: '0' }">
-          Voltea tu cédula y toma<br/>la foto de la parte de atrás
+          color: 'rgba(255,255,255,0.45)', fontSize: '13px',
+          lineHeight: '1.6', fontWeight: '500', margin: '0',
+        }">
+          Ubica tu cédula dentro del recuadro<br/>y asegúrate que el texto sea legible
         </p>
       </div>
 
-      <button class="btn-primary" @click="abrirCamaraReverso">
-        <Camera :size="20" />
-        Tomar foto del reverso
-      </button>
+      <!-- Ilustración cédula -->
+      <div :style="{ width: '260px', position: 'relative' }">
+        <div :style="{
+          width: '100%', paddingBottom: '63%',
+          borderRadius: '14px',
+          background: 'linear-gradient(135deg, #1e2d3d 0%, #162230 100%)',
+          border: '2px solid rgba(255,255,255,0.12)',
+          position: 'relative', overflow: 'hidden',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+        }">
+          <div :style="{
+            position: 'absolute', inset: '0', padding: '16px',
+            display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+          }">
+            <div :style="{ display: 'flex', gap: '10px', alignItems: 'center' }">
+              <div :style="{
+                width: '40px', height: '40px', borderRadius: '6px',
+                background: 'rgba(255,200,1,0.15)', border: '1px solid rgba(255,200,1,0.2)',
+                flexShrink: '0',
+              }"/>
+              <div :style="{ flex: '1' }">
+                <div :style="{ height:'8px', borderRadius:'4px', background:'rgba(255,255,255,0.15)', marginBottom:'6px', width:'60%' }"/>
+                <div :style="{ height:'6px', borderRadius:'3px', background:'rgba(255,255,255,0.08)', width:'80%' }"/>
+              </div>
+            </div>
+            <div>
+              <div v-for="w in ['70%','90%','50%']" :key="w" :style="{
+                height:'5px', borderRadius:'3px',
+                background:'rgba(255,255,255,0.08)',
+                marginBottom:'5px', width: w,
+              }"/>
+            </div>
+          </div>
+          <div v-if="fase === 'listo_reverso'" :style="{
+            position:'absolute', inset:'0',
+            background:'rgba(34,197,94,0.08)',
+            display:'flex', alignItems:'center', justifyContent:'center',
+          }">
+            <span :style="{ fontSize:'28px', opacity:'0.6' }">↩️</span>
+          </div>
+        </div>
+        <!-- Esquinas target -->
+        <div v-for="(s,i) in [
+          { top:'-4px',  left:'-4px',  borderTop:'3px solid #FFC801', borderLeft:'3px solid #FFC801' },
+          { top:'-4px',  right:'-4px', borderTop:'3px solid #FFC801', borderRight:'3px solid #FFC801' },
+          { bottom:'-4px', left:'-4px',  borderBottom:'3px solid #FFC801', borderLeft:'3px solid #FFC801' },
+          { bottom:'-4px', right:'-4px', borderBottom:'3px solid #FFC801', borderRight:'3px solid #FFC801' },
+        ]" :key="i" :style="{
+          position:'absolute', width:'18px', height:'18px', borderRadius:'2px', ...s,
+        }"/>
+      </div>
 
-      <label class="btn-galeria">
-        o elige desde la galería
-        <input type="file" accept="image/*" style="display:none" @change="onFotoReverso" />
+      <!-- CTA -->
+      <div :style="{
+        width: '100%', display: 'flex',
+        flexDirection: 'column', gap: '12px', alignItems: 'center',
+      }">
+        <button :style="{
+          width: '100%', padding: '17px', borderRadius: '16px', border: 'none',
+          background: '#FFC801', color: '#0d1117',
+          fontFamily: 'inherit', fontWeight: '800', fontSize: '16px',
+          cursor: 'pointer', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', gap: '10px', letterSpacing: '-0.01em',
+          boxShadow: '0 4px 24px rgba(255,200,1,0.35)',
+          WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+        }" @click="abrirVisor">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          Abrir cámara
+        </button>
+
+        <label :style="{
+          color: 'rgba(255,255,255,0.3)', fontSize: '13px', fontWeight: '500',
+          cursor: 'pointer', paddingBottom: '4px',
+          borderBottom: '1px solid rgba(255,255,255,0.15)',
+        }">
+          Elegir de la galería
+          <input type="file" accept="image/*" style="display:none" @change="onArchivoFallback" />
+        </label>
+      </div>
+    </div>
+
+    <!-- ══ VISOR DE CÁMARA ════════════════════════════════════════ -->
+    <div v-else-if="fase === 'visor'" :style="{
+      flex: '1', position: 'relative', overflow: 'hidden', background: '#000',
+    }">
+      <video
+        ref="videoRef"
+        autoplay
+        playsinline
+        muted
+        :style="{
+          position: 'absolute', inset: '0',
+          width: '100%', height: '100%', objectFit: 'cover',
+        }"
+      />
+
+      <!-- Overlay con máscara del documento -->
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" :style="{
+        position: 'absolute', inset: '0',
+        width: '100%', height: '100%', pointerEvents: 'none',
+      }">
+        <defs>
+          <mask id="doc-mask">
+            <rect width="100" height="100" fill="white"/>
+            <rect x="8" y="23.5" width="84" height="53" rx="1.5" fill="black"/>
+          </mask>
+        </defs>
+        <rect width="100" height="100" fill="rgba(0,0,0,0.62)" mask="url(#doc-mask)"/>
+      </svg>
+
+      <!-- Marco del recuadro con esquinas -->
+      <div :style="{
+        position: 'absolute', left: '8%', right: '8%',
+        top: '23.5%', height: '53%',
+        borderRadius: '3px', pointerEvents: 'none',
+      }">
+        <div v-for="(s,i) in [
+          { top:0, left:0,   borderTop:'3px solid #FFC801', borderLeft:'3px solid #FFC801' },
+          { top:0, right:0,  borderTop:'3px solid #FFC801', borderRight:'3px solid #FFC801' },
+          { bottom:0, left:0,  borderBottom:'3px solid #FFC801', borderLeft:'3px solid #FFC801' },
+          { bottom:0, right:0, borderBottom:'3px solid #FFC801', borderRight:'3px solid #FFC801' },
+        ]" :key="i" :style="{
+          position: 'absolute', width: '22px', height: '22px', borderRadius: '2px', ...s,
+        }"/>
+      </div>
+
+      <!-- Instrucción superior -->
+      <div :style="{
+        position: 'absolute', top: '15%', left: '0', right: '0',
+        textAlign: 'center', pointerEvents: 'none',
+      }">
+        <span :style="{
+          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+          borderRadius: '20px', padding: '6px 16px',
+          fontSize: '13px', fontWeight: '700', color: '#fff', letterSpacing: '0.02em',
+        }">{{ labelPaso }} · Centra el documento</span>
+      </div>
+
+      <!-- Indicador de paso inferior -->
+      <div :style="{
+        position: 'absolute', bottom: '22%', left: '0', right: '0',
+        textAlign: 'center', pointerEvents: 'none',
+      }">
+        <span :style="{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', fontWeight: '600' }">
+          Paso {{ numeroPaso }} de 2
+        </span>
+      </div>
+
+      <!-- Botón capturar -->
+      <div :style="{
+        position: 'absolute', bottom: '0', left: '0', right: '0',
+        padding: '20px 0 36px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)',
+      }">
+        <button :style="{
+          width: '72px', height: '72px', borderRadius: '50%',
+          border: '4px solid rgba(255,255,255,0.9)',
+          background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+          transition: 'transform 0.1s ease',
+        }"
+          @click="capturar"
+          @touchstart.passive="e => e.currentTarget.style.transform='scale(0.92)'"
+          @touchend.passive="e => e.currentTarget.style.transform='scale(1)'"
+        >
+          <div :style="{ width: '52px', height: '52px', borderRadius: '50%', background: '#fff' }"/>
+        </button>
+      </div>
+
+      <canvas ref="canvasRef" style="display:none"/>
+
+      <!-- Botón cancelar -->
+      <button :style="{
+        position: 'absolute', top: '14px', left: '16px',
+        background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)',
+        border: 'none', borderRadius: '10px',
+        color: 'rgba(255,255,255,0.8)', padding: '8px 14px',
+        fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+        WebkitTapHighlightColor: 'transparent',
+      }" @click="cancelarVisor">
+        ✕ Cancelar
+      </button>
+    </div>
+
+    <!-- ══ SIN CÁMARA (fallback) ══════════════════════════════════ -->
+    <div v-else-if="fase === 'sin_camara'" :style="{
+      flex: '1', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      padding: '32px', gap: '20px', textAlign: 'center',
+    }">
+      <div :style="{ fontSize: '40px' }">📷</div>
+      <div>
+        <p :style="{ fontSize: '17px', fontWeight: '700', margin: '0 0 8px' }">Cámara no disponible</p>
+        <p :style="{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', lineHeight: '1.6', margin: '0' }">
+          Puedes subir la foto desde tu galería
+        </p>
+      </div>
+      <label :style="{
+        padding: '16px 32px', borderRadius: '14px',
+        background: '#FFC801', color: '#0d1117',
+        fontWeight: '800', fontSize: '15px', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: '8px',
+      }">
+        📁 Elegir foto
+        <input type="file" accept="image/*" style="display:none" @change="onArchivoFallback" />
       </label>
     </div>
 
-    <!-- ══ PREVISUALIZANDO — reverso ══════════════════════════════ -->
-    <div v-else-if="fase === 'previsualizando2'" :style="{
-      flex: '1', display: 'flex', flexDirection: 'column',
+    <!-- ══ PREVISUALIZANDO (frente o reverso) ════════════════════ -->
+    <div v-else-if="['previsualizando','previsualizando2'].includes(fase)" :style="{
+      flex: '1', display: 'flex', flexDirection: 'column', background: '#000',
     }">
       <div :style="{
-        flex: '1', background: '#000',
+        flex: '1', position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        overflow: 'hidden', position: 'relative',
+        overflow: 'hidden',
       }">
-        <img :src="fotoReversoPreview" alt="Reverso" :style="{
+        <img :src="fotoPreview" :style="{
           maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block',
         }" />
-        <div class="badge-foto" :style="{ color: '#86efac' }">REVERSO</div>
+        <div :style="{
+          position: 'absolute', top: '14px', left: '14px',
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
+          borderRadius: '8px', padding: '5px 12px',
+          fontSize: '11px', fontWeight: '800',
+          color: fase === 'previsualizando' ? '#FFC801' : '#86efac',
+          textTransform: 'uppercase', letterSpacing: '0.08em',
+        }">
+          {{ fase === 'previsualizando' ? 'FRENTE' : 'REVERSO' }}
+        </div>
       </div>
 
       <div :style="{
-        padding: '20px 24px', background: '#0f1923',
-        display: 'flex', flexDirection: 'column', gap: '12px', flexShrink: '0',
+        flexShrink: '0', padding: '16px 20px 32px',
+        background: 'linear-gradient(to bottom, #111827, #0d1117)',
+        display: 'flex', flexDirection: 'column', gap: '10px',
       }">
         <p :style="{
-          textAlign: 'center', fontSize: '14px',
-          color: 'rgba(255,255,255,0.6)', margin: '0 0 4px',
-        }">¿El texto es legible y bien iluminado?</p>
+          textAlign: 'center', fontSize: '13px',
+          color: 'rgba(255,255,255,0.55)', fontWeight: '500', margin: '0 0 2px',
+        }">¿El texto es claro y legible?</p>
 
-        <button class="btn-primary" :disabled="subiendo" @click="confirmarReverso">
-          <div v-if="subiendo" class="spinner-sm" />
-          <CheckCircle v-else :size="18" />
-          {{ subiendo ? 'Subiendo...' : 'Usar esta foto' }}
+        <button :disabled="subiendo" :style="{
+          padding: '15px', borderRadius: '14px', border: 'none',
+          background: subiendo ? 'rgba(255,200,1,0.3)' : '#FFC801',
+          color: subiendo ? 'rgba(255,200,1,0.6)' : '#0d1117',
+          fontFamily: 'inherit', fontWeight: '800', fontSize: '15px',
+          cursor: subiendo ? 'not-allowed' : 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+          WebkitTapHighlightColor: 'transparent',
+        }" @click="confirmar">
+          <div v-if="subiendo" :style="{
+            width:'16px', height:'16px',
+            border:'2px solid rgba(0,0,0,0.2)', borderTopColor:'#0d1117',
+            borderRadius:'50%', animation:'spin 0.7s linear infinite',
+          }"/>
+          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          {{ subiendo ? 'Enviando...' : 'Sí, usar esta foto' }}
         </button>
 
-        <button class="btn-secondary" :disabled="subiendo" @click="retomarReverso">
-          <RotateCcw :size="16" />
+        <button :disabled="subiendo" :style="{
+          padding: '13px', borderRadius: '14px',
+          border: '1.5px solid rgba(255,255,255,0.12)',
+          background: 'rgba(255,255,255,0.05)',
+          color: subiendo ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.85)',
+          fontFamily: 'inherit', fontWeight: '600', fontSize: '14px',
+          cursor: subiendo ? 'not-allowed' : 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+          WebkitTapHighlightColor: 'transparent',
+        }" @click="retomar">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 .49-3.36"/>
+          </svg>
           Tomar de nuevo
         </button>
 
-        <div v-if="errorMsg" class="error-banner">
-          <AlertCircle :size="14" style="flex-shrink:0" />
-          {{ errorMsg }}
+        <div v-if="errorMsg" :style="{
+          padding: '10px 14px', borderRadius: '10px',
+          background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
+          color: '#fca5a5', fontSize: '13px', fontWeight: '500',
+          display: 'flex', alignItems: 'center', gap: '8px',
+        }">
+          ⚠️ {{ errorMsg }}
         </div>
       </div>
     </div>
 
-    <!-- ══ COMPLETADO ══════════════════════════════════════════════ -->
+    <!-- ══ COMPLETADO ═════════════════════════════════════════════ -->
     <div v-else-if="fase === 'completado'" :style="{
       flex: '1', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      padding: '32px 24px', gap: '28px',
+      padding: '32px 28px', gap: '28px', textAlign: 'center',
     }">
       <div :style="{
-        width: '80px', height: '80px', borderRadius: '50%',
-        background: 'rgba(34,197,94,0.15)', border: '2px solid rgba(34,197,94,0.4)',
+        width: '76px', height: '76px', borderRadius: '50%',
+        background: 'rgba(34,197,94,0.12)', border: '2px solid rgba(34,197,94,0.35)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }">
-        <CheckCircle :size="40" :style="{ color: '#22c55e' }" />
-      </div>
+        fontSize: '36px',
+      }">✅</div>
 
-      <div :style="{ textAlign: 'center' }">
-        <p :style="{
-          fontFamily: 'var(--font-display)', fontWeight: '800',
-          fontSize: '24px', letterSpacing: '-0.03em', margin: '0 0 10px',
-        }">¡Todo listo!</p>
-        <p :style="{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', lineHeight: '1.7', margin: '0' }">
-          Ambas fotos se enviaron correctamente.<br/>
-          Ya puedes cerrar esta ventana y continuar<br/>
-          con tu solicitud en el computador.
+      <div>
+        <p :style="{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.03em', margin: '0 0 10px' }">
+          ¡Todo listo!
+        </p>
+        <p :style="{ color: 'rgba(255,255,255,0.45)', fontSize: '14px', lineHeight: '1.7', margin: '0' }">
+          Ambas fotos fueron enviadas.<br/>
+          Cierra esta ventana y continúa<br/>
+          <strong :style="{ color: 'rgba(255,255,255,0.7)' }">en tu computador.</strong>
         </p>
       </div>
 
-      <!-- Miniaturas finales -->
       <div :style="{
         display: 'grid', gridTemplateColumns: '1fr 1fr',
-        gap: '12px', width: '100%', maxWidth: '300px',
+        gap: '10px', width: '100%', maxWidth: '280px',
       }">
         <div v-for="lado in [
-          { nombre: 'Frente',  src: fotoFrentePreview  || urlFrente },
-          { nombre: 'Reverso', src: fotoReversoPreview || urlReverso },
+          { nombre: 'Frente',  url: urlFrente },
+          { nombre: 'Reverso', url: urlReverso },
         ]" :key="lado.nombre">
-          <div :style="{
-            fontSize: '11px', fontWeight: '700', color: 'rgba(255,255,255,0.4)',
-            textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px',
-          }">{{ lado.nombre }}</div>
-          <img :src="lado.src" :alt="lado.nombre" :style="{
+          <p :style="{
+            fontSize: '10px', fontWeight: '700', color: 'rgba(255,255,255,0.35)',
+            textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 6px',
+          }">{{ lado.nombre }}</p>
+          <img :src="lado.url" :alt="lado.nombre" :style="{
             width: '100%', borderRadius: '10px',
-            border: '2px solid rgba(34,197,94,0.4)',
-            aspectRatio: '3/2', objectFit: 'cover', display: 'block',
+            border: '2px solid rgba(34,197,94,0.3)',
+            aspectRatio: '1.585', objectFit: 'cover', display: 'block',
           }" />
         </div>
       </div>
     </div>
 
-    <!-- ══ FOOTER ══════════════════════════════════════════════════ -->
+    <!-- ══ FOOTER ═════════════════════════════════════════════════ -->
     <div :style="{
-      padding:    '12px 20px 20px',
-      textAlign:  'center',
-      fontSize:   '11px',
-      color:      'rgba(255,255,255,0.2)',
-      fontWeight: '500',
-      flexShrink: '0',
+      flexShrink: '0', textAlign: 'center', padding: '10px',
+      fontSize: '10px', color: 'rgba(255,255,255,0.15)', fontWeight: '500',
     }">
       Cooperativa Multiactiva Luis Amigó · NIT 800.191.482-7
     </div>
@@ -490,115 +639,10 @@ function retomarReverso() {
 
 <style scoped>
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
-
-* { -webkit-tap-highlight-color: transparent; }
-
-.spinner-ring {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(255,255,255,0.15);
-  border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-.spinner-sm {
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(0,0,0,0.25);
-  border-top-color: #172B36;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  flex-shrink: 0;
-}
-
-.btn-primary {
-  width: 100%;
-  max-width: 320px;
-  padding: 18px;
-  border-radius: 16px;
-  border: none;
-  background: var(--color-accent);
-  color: #172B36;
-  font-family: var(--font-body);
-  font-weight: 800;
-  font-size: 16px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  letter-spacing: -0.01em;
-  box-shadow: 0 8px 32px rgba(255,200,1,0.3);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-.btn-primary:disabled {
-  background: rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.4);
-  cursor: not-allowed;
-  box-shadow: none;
-}
-.btn-primary:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn-secondary {
-  width: 100%;
-  max-width: 320px;
-  padding: 15px;
-  border-radius: 14px;
-  border: 1.5px solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.06);
-  color: #fff;
-  font-family: var(--font-body);
-  font-weight: 600;
-  font-size: 15px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: background 0.15s ease;
-}
-.btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn-secondary:active:not(:disabled) { background: rgba(255,255,255,0.1); }
-
-.btn-galeria {
-  color: rgba(255,255,255,0.35);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.badge-foto {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(8px);
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.error-banner {
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: rgba(239,68,68,0.15);
-  border: 1px solid rgba(239,68,68,0.3);
-  color: #fca5a5;
-  font-size: 13px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }
 </style>
