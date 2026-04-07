@@ -110,8 +110,10 @@ async function confirmar() {
     fotoBlob.value = null; fotoPreview.value = null
     if (lado === 'frente') {
       urlFrente.value = data.url
-      // Abrir automáticamente la cámara para el reverso
-      abrirVisor()
+      // iOS Safari: getUserMedia solo funciona con gesto directo del usuario.
+      // No llamar abrirVisor() aquí (el await fetch() ya consumió el gesto).
+      // Ir a listo_reverso para que el usuario pulse el botón.
+      fase.value = 'listo_reverso'
     } else {
       urlReverso.value = data.url
       fase.value = 'completado'
