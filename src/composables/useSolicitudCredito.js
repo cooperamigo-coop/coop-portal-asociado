@@ -177,7 +177,6 @@ export function useSolicitudCredito() {
     entidad_pagadora_codeudor:           '',
     institucion_educativa_codeudor:      '',
     nivel_educativo_codeudor:            '',
-    descripcion_ocupacion_codeudor:      '',
     tiene_dependientes_codeudor:         false,
     numero_dependientes_codeudor:        '',
   })
@@ -221,7 +220,6 @@ export function useSolicitudCredito() {
     entidad_pagadora_codeudor2:           '',
     institucion_educativa_codeudor2:      '',
     nivel_educativo_codeudor2:            '',
-    descripcion_ocupacion_codeudor2:      '',
     tiene_dependientes_codeudor2:         false,
     numero_dependientes_codeudor2:        '',
   })
@@ -498,7 +496,13 @@ export function useSolicitudCredito() {
       ...laboral.value,
       ...financiera.value,
       ...patrimonio.value,
-      ...cuenta.value,
+      // Cuenta: excluir entidad_bancaria_otro (campo UI), resolver valor real
+      ...(({ entidad_bancaria_otro, ...c }) => ({
+        ...c,
+        entidad_bancaria: cuenta.value.entidad_bancaria === 'otro'
+          ? (cuenta.value.entidad_bancaria_otro || null)
+          : cuenta.value.entidad_bancaria,
+      }))(cuenta.value),
       // Codeudor 1
       ...(numCodudores.value >= 1 ? personaCod1.value   : {}),
       ...(numCodudores.value >= 1 ? laboralCod1.value   : {}),
