@@ -99,15 +99,26 @@ async function confirmar() {
     const fd = new FormData()
     fd.append('lado', lado)
     fd.append('foto', fotoBlob.value, `${lado}.jpg`)
-    const res  = await fetch(`${EF}/subir/${token.value}`, { method: 'POST', body: fd })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error)
-    if (lado === 'frente') { urlFrente.value = data.url; fase.value = 'listo_reverso' }
-    else { urlReverso.value = data.url; fase.value = 'completado' }
+    const res   = await fetch(`${EF}/subir/${token.value}`, { method: 'POST', body: fd })
+    const texto = await res.text()
+    if (!res.ok) {
+      let msg = `Error ${res.status}`
+      try { msg = JSON.parse(texto).error || msg } catch { }
+      throw new Error(msg)
+    }
+    const data = JSON.parse(texto)
     fotoBlob.value = null; fotoPreview.value = null
+    if (lado === 'frente') {
+      urlFrente.value = data.url
+      // Abrir automáticamente la cámara para el reverso
+      abrirVisor()
+    } else {
+      urlReverso.value = data.url
+      fase.value = 'completado'
+    }
   } catch (e) {
-    errorMsg.value = e.message || 'Error al enviar'
-    fase.value = esReverso.value ? 'previsualizando2' : 'previsualizando'
+    console.error('[confirmar] Error:', e)
+    errorMsg.value = e.message || 'Error al enviar la foto. Intenta de nuevo.'
   } finally { subiendo.value = false }
 }
 </script>
