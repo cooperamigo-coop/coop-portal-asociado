@@ -148,11 +148,36 @@ export function useCapturaDocumento() {
     }
   }
 
-  // ── Subir foto directa (móvil usa el componente sin QR) ──────────────────
-  async function subirFotoLocal(lado, archivo) {
-    if (!token.value) return
+  // ── Crear sesión silenciosa (upload directo, sin QR) ─────────────────────
+  async function _asegurarSesion(solicitudId, campo) {
+    if (token.value) return true
+    try {
+      const sesionFormulario = solicitudId
+        ? null
+        : `temp_${Date.now()}_${Math.random().toString(36).slice(2)}`
+      const data = await crearSesionCaptura(solicitudId || null, campo, sesionFormulario)
+      sesionId.value = data.sesion_id
+      token.value    = data.token
+      // urlCaptura intencionalmente NO se asigna — discrimina flujo QR vs directo
+      return true
+    } catch (e) {
+      error.value  = e.message
+      estado.value = 'error'
+      console.error('[useCapturaDocumento] Error creando sesión:', e)
+      return false
+    }
+  }
+
+  // ── Subir foto directa (desde dispositivo o desde CapturaMovilPage) ───────
+  async function subirFotoLocal(lado, archivo, solicitudId = null, campo = 'documento_identidad') {
     estado.value = 'subiendo'
     error.value  = null
+
+    // Crear sesión si aún no existe (upload directo sin QR previo)
+    if (!token.value) {
+      const ok = await _asegurarSesion(solicitudId, campo)
+      if (!ok) return
+    }
 
     try {
       const data = await subirFotoCaptura(token.value, lado, archivo)
