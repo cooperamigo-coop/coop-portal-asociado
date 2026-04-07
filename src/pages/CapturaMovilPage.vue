@@ -449,36 +449,38 @@ async function confirmar() {
 
     <!-- PREVISUALIZANDO frente o reverso -->
     <div v-else-if="['previsualizando','previsualizando2'].includes(fase)" :style="{
-      flex:'1', display:'flex', flexDirection:'column', background:'#000',
+      position:'absolute', inset:'0', background:'#000',
     }">
+      <!-- Foto ocupa toda la pantalla -->
+      <img :src="fotoPreview" :style="{
+        position:'absolute', inset:'0',
+        width:'100%', height:'100%', objectFit:'cover', display:'block',
+      }"/>
+
+      <!-- Badge FRENTE / REVERSO -->
       <div :style="{
-        flex:'1', position:'relative',
-        display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden',
+        position:'absolute', top:'max(14px, env(safe-area-inset-top, 14px))', left:'14px',
+        background:'rgba(0,0,0,0.55)', WebkitBackdropFilter:'blur(8px)', backdropFilter:'blur(8px)',
+        borderRadius:'8px', padding:'5px 12px',
+        fontSize:'11px', fontWeight:'800',
+        color: fase==='previsualizando' ? '#FFC801' : '#86efac',
+        textTransform:'uppercase', letterSpacing:'0.08em',
       }">
-        <img :src="fotoPreview" :style="{
-          maxWidth:'100%', maxHeight:'100%', objectFit:'contain', display:'block',
-        }"/>
-        <div :style="{
-          position:'absolute', top:'14px', left:'14px',
-          background:'rgba(0,0,0,0.55)', backdropFilter:'blur(8px)',
-          borderRadius:'8px', padding:'5px 12px',
-          fontSize:'11px', fontWeight:'800',
-          color: fase==='previsualizando' ? '#FFC801' : '#86efac',
-          textTransform:'uppercase', letterSpacing:'0.08em',
-        }">
-          {{ fase==='previsualizando' ? 'FRENTE' : 'REVERSO' }}
-        </div>
+        {{ fase==='previsualizando' ? 'FRENTE' : 'REVERSO' }}
       </div>
 
-      <!-- Panel acciones -->
+      <!-- Panel acciones sticky sobre la foto -->
       <div :style="{
-        flexShrink:'0', padding:'16px 20px 36px',
-        background:'linear-gradient(to bottom,#111827,#0d1117)',
+        position:'absolute', bottom:'0', left:'0', right:'0',
+        paddingTop:'40px',
+        paddingBottom:'max(28px, env(safe-area-inset-bottom, 28px))',
+        paddingLeft:'20px', paddingRight:'20px',
+        background:'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.85) 35%, rgba(0,0,0,0.97) 100%)',
         display:'flex', flexDirection:'column', gap:'10px',
       }">
         <p :style="{
           textAlign:'center', fontSize:'13px',
-          color:'rgba(255,255,255,0.5)', fontWeight:'500', marginBottom:'2px',
+          color:'rgba(255,255,255,0.6)', fontWeight:'500', marginBottom:'2px',
         }">¿El texto es claro y legible?</p>
 
         <button :disabled="subiendo" :style="{
@@ -504,9 +506,9 @@ async function confirmar() {
 
         <button :disabled="subiendo" :style="{
           padding:'13px', borderRadius:'14px',
-          border:'1.5px solid rgba(255,255,255,0.1)',
-          background:'rgba(255,255,255,0.05)',
-          color: subiendo ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.8)',
+          border:'1.5px solid rgba(255,255,255,0.15)',
+          background:'rgba(255,255,255,0.08)',
+          color: subiendo ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.85)',
           fontFamily:'inherit', fontWeight:'600', fontSize:'14px',
           cursor: subiendo ? 'not-allowed' : 'pointer',
           display:'flex', alignItems:'center', justifyContent:'center', gap:'8px',
@@ -522,8 +524,8 @@ async function confirmar() {
 
         <div v-if="errorMsg" :style="{
           padding:'10px 14px', borderRadius:'10px',
-          background:'rgba(239,68,68,0.1)',
-          border:'1px solid rgba(239,68,68,0.2)',
+          background:'rgba(239,68,68,0.15)',
+          border:'1px solid rgba(239,68,68,0.3)',
           color:'#fca5a5', fontSize:'13px', fontWeight:'500',
           display:'flex', alignItems:'center', gap:'8px',
         }">⚠️ {{ errorMsg }}</div>
