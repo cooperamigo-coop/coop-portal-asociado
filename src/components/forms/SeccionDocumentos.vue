@@ -8,7 +8,7 @@ const props = defineProps({
   solicitudId:    { type: String, default: null },
 })
 
-const emit = defineEmits(['completado-cedula'])
+const emit = defineEmits(['completado-cedula', 'sesion-creada'])
 
 // ── Documento adicional ───────────────────────────────────
 const adjuntoPrincipal = ref(null)
@@ -83,6 +83,7 @@ const infoAdicional = computed(() => {
       label="Cédula de ciudadanía"
       :required="true"
       @completado="emit('completado-cedula', $event)"
+      @sesion-creada="emit('sesion-creada', $event)"
     />
 
     <!-- ── Documento adicional (según tipo trabajador) ──────── -->

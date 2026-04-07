@@ -23,6 +23,7 @@ import {
 } from '@tabler/icons-vue'
 import { useSolicitudCredito } from '@/composables/useSolicitudCredito'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import { vincularSolicitudCaptura } from '@/services/captura.service'
 
 const { isMobile } = useBreakpoint()
 import { TIPOS_CONTRATO, ENTIDADES_PENSIONES } from '@/data/formularioCredito'
@@ -200,6 +201,24 @@ watch(paso, async (nuevoPaso) => {
   // Garantiza que la solicitud esté guardada antes de llegar al paso de documentos
   if (nuevoPaso === 17 && !solicitudId.value) {
     await guardarPaso()
+  }
+})
+
+// ── Captura de documento: vincular token a solicitud en cuanto se crea ──────
+const tokenCaptura = ref(null)
+
+function onSesionCapturaCreada({ token }) {
+  tokenCaptura.value = token
+}
+
+// Cuando solicitudId pasa de null a un valor real, vincular si hay token activo
+watch(solicitudId, async (nuevoId, prevId) => {
+  if (nuevoId && !prevId && tokenCaptura.value) {
+    try {
+      await vincularSolicitudCaptura(tokenCaptura.value, nuevoId)
+    } catch (e) {
+      console.warn('[CapturaDocumento] No se pudo vincular:', e)
+    }
   }
 })
 </script>
@@ -1031,6 +1050,7 @@ watch(paso, async (nuevoPaso) => {
           :tipo-trabajador="laboral.tipo_trabajador"
           :solicitud-id="solicitudId"
           @completado-cedula="urls => { documentos.doc_cedula_frente_url = urls.frente; documentos.doc_cedula_reverso_url = urls.reverso }"
+          @sesion-creada="onSesionCapturaCreada"
         />
 
         <!-- ── PASO 18: Autorizaciones ────────────────────────── -->

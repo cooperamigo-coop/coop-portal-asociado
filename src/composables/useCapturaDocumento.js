@@ -1,7 +1,7 @@
 import { ref, onUnmounted } from 'vue'
 import QRCode from 'qrcode'
 import { supabase } from '@/services/supabase'
-import { crearSesionCaptura, subirFotoCaptura } from '@/services/captura.service'
+import { crearSesionCaptura, subirFotoCaptura, vincularSolicitudCaptura } from '@/services/captura.service'
 
 export function useCapturaDocumento() {
   // ── Detección de dispositivo ──────────────────────────────────────────────
@@ -12,8 +12,8 @@ export function useCapturaDocumento() {
   const estado      = ref('idle')
   const urlFrente   = ref(null)
   const urlReverso  = ref(null)
-  const qrDataUrl   = ref(null)   // imagen base64 del QR
-  const urlCaptura  = ref(null)   // enlace para el móvil
+  const qrDataUrl   = ref(null)
+  const urlCaptura  = ref(null)
   const sesionId    = ref(null)
   const token       = ref(null)
   const error       = ref(null)
@@ -24,16 +24,17 @@ export function useCapturaDocumento() {
 
   // ── Crear sesión QR ───────────────────────────────────────────────────────
   async function crearSesionQR(solicitudId, campo = 'documento_identidad') {
-    if (!solicitudId) {
-      error.value  = 'La solicitud aún no ha sido guardada. Avance un paso y vuelva.'
-      estado.value = 'error'
-      return
-    }
     estado.value = 'generando'
     error.value  = null
 
     try {
-      const data = await crearSesionCaptura(solicitudId, campo)
+      // Si la solicitud aún no está guardada en BD, usamos un ID temporal
+      // que luego se vincula vía vincularSolicitud()
+      const sesionFormulario = solicitudId
+        ? null
+        : `temp_${Date.now()}_${Math.random().toString(36).slice(2)}`
+
+      const data = await crearSesionCaptura(solicitudId || null, campo, sesionFormulario)
 
       sesionId.value   = data.sesion_id
       token.value      = data.token
@@ -50,6 +51,7 @@ export function useCapturaDocumento() {
     } catch (e) {
       estado.value = 'error'
       error.value  = e.message
+      console.error('[useCapturaDocumento] Error:', e)
     }
   }
 
@@ -115,18 +117,28 @@ export function useCapturaDocumento() {
     }
   }
 
+  // ── Vincular sesión a solicitud cuando se guarda en BD ───────────────────
+  async function vincularSolicitud(solicitudId) {
+    if (!token.value || !solicitudId) return
+    try {
+      await vincularSolicitudCaptura(token.value, solicitudId)
+    } catch (e) {
+      console.warn('[useCapturaDocumento] No se pudo vincular solicitud:', e)
+    }
+  }
+
   // ── Cancelar y limpiar ────────────────────────────────────────────────────
   function cancelar() {
     desuscribir()
-    estado.value    = 'idle'
-    qrDataUrl.value = null
-    urlCaptura.value= null
-    sesionId.value  = null
-    token.value     = null
-    progreso.value  = null
-    error.value     = null
-    urlFrente.value = null
-    urlReverso.value= null
+    estado.value     = 'idle'
+    qrDataUrl.value  = null
+    urlCaptura.value = null
+    sesionId.value   = null
+    token.value      = null
+    progreso.value   = null
+    error.value      = null
+    urlFrente.value  = null
+    urlReverso.value = null
   }
 
   onUnmounted(desuscribir)
@@ -136,6 +148,6 @@ export function useCapturaDocumento() {
     estado, urlFrente, urlReverso,
     qrDataUrl, urlCaptura, sesionId, token,
     error, progreso,
-    crearSesionQR, subirFotoLocal, cancelar,
+    crearSesionQR, subirFotoLocal, cancelar, vincularSolicitud,
   }
 }

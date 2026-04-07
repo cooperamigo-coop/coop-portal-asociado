@@ -13,11 +13,12 @@ const props = defineProps({
   required:    { type: Boolean, default: false },
   error:       { type: String, default: null },
 })
-const emit = defineEmits(['completado'])
+const emit = defineEmits(['completado', 'sesion-creada'])
 
 const {
   esMovil, estado, urlFrente, urlReverso,
-  qrDataUrl, urlCaptura, error: errorCaptura,
+  qrDataUrl, urlCaptura, sesionId, token,
+  error: errorCaptura,
   progreso, crearSesionQR, subirFotoLocal, cancelar,
 } = useCapturaDocumento()
 
@@ -34,6 +35,10 @@ function onArchivoSeleccionado(lado, e) {
 
 async function iniciarQR() {
   await crearSesionQR(props.solicitudId, props.campo)
+  // Notificar al padre con el token para que pueda vincularlo cuando se guarde la solicitud
+  if (token.value) {
+    emit('sesion-creada', { token: token.value, sesionId: sesionId.value })
+  }
 }
 
 function copiarLink() {
@@ -336,7 +341,9 @@ const LADOS = [
             fontSize:     'var(--text-base)',
             marginBottom: 'var(--sp-sm)',
           }">
-            {{ estado === 'capturando_movil' ? 'Capturando fotos...' : 'Escanee el QR con el celular' }}
+            <template v-if="estado === 'capturando_movil'">Capturando fotos desde el celular…</template>
+            <template v-else-if="!esMovil">Escanea el código QR con tu celular</template>
+            <template v-else>Enlace generado</template>
           </div>
           <div :style="{
             fontSize:     'var(--text-sm)',
@@ -346,9 +353,15 @@ const LADOS = [
             marginBottom: 'var(--sp-lg)',
             whiteSpace:   'pre-line',
           }">
-            {{ estado === 'capturando_movil'
-              ? 'El celular está tomando las fotos. Aparecerán aquí al terminar.'
-              : '1. Abra la cámara de su celular\n2. Apunte al código QR\n3. Toque el enlace que aparece\n4. Tome la foto del frente y del reverso' }}
+            <template v-if="estado === 'capturando_movil'">
+              El celular está tomando las fotos. Aparecerán aquí al terminar.
+            </template>
+            <template v-else-if="!esMovil">
+              1. Abra la cámara de su celular{{ '\n' }}2. Apunte al código QR{{ '\n' }}3. Toque el enlace que aparece{{ '\n' }}4. Tome la foto del frente y del reverso
+            </template>
+            <template v-else>
+              Abra el enlace en otro dispositivo o use los botones de cámara de abajo.
+            </template>
           </div>
 
           <!-- Indicadores de progreso -->
