@@ -4,10 +4,12 @@ import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const token = computed(() => route.params.token)
-const EF = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/captura-documento`
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+const EF_BASE = `${SUPABASE_URL}/functions/v1/captura-documento`
 
 // Estados: verificando|listo_frente|visor|previsualizando
-//          listo_reverso|previsualizando2|subiendo|completado
+//          listo_reverso|previsualizando2|completado
 //          expirado|error|sin_camara
 const fase        = ref('verificando')
 const urlFrente   = ref(null)
@@ -26,12 +28,14 @@ const esReverso = computed(() => !!urlFrente.value)
 const labelPaso = computed(() => esReverso.value ? 'Reverso' : 'Frente')
 
 onMounted(async () => {
+  console.log('[CapturaMovil] SUPABASE_URL:', SUPABASE_URL)
+  console.log('[CapturaMovil] token:', token.value)
   try {
-    const res  = await fetch(`${EF}/estado/${token.value}`)
+    const res  = await fetch(`${EF_BASE}/estado/${token.value}`)
     const data = await res.json()
     if (!res.ok || data.estado === 'expirado') { fase.value = 'expirado'; return }
     if (data.estado === 'completado') {
-      urlFrente.value = data.url_frente
+      urlFrente.value  = data.url_frente
       urlReverso.value = data.url_reverso
       fase.value = 'completado'; return
     }
@@ -64,17 +68,28 @@ async function abrirVisor() {
 }
 
 function capturar() {
-  const video = videoRef.value; const canvas = canvasRef.value
+  const video  = videoRef.value
+  const canvas = canvasRef.value
   if (!video || !canvas) return
-  canvas.width = video.videoWidth; canvas.height = video.videoHeight
+
+  canvas.width  = video.videoWidth  || 1280
+  canvas.height = video.videoHeight || 720
   canvas.getContext('2d').drawImage(video, 0, 0)
-  canvas.toBlob(blob => {
-    if (!blob) return
+
+  // BUG 1: canvas.toBlob() es asíncrono con callback — envolver en Promise
+  new Promise((resolve) => {
+    canvas.toBlob(resolve, 'image/jpeg', 0.88)
+  }).then((blob) => {
+    if (!blob) {
+      errorMsg.value = 'No se pudo capturar la foto. Intenta de nuevo.'
+      fase.value = esReverso.value ? 'listo_reverso' : 'listo_frente'
+      return
+    }
     fotoBlob.value    = blob
     fotoPreview.value = URL.createObjectURL(blob)
     detenerCamara()
     fase.value = esReverso.value ? 'previsualizando2' : 'previsualizando'
-  }, 'image/jpeg', 0.92)
+  })
 }
 
 function onArchivoFallback(e) {
@@ -86,42 +101,62 @@ function onArchivoFallback(e) {
 }
 
 function retomar() {
-  fotoBlob.value = null
+  fotoBlob.value    = null
   fotoPreview.value = null
   abrirVisor()
 }
 
 async function confirmar() {
-  if (!fotoBlob.value) return
-  subiendo.value = true; errorMsg.value = ''
+  if (!fotoBlob.value) {
+    errorMsg.value = 'No hay foto para enviar. Toma una foto primero.'
+    return
+  }
+  subiendo.value = true
+  errorMsg.value = ''
+
   const lado = esReverso.value ? 'reverso' : 'frente'
+
   try {
     const fd = new FormData()
     fd.append('lado', lado)
     fd.append('foto', fotoBlob.value, `${lado}.jpg`)
-    const res   = await fetch(`${EF}/subir/${token.value}`, { method: 'POST', body: fd })
-    const texto = await res.text()
+
+    console.log(`[confirmar] Enviando ${lado}, tamaño: ${fotoBlob.value.size} bytes`)
+
+    const res = await fetch(`${EF_BASE}/subir/${token.value}`, {
+      method: 'POST',
+      body:   fd,
+    })
+
+    console.log(`[confirmar] Respuesta: ${res.status}`)
+
+    // BUG 2: leer siempre el body, incluso en errores
+    const data = await res.json()
+    console.log('[confirmar] Data:', JSON.stringify(data))
+
     if (!res.ok) {
-      let msg = `Error ${res.status}`
-      try { msg = JSON.parse(texto).error || msg } catch { }
-      throw new Error(msg)
+      throw new Error(data.error || `Error ${res.status}`)
     }
-    const data = JSON.parse(texto)
-    fotoBlob.value = null; fotoPreview.value = null
+
+    // Éxito — limpiar foto
+    fotoBlob.value    = null
+    fotoPreview.value = null
+
     if (lado === 'frente') {
       urlFrente.value = data.url
-      // iOS Safari: getUserMedia solo funciona con gesto directo del usuario.
-      // No llamar abrirVisor() aquí (el await fetch() ya consumió el gesto).
-      // Ir a listo_reverso para que el usuario pulse el botón.
+      // iOS Safari: getUserMedia requiere gesto directo; no llamar abrirVisor() aquí
       fase.value = 'listo_reverso'
     } else {
       urlReverso.value = data.url
       fase.value = 'completado'
     }
   } catch (e) {
-    console.error('[confirmar] Error:', e)
+    console.error('[confirmar] Error:', e.message)
     errorMsg.value = e.message || 'Error al enviar la foto. Intenta de nuevo.'
-  } finally { subiendo.value = false }
+    // NO cambiar fase — quedarse en previsualizando para poder reintentar
+  } finally {
+    subiendo.value = false  // SIEMPRE desbloquear el botón
+  }
 }
 </script>
 
