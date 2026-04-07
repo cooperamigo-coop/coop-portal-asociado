@@ -60,14 +60,12 @@ function claveFuente() {
         @update:model-value="actualizar(claveFuente(), $event)"
       />
 
-      <!-- Salario — oculto para cuidado_hogar -->
+      <!-- Salario — oculto para cuidado_hogar e independiente -->
       <CampoMoneda
-        v-if="tipoTrabajador !== 'cuidado_hogar'"
+        v-if="tipoTrabajador !== 'cuidado_hogar' && tipoTrabajador !== 'independiente'"
         :model-value="modelValue[claveSalario()]"
         label="Salario / Ingresos fijos"
-        :required="!salarioBloqueado"
-        :disabled="salarioBloqueado"
-        :helper="salarioBloqueado ? 'No aplica para trabajadores independientes' : null"
+        required
         :error="errores[claveSalario()]"
         @update:model-value="actualizar(claveSalario(), $event)"
       />

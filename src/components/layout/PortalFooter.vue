@@ -2,20 +2,30 @@
   <footer class="portal-footer">
     <div class="footer-inner">
 
-      <!-- Col 1: logo -->
+      <!-- Col 1: logo con enlace -->
       <div class="footer-col-logo">
-        <img src="/logo-principal.svg" alt="Cooperamigó" class="footer-logo" />
+        <a href="https://www.cooperamigo.com" target="_blank" rel="noopener noreferrer" class="footer-logo-link">
+          <img src="/logo-principal.svg" alt="Cooperamigó" class="footer-logo" />
+        </a>
       </div>
 
-      <!-- Col 2: copyright + NIT + vigilada mobile -->
+      <!-- Col 2: copyright + NIT + email (una línea en desktop) + vigilada mobile -->
       <div class="footer-col-copy">
-        <p class="footer-copy footer-copy--desktop">© 2026 Cooperativa Multiactiva Luis Amigó</p>
-        <p class="footer-copy footer-copy--mobile">Copyright © 2026 Cooperativa Multiactiva Luis Amigó</p>
-        <div class="footer-nit">
-          <span>NIT 800.191.482-7</span>
-          <span class="footer-nit-sep">·</span>
-          <a href="mailto:info@cooperamigo.com" class="footer-email">info@cooperamigo.com</a>
-        </div>
+        <!-- Desktop: una sola línea -->
+        <p class="footer-info-row footer-info--desktop">
+          © 2026 Cooperativa Multiactiva Luis Amigó
+          <span class="footer-sep">·</span>
+          NIT 800.191.482-7
+          <span class="footer-sep">·</span>
+          <span class="footer-email">info@cooperamigo.com</span>
+        </p>
+        <!-- Mobile: dos líneas -->
+        <p class="footer-info-row footer-info--mobile">© 2026 Cooperativa Multiactiva Luis Amigó</p>
+        <p class="footer-info-row footer-info--mobile footer-nit-mobile">
+          NIT 800.191.482-7
+          <span class="footer-sep">·</span>
+          <span class="footer-email">info@cooperamigo.com</span>
+        </p>
         <div class="footer-vigilada-mobile">
           <div class="fvm-block">
             <span class="fvm-line"></span>
@@ -26,8 +36,6 @@
         </div>
       </div>
 
-      <!-- Col 3: vacía (balance visual) -->
-      <div class="footer-col-spacer"></div>
 
     </div>
   </footer>
@@ -41,9 +49,10 @@
 }
 
 .footer-inner {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-xl);
   max-width: 900px;
   margin: 0 auto;
 }
@@ -54,43 +63,41 @@
   justify-content: flex-start;
 }
 
+.footer-logo-link {
+  display: inline-flex;
+  opacity: 0.9;
+  transition: opacity 0.15s ease;
+}
+.footer-logo-link:hover { opacity: 1; }
+
 .footer-logo {
   height: 26px;
   object-fit: contain;
   filter: brightness(0) invert(1);
-  opacity: 0.9;
 }
 
 .footer-col-copy {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-end;
+  gap: 6px;
 }
 
-.footer-copy {
+/* Línea de info genérica */
+.footer-info-row {
   font-size: 0.66rem;
   color: rgba(255, 255, 255, 0.38);
   font-weight: var(--fw-medium);
   margin: 0;
   text-align: center;
-}
-
-.footer-copy--mobile    { display: none; }
-.footer-vigilada-mobile { display: none; }
-
-.footer-nit {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   justify-content: center;
-  align-items: center;
-  gap: var(--sp-sm);
-  font-size: var(--text-sm);
-  color: rgba(255, 255, 255, 0.38);
-  font-weight: var(--fw-medium);
+  gap: 5px;
 }
 
-.footer-nit-sep { opacity: 0.4; }
+.footer-sep { opacity: 0.4; }
 
 .footer-email {
   color: rgba(255, 255, 255, 0.38);
@@ -99,6 +106,10 @@
 }
 .footer-email:hover { color: rgba(255, 255, 255, 0.7); }
 
+/* Mobile: ocultar versión desktop de las líneas */
+.footer-info--mobile    { display: none; }
+.footer-vigilada-mobile { display: none; }
+
 .footer-col-spacer { /* balance visual */ }
 
 @media (max-width: 960px) {
@@ -106,9 +117,9 @@
   .footer-inner   { display: flex; flex-direction: column; align-items: center; gap: 10px; }
   .footer-col-logo   { display: none; }
   .footer-col-spacer { display: none; }
-  .footer-col-copy   { gap: 10px; }
-  .footer-copy--desktop { display: none; }
-  .footer-copy--mobile  { display: block; }
+  .footer-col-copy   { gap: 8px; }
+  .footer-info--desktop { display: none; }
+  .footer-info--mobile  { display: flex; }
   .footer-vigilada-mobile {
     display: flex;
     align-items: center;

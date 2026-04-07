@@ -55,6 +55,7 @@ const {
 const modalAutorizacionesVisible = ref(false)
 const aceptaCondiciones = ref(false)
 const errorCorreo = ref(null)
+const errorPlazo  = ref(null)
 
 function validarCorreo(valor) {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -154,8 +155,11 @@ watch(esOrdinario, (ordinario) => {
 function actualizarPlazo(valor) {
   const num = Number(valor)
   if (valor !== '' && num > maxPlazo.value) {
-    actualizarGeneral('plazo_solicitado', String(maxPlazo.value))
+    const label = esEducativo.value ? 'educativo' : 'ordinario'
+    errorPlazo.value = `El plazo máximo para crédito ${label} es ${maxPlazo.value} meses.`
+    actualizarGeneral('plazo_solicitado', valor)
   } else {
+    errorPlazo.value = null
     actualizarGeneral('plazo_solicitado', valor)
   }
 }
@@ -174,6 +178,14 @@ function actualizarLaboralCod1(campo, valor) {
 function actualizarLaboralCod2(campo, valor) {
   laboralCod2.value = { ...laboralCod2.value, [campo]: valor }
 }
+
+// Prefill nombre en la firma cuando llega al paso 19
+watch(paso, (nuevoPaso) => {
+  if (nuevoPaso === 19 && !firma.value.nombre_firma) {
+    const nombreCompleto = [persona.value.nombres, persona.value.apellidos].filter(Boolean).join(' ')
+    if (nombreCompleto) firma.value = { ...firma.value, nombre_firma: nombreCompleto }
+  }
+})
 </script>
 
 <template>
@@ -397,20 +409,6 @@ function actualizarLaboralCod2(campo, valor) {
         }">
           <div>
             <div :style="{
-              display:       'inline-flex',
-              alignItems:    'center',
-              gap:           'var(--sp-xs)',
-              padding:       '2px 12px',
-              borderRadius:  'var(--r-pill)',
-              background:    'var(--color-primary-light)',
-              color:         'var(--color-primary)',
-              fontSize:      'var(--text-xs)',
-              fontWeight:    'var(--fw-bold)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              marginBottom:  'var(--sp-xs)',
-            }">{{ pasoActual?.seccion }}</div>
-            <div :style="{
               fontFamily: 'var(--font-display)',
               fontSize:   'var(--text-xl)',
               fontWeight: 'var(--fw-extrabold)',
@@ -542,7 +540,7 @@ function actualizarLaboralCod2(campo, valor) {
               color:        'var(--color-text-1)',
               display:      'block',
               marginBottom: 'var(--sp-xs)',
-            }">Plazo solicitado *</label>
+            }">Plazo solicitado <span :style="{ color: 'var(--color-error)' }">*</span></label>
             <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <input
                 :value="general.plazo_solicitado"
@@ -552,7 +550,7 @@ function actualizarLaboralCod2(campo, valor) {
                 :placeholder="esEducativo ? '1 a 6' : 'Ej: 24'"
                 :style="{
                   padding:      '9px 14px',
-                  border:       '1px solid var(--color-border)',
+                  border:       errorPlazo ? '1px solid var(--color-error)' : '1px solid var(--color-border)',
                   borderRadius: 'var(--r-lg)',
                   fontSize:     'var(--text-base)',
                   fontFamily:   'var(--font-body)',
@@ -570,14 +568,14 @@ function actualizarLaboralCod2(campo, valor) {
               }">meses</span>
             </div>
             <div
-              v-if="esEducativo || esOrdinario"
+              v-if="errorPlazo"
               :style="{
                 fontSize:   'var(--text-xs)',
-                color:      'var(--color-text-3)',
+                color:      'var(--color-error-text)',
                 marginTop:  'var(--sp-xs)',
-                fontWeight: 'var(--fw-medium)',
+                fontWeight: 'var(--fw-semibold)',
               }"
-            >{{ esEducativo ? 'Crédito educativo: máximo 6 meses' : 'Crédito ordinario: máximo 60 meses' }}</div>
+            >{{ errorPlazo }}</div>
           </div>
         </div>
 
@@ -766,7 +764,8 @@ function actualizarLaboralCod2(campo, valor) {
             label="Entidad bancaria"
             required
             :disabled="!cuenta.tipo_cuenta"
-            :opciones="[...ENTIDADES_BANCARIAS.map(e => ({ value: e, label: e })), { value: 'otro', label: 'Otro' }]"
+            :limit="0"
+            :opciones="[...ENTIDADES_BANCARIAS.map(e => ({ value: e, label: e })), { value: 'otro', label: 'Otra entidad' }]"
             placeholder="Seleccione su banco"
             @update:model-value="actualizarCuenta('entidad_bancaria', $event)"
           />
@@ -826,6 +825,7 @@ function actualizarLaboralCod2(campo, valor) {
           v-if="paso === 9"
           :model-value="personaCod1"
           titulo="Datos del codeudor 1"
+          :es-codeudor="true"
           :direccion-estructurada="direccionEstructuradaCod1"
           :ubicacion="ubicacionCod1"
           :ubicacion-expedicion="ubicacionExpedicionCod1"
@@ -894,6 +894,7 @@ function actualizarLaboralCod2(campo, valor) {
           v-if="paso === 13"
           :model-value="personaCod2"
           titulo="Datos del codeudor 2"
+          :es-codeudor="true"
           :direccion-estructurada="direccionEstructuradaCod2"
           :ubicacion="ubicacionCod2"
           :ubicacion-expedicion="ubicacionExpedicionCod2"
@@ -1446,7 +1447,7 @@ function actualizarLaboralCod2(campo, valor) {
               <PortalButton variant="secondary" :full="isMobile" @click="mostrarModalNoAsociado = false">
                 Volver e intentar
               </PortalButton>
-              <PortalButton variant="primary" :full="isMobile" @click="router.push('/solicitar-afiliacion')">
+              <PortalButton variant="primary" :full="isMobile" @click="router.push({ path: '/', query: { vista: 'no-asociado' } })">
                 Gestionar afiliación
               </PortalButton>
             </div>

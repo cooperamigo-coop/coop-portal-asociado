@@ -1,11 +1,16 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { IconCreditCard, IconUserPlus, IconClipboardList, IconFileText, IconArrowRight, IconArrowLeft, IconClock, IconWorld } from '@tabler/icons-vue'
 import PortalFooter from '@/components/layout/PortalFooter.vue'
 
 const router = useRouter()
+const route  = useRoute()
 const paso = ref('pregunta') // 'pregunta' | 'asociado' | 'no-asociado'
+
+onMounted(() => {
+  if (route.query.vista === 'no-asociado') paso.value = 'no-asociado'
+})
 
 
 const SERVICIOS_ASOCIADO = [

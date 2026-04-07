@@ -12,6 +12,7 @@ const props = defineProps({
   clearable:   { type: Boolean, default: false },
   error:       { type: String,  default: null },
   helper:      { type: String,  default: null },
+  limit:       { type: Number,  default: 10 },
 })
 const emit = defineEmits(['update:modelValue', 'blur'])
 
@@ -30,7 +31,7 @@ const opcionesFiltradas = computed(() => {
   const todas = q
     ? props.opciones.filter(o => o.label.toLowerCase().includes(q))
     : props.opciones
-  return todas.slice(0, 10)
+  return props.limit > 0 ? todas.slice(0, props.limit) : todas
 })
 
 function abrir() {
@@ -232,9 +233,9 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickFuera))
           </div>
         </div>
 
-        <!-- Contador si hay más de 10 resultados -->
+        <!-- Contador si hay más resultados de los mostrados -->
         <div
-          v-if="busqueda && opciones.filter(o => o.label.toLowerCase().includes(busqueda.toLowerCase())).length > 10"
+          v-if="limit > 0 && busqueda && opciones.filter(o => o.label.toLowerCase().includes(busqueda.toLowerCase())).length > limit"
           :style="{
             padding:    'var(--sp-sm) var(--sp-lg)',
             fontSize:   'var(--text-xs)',

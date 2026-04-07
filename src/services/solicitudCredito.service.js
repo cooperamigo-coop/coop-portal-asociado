@@ -22,6 +22,7 @@ export async function crearBorrador(datos) {
 }
 
 export async function actualizarBorrador(id, datos) {
+  if (!id || id === 'null') throw new Error('ID de solicitud inválido')
   const { data, error } = await supabase
     .from('solicitudes_credito_portal')
     .update({ ...datos, updated_at: new Date().toISOString() })
