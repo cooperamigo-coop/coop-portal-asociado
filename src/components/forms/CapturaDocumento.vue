@@ -1,5 +1,5 @@
 <script setup>
-import { watch } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 import { useCapturaDocumento } from '@/composables/useCapturaDocumento.js'
 import {
   IconCamera, IconUpload, IconQrcode, IconCircleCheck,
@@ -22,20 +22,44 @@ const {
   progreso, crearSesionQR, subirFotoLocal, cancelar,
 } = useCapturaDocumento()
 
-// Notificar al padre cuando ambas fotos están listas
+// ── Previews locales para upload directo ────────────────────────────────────
+const previewFrente  = ref(null)
+const previewReverso = ref(null)
+
+function _revocarPreviews() {
+  if (previewFrente.value?.startsWith('blob:'))  URL.revokeObjectURL(previewFrente.value)
+  if (previewReverso.value?.startsWith('blob:')) URL.revokeObjectURL(previewReverso.value)
+  previewFrente.value  = null
+  previewReverso.value = null
+}
+
+function cancelarConPreview() {
+  _revocarPreviews()
+  cancelar()
+}
+
+onUnmounted(_revocarPreviews)
+
+// ── Notificar al padre cuando ambas fotos están listas ──────────────────────
 watch([urlFrente, urlReverso], ([f, r]) => {
   if (f && r) emit('completado', { frente: f, reverso: r })
 })
 
 function onArchivoSeleccionado(lado, e) {
   const archivo = e.target.files?.[0]
-  if (archivo) subirFotoLocal(lado, archivo)
+  if (!archivo) return
+  // Preview inmediata solo para imágenes (no PDFs)
+  if (archivo.type.startsWith('image/')) {
+    const objUrl = URL.createObjectURL(archivo)
+    if (lado === 'frente') previewFrente.value = objUrl
+    else                   previewReverso.value = objUrl
+  }
+  subirFotoLocal(lado, archivo)
   e.target.value = ''
 }
 
 async function iniciarQR() {
   await crearSesionQR(props.solicitudId, props.campo)
-  // Notificar al padre con el token para que pueda vincularlo cuando se guarde la solicitud
   if (token.value) {
     emit('sesion-creada', { token: token.value, sesionId: sesionId.value })
   }
@@ -84,7 +108,7 @@ const LADOS = [
         </span>
         <button
           :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-3)', display: 'flex', padding: 'var(--sp-xs)' }"
-          @click="cancelar">
+          @click="cancelarConPreview">
           <IconRefresh :size="14" />
         </button>
       </div>
@@ -283,6 +307,151 @@ const LADOS = [
       </div>
     </div>
 
+    <!-- ══ SUBIDA DIRECTA EN PROGRESO ════════════════════════════ -->
+    <div v-else-if="estado === 'subiendo' || (estado === 'capturando_movil' && !urlCaptura)" :style="{
+      border:       '1px solid var(--color-border)',
+      borderRadius: 'var(--r-xl)',
+      overflow:     'hidden',
+    }">
+      <!-- Header -->
+      <div :style="{
+        padding:      'var(--sp-md) var(--sp-lg)',
+        background:   'var(--color-bg-surface)',
+        borderBottom: '1px solid var(--color-border-light)',
+        display:      'flex',
+        alignItems:   'center',
+        gap:          'var(--sp-sm)',
+        fontSize:     'var(--text-sm)',
+        color:        'var(--color-text-2)',
+        fontWeight:   'var(--fw-semibold)',
+      }">
+        <IconUpload :size="15" :style="{ color: 'var(--color-primary)', flexShrink: '0' }" />
+        Subiendo documentos — suba ambas caras de la cédula
+      </div>
+
+      <!-- Grid de previews -->
+      <div :style="{
+        display:             'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap:                 'var(--sp-md)',
+        padding:             'var(--sp-lg)',
+        background:          'var(--color-bg-card)',
+      }">
+        <div v-for="lado in LADOS" :key="lado.key" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
+          <!-- Etiqueta -->
+          <div :style="{
+            fontSize:      'var(--text-xs)',
+            fontWeight:    'var(--fw-bold)',
+            color:         'var(--color-text-3)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+          }">{{ lado.label }}</div>
+
+          <!-- Contenedor preview -->
+          <div :style="{
+            position:     'relative',
+            aspectRatio:  '3/2',
+            borderRadius: 'var(--r-lg)',
+            overflow:     'hidden',
+            background:   'var(--color-bg-surface)',
+            border:       (lado.key === 'frente' ? urlFrente : urlReverso)
+              ? '2px solid var(--color-success)'
+              : '1px dashed var(--color-border)',
+          }">
+            <!-- Preview imagen -->
+            <img
+              v-if="lado.key === 'frente' ? previewFrente : previewReverso"
+              :src="lado.key === 'frente' ? previewFrente : previewReverso"
+              :alt="lado.label"
+              :style="{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }"
+            />
+            <!-- Placeholder vacío -->
+            <div v-else :style="{
+              width:          '100%',
+              height:         '100%',
+              display:        'flex',
+              alignItems:     'center',
+              justifyContent: 'center',
+            }">
+              <IconUpload :size="24" :style="{ color: 'var(--color-border)' }" />
+            </div>
+
+            <!-- Overlay subiendo (spinner oscuro) -->
+            <div v-if="estado === 'subiendo' && !(lado.key === 'frente' ? urlFrente : urlReverso)" :style="{
+              position:       'absolute',
+              inset:          '0',
+              background:     'rgba(23,43,54,0.55)',
+              display:        'flex',
+              alignItems:     'center',
+              justifyContent: 'center',
+            }">
+              <svg class="spin" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                <path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+
+            <!-- Overlay check (foto subida) -->
+            <div v-if="lado.key === 'frente' ? urlFrente : urlReverso" :style="{
+              position:       'absolute',
+              inset:          '0',
+              background:     'rgba(34,197,94,0.18)',
+              display:        'flex',
+              alignItems:     'center',
+              justifyContent: 'center',
+            }">
+              <IconCircleCheck :size="28" :style="{ color: 'var(--color-success)' }" />
+            </div>
+          </div>
+
+          <!-- Botón subir (si no está listo y no hay subida en curso) -->
+          <label
+            v-if="!(lado.key === 'frente' ? urlFrente : urlReverso) && estado !== 'subiendo'"
+            :style="{
+              display:        'flex',
+              alignItems:     'center',
+              justifyContent: 'center',
+              gap:            'var(--sp-xs)',
+              padding:        'var(--sp-sm)',
+              borderRadius:   'var(--r-lg)',
+              border:         '1px solid var(--color-border)',
+              background:     'var(--color-bg-surface)',
+              cursor:         'pointer',
+              fontSize:       'var(--text-xs)',
+              color:          'var(--color-text-2)',
+              fontWeight:     'var(--fw-semibold)',
+            }"
+          >
+            <IconUpload :size="13" /> Seleccionar {{ lado.label.toLowerCase() }}
+            <input type="file" accept="image/*,application/pdf" :style="{ display: 'none' }"
+              @change="onArchivoSeleccionado(lado.key, $event)" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Footer cancelar -->
+      <div :style="{
+        padding:    'var(--sp-sm) var(--sp-lg)',
+        borderTop:  '1px solid var(--color-border-light)',
+        background: 'var(--color-bg-surface)',
+      }">
+        <button :style="{
+          background: 'none',
+          border:     'none',
+          cursor:     'pointer',
+          color:      'var(--color-text-3)',
+          fontSize:   'var(--text-sm)',
+          fontWeight: 'var(--fw-medium)',
+          display:    'flex',
+          alignItems: 'center',
+          gap:        'var(--sp-xs)',
+          padding:    '0',
+        }" @click="cancelarConPreview">
+          <IconX :size="13" /> Cancelar
+        </button>
+      </div>
+    </div>
+
     <!-- ══ GENERANDO QR ════════════════════════════════════════════ -->
     <div v-else-if="estado === 'generando'" :style="{
       padding: 'var(--sp-2xl)',
@@ -421,7 +590,7 @@ const LADOS = [
             alignItems: 'center',
             gap: 'var(--sp-xs)',
             padding: '0',
-          }" @click="cancelar">
+          }" @click="cancelarConPreview">
             <IconX :size="13" /> Cancelar
           </button>
         </div>
@@ -498,7 +667,7 @@ const LADOS = [
         fontWeight: 'var(--fw-bold)',
         fontSize: 'var(--text-sm)',
         padding: '0',
-      }" @click="cancelar">Reintentar</button>
+      }" @click="cancelarConPreview">Reintentar</button>
     </div>
 
     <!-- Error externo del formulario -->
