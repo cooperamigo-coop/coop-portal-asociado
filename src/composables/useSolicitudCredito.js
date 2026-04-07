@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
   crearBorrador,
   actualizarBorrador,
@@ -11,6 +11,7 @@ import {
   recuperarBorradorLocal,
   limpiarBorradorLocal,
   tieneBorrador,
+  obtenerFechaBorrador,
 } from '@/utils/borrador'
 import { PASOS_FORMULARIO } from '@/data/formularioCredito'
 
@@ -35,6 +36,13 @@ export function useSolicitudCredito() {
   const mostrarModalNoAsociado = ref(false)
   const tieneBorradorPrevio    = ref(false)
   const borradorRecuperado     = ref(false)
+  const mostrarOpcionBorrador  = ref(false)
+  const fechaBorrador          = ref(null)
+  const ultimoGuardado         = ref(null)
+
+  // Borrador temporal hasta que el usuario elija continuar o empezar de nuevo
+  let _borradorTemp  = null
+  let _debounceTimer = null
 
   // ── Sección 1-2: Solicitud ────────────────────────────────
   const general = ref({
@@ -351,6 +359,68 @@ export function useSolicitudCredito() {
     return dir.trim().toUpperCase()
   }
 
+  // ── Restaurar borrador guardado ───────────────────────────
+  function _aplicarBorrador(borrador) {
+    if (borrador.general)               general.value               = { ...general.value,    ...borrador.general }
+    if (borrador.persona)               persona.value               = { ...persona.value,    ...borrador.persona }
+    if (borrador.laboral)               laboral.value               = { ...laboral.value,    ...borrador.laboral }
+    if (borrador.financiera)            financiera.value            = { ...financiera.value, ...borrador.financiera }
+    if (borrador.patrimonio)            patrimonio.value            = { ...patrimonio.value, ...borrador.patrimonio }
+    if (borrador.cuenta)                cuenta.value                = { ...cuenta.value,     ...borrador.cuenta }
+    if (borrador.direccionEstructurada)
+      direccionEstructurada.value     = { ...direccionEstructurada.value,     ...borrador.direccionEstructurada     }
+    if (borrador.direccionEstructuradaCod1)
+      direccionEstructuradaCod1.value = { ...direccionEstructuradaCod1.value, ...borrador.direccionEstructuradaCod1 }
+    if (borrador.direccionEstructuradaCod2)
+      direccionEstructuradaCod2.value = { ...direccionEstructuradaCod2.value, ...borrador.direccionEstructuradaCod2 }
+    if (borrador.numCodudores !== undefined) numCodudores.value = borrador.numCodudores
+    if (borrador.personaCod1)    personaCod1.value    = { ...personaCod1.value,    ...borrador.personaCod1    }
+    if (borrador.laboralCod1)    laboralCod1.value    = { ...laboralCod1.value,    ...borrador.laboralCod1    }
+    if (borrador.financieraCod1) financieraCod1.value = { ...financieraCod1.value, ...borrador.financieraCod1 }
+    if (borrador.patrimonioCod1) patrimonioCod1.value = { ...patrimonioCod1.value, ...borrador.patrimonioCod1 }
+    if (borrador.personaCod2)    personaCod2.value    = { ...personaCod2.value,    ...borrador.personaCod2    }
+    if (borrador.laboralCod2)    laboralCod2.value    = { ...laboralCod2.value,    ...borrador.laboralCod2    }
+    if (borrador.financieraCod2) financieraCod2.value = { ...financieraCod2.value, ...borrador.financieraCod2 }
+    if (borrador.patrimonioCod2) patrimonioCod2.value = { ...patrimonioCod2.value, ...borrador.patrimonioCod2 }
+    if (borrador.ubicacionResidencia)
+      ubicacionResidencia.value    = { ...ubicacionResidencia.value,    ...borrador.ubicacionResidencia    }
+    if (borrador.ubicacionExpedicion)
+      ubicacionExpedicion.value    = { ...ubicacionExpedicion.value,    ...borrador.ubicacionExpedicion    }
+    if (borrador.ubicacionExpedicionCod1)
+      ubicacionExpedicionCod1.value = { ...ubicacionExpedicionCod1.value, ...borrador.ubicacionExpedicionCod1 }
+    if (borrador.ubicacionExpedicionCod2)
+      ubicacionExpedicionCod2.value = { ...ubicacionExpedicionCod2.value, ...borrador.ubicacionExpedicionCod2 }
+    if (borrador.ubicacionCod1) ubicacionCod1.value = { ...ubicacionCod1.value, ...borrador.ubicacionCod1 }
+    if (borrador.ubicacionCod2) ubicacionCod2.value = { ...ubicacionCod2.value, ...borrador.ubicacionCod2 }
+    if (borrador.autorizaciones) autorizaciones.value = { ...autorizaciones.value, ...borrador.autorizaciones }
+    if (borrador.firma)          firma.value          = { ...firma.value, ...borrador.firma }
+
+    // Navegar al paso guardado
+    const pasoGuardado = borrador.paso
+    const enActivos = PASOS_FORMULARIO.filter(p => {
+      if (p.numero === 7)                       return general.value.tipo_operacion !== 'reestructura'
+      if ([9, 10, 11, 12].includes(p.numero))  return numCodudores.value >= 1
+      if ([13, 14, 15, 16].includes(p.numero)) return numCodudores.value >= 2
+      return true
+    }).some(p => p.numero === pasoGuardado)
+    paso.value = enActivos ? pasoGuardado : 1
+  }
+
+  function continuarConBorrador() {
+    if (_borradorTemp) {
+      _aplicarBorrador(_borradorTemp)
+      _borradorTemp = null
+    }
+    mostrarOpcionBorrador.value = false
+    borradorRecuperado.value    = true
+  }
+
+  function empezarDeNuevo() {
+    limpiarBorradorLocal(verificacion.value.correo)
+    _borradorTemp = null
+    mostrarOpcionBorrador.value = false
+  }
+
   // ── Verificación previa ───────────────────────────────────
   async function verificarYContinuar() {
     errorVerificacion.value = null
@@ -388,44 +458,10 @@ export function useSolicitudCredito() {
       persona.value.correo_electronico    = verificacion.value.correo
 
       const borrador = recuperarBorradorLocal(verificacion.value.correo)
-      if (borrador) {
-        if (borrador.general)               general.value               = { ...general.value,    ...borrador.general }
-        if (borrador.persona)               persona.value               = { ...persona.value,    ...borrador.persona }
-        if (borrador.laboral)               laboral.value               = { ...laboral.value,    ...borrador.laboral }
-        if (borrador.financiera)            financiera.value            = { ...financiera.value, ...borrador.financiera }
-        if (borrador.patrimonio)            patrimonio.value            = { ...patrimonio.value, ...borrador.patrimonio }
-        if (borrador.cuenta)                cuenta.value                = { ...cuenta.value,     ...borrador.cuenta }
-        if (borrador.direccionEstructurada)     direccionEstructurada.value     = { ...direccionEstructurada.value,     ...borrador.direccionEstructurada     }
-        if (borrador.direccionEstructuradaCod1) direccionEstructuradaCod1.value = { ...direccionEstructuradaCod1.value, ...borrador.direccionEstructuradaCod1 }
-        if (borrador.direccionEstructuradaCod2) direccionEstructuradaCod2.value = { ...direccionEstructuradaCod2.value, ...borrador.direccionEstructuradaCod2 }
-        if (borrador.numCodudores !== undefined) numCodudores.value = borrador.numCodudores
-        if (borrador.personaCod1)    personaCod1.value    = { ...personaCod1.value,    ...borrador.personaCod1    }
-        if (borrador.laboralCod1)    laboralCod1.value    = { ...laboralCod1.value,    ...borrador.laboralCod1    }
-        if (borrador.financieraCod1) financieraCod1.value = { ...financieraCod1.value, ...borrador.financieraCod1 }
-        if (borrador.patrimonioCod1) patrimonioCod1.value = { ...patrimonioCod1.value, ...borrador.patrimonioCod1 }
-        if (borrador.personaCod2)    personaCod2.value    = { ...personaCod2.value,    ...borrador.personaCod2    }
-        if (borrador.laboralCod2)    laboralCod2.value    = { ...laboralCod2.value,    ...borrador.laboralCod2    }
-        if (borrador.financieraCod2) financieraCod2.value = { ...financieraCod2.value, ...borrador.financieraCod2 }
-        if (borrador.patrimonioCod2) patrimonioCod2.value = { ...patrimonioCod2.value, ...borrador.patrimonioCod2 }
-        if (borrador.ubicacionResidencia)    ubicacionResidencia.value    = { ...ubicacionResidencia.value,    ...borrador.ubicacionResidencia    }
-        if (borrador.ubicacionExpedicion)    ubicacionExpedicion.value    = { ...ubicacionExpedicion.value,    ...borrador.ubicacionExpedicion    }
-        if (borrador.ubicacionExpedicionCod1) ubicacionExpedicionCod1.value = { ...ubicacionExpedicionCod1.value, ...borrador.ubicacionExpedicionCod1 }
-        if (borrador.ubicacionExpedicionCod2) ubicacionExpedicionCod2.value = { ...ubicacionExpedicionCod2.value, ...borrador.ubicacionExpedicionCod2 }
-        if (borrador.ubicacionCod1) ubicacionCod1.value = { ...ubicacionCod1.value, ...borrador.ubicacionCod1 }
-        if (borrador.ubicacionCod2) ubicacionCod2.value = { ...ubicacionCod2.value, ...borrador.ubicacionCod2 }
-        if (borrador.autorizaciones) autorizaciones.value = { ...autorizaciones.value, ...borrador.autorizaciones }
-        if (borrador.firma)          firma.value          = { ...firma.value, ...borrador.firma }
-
-        // Restaurar paso; validar que esté en los pasos activos
-        const pasoRestaurado = borrador.paso
-        const enActivos = PASOS_FORMULARIO.filter(p => {
-          if (p.numero === 7)                       return general.value.tipo_operacion !== 'reestructura'
-          if ([9, 10, 11, 12].includes(p.numero))  return numCodudores.value >= 1
-          if ([13, 14, 15, 16].includes(p.numero)) return numCodudores.value >= 2
-          return true
-        }).some(p => p.numero === pasoRestaurado)
-        paso.value = enActivos ? pasoRestaurado : 1
-        borradorRecuperado.value = true
+      if (borrador && borrador.paso > 1) {
+        _borradorTemp = borrador
+        fechaBorrador.value = obtenerFechaBorrador(verificacion.value.correo)
+        mostrarOpcionBorrador.value = true
       }
 
       verificado.value = true
@@ -469,10 +505,13 @@ export function useSolicitudCredito() {
       ...(numCodudores.value >= 1 ? financieraCod1.value : {}),
       ...(numCodudores.value >= 1 ? patrimonioCod1.value : {}),
       ...(numCodudores.value >= 1 ? {
-        ciudad_codeudor:              ubicacionCod1.value.municipio_nombre,
-        departamento_codeudor:        ubicacionCod1.value.depto_nombre,
-        ciudad_expedicion_codeudor:   ubicacionExpedicionCod1.value.municipio_nombre || personaCod1.value.ciudad_expedicion_codeudor,
-        depto_expedicion_codeudor:    ubicacionExpedicionCod1.value.depto_nombre,
+        ciudad_codeudor:                  ubicacionCod1.value.municipio_nombre,
+        departamento_codeudor:            ubicacionCod1.value.depto_nombre,
+        ciudad_expedicion_codeudor:       ubicacionExpedicionCod1.value.municipio_nombre || personaCod1.value.ciudad_expedicion_codeudor,
+        depto_expedicion_codeudor:        ubicacionExpedicionCod1.value.depto_nombre,
+        municipio_expedicion_codeudor:    ubicacionExpedicionCod1.value.municipio_nombre,
+        depto_codigo_codeudor:            ubicacionExpedicionCod1.value.depto_codigo,
+        municipio_codigo_codeudor:        ubicacionExpedicionCod1.value.municipio_codigo,
       } : {}),
       // Codeudor 2
       ...(numCodudores.value >= 2 ? personaCod2.value   : {}),
@@ -480,10 +519,13 @@ export function useSolicitudCredito() {
       ...(numCodudores.value >= 2 ? financieraCod2.value : {}),
       ...(numCodudores.value >= 2 ? patrimonioCod2.value : {}),
       ...(numCodudores.value >= 2 ? {
-        ciudad_codeudor2:             ubicacionCod2.value.municipio_nombre,
-        departamento_codeudor2:       ubicacionCod2.value.depto_nombre,
-        ciudad_expedicion_codeudor2:  ubicacionExpedicionCod2.value.municipio_nombre || personaCod2.value.ciudad_expedicion_codeudor2,
-        depto_expedicion_codeudor2:   ubicacionExpedicionCod2.value.depto_nombre,
+        ciudad_codeudor2:                 ubicacionCod2.value.municipio_nombre,
+        departamento_codeudor2:           ubicacionCod2.value.depto_nombre,
+        ciudad_expedicion_codeudor2:      ubicacionExpedicionCod2.value.municipio_nombre || personaCod2.value.ciudad_expedicion_codeudor2,
+        depto_expedicion_codeudor2:       ubicacionExpedicionCod2.value.depto_nombre,
+        municipio_expedicion_codeudor2:   ubicacionExpedicionCod2.value.municipio_nombre,
+        depto_codigo_codeudor2:           ubicacionExpedicionCod2.value.depto_codigo,
+        municipio_codigo_codeudor2:       ubicacionExpedicionCod2.value.municipio_codigo,
       } : {}),
       // Documentos capturados
       ...documentos.value,
@@ -494,6 +536,36 @@ export function useSolicitudCredito() {
       paso_actual: paso.value,
     }
   }
+
+  // ── Auto-guardado en localStorage mientras el usuario escribe ─
+  watch(
+    [general, persona, laboral, financiera, patrimonio, cuenta,
+     numCodudores, direccionEstructurada, direccionEstructuradaCod1, direccionEstructuradaCod2,
+     ubicacionResidencia, ubicacionExpedicion,
+     personaCod1, laboralCod1, financieraCod1, patrimonioCod1, ubicacionCod1, ubicacionExpedicionCod1,
+     personaCod2, laboralCod2, financieraCod2, patrimonioCod2, ubicacionCod2, ubicacionExpedicionCod2,
+     autorizaciones, firma, paso],
+    () => {
+      if (!verificado.value || !verificacion.value.correo) return
+      clearTimeout(_debounceTimer)
+      _debounceTimer = setTimeout(() => {
+        guardarBorradorLocal(verificacion.value.correo, {
+          general, persona, laboral, financiera, patrimonio, cuenta,
+          direccionEstructurada, direccionEstructuradaCod1, direccionEstructuradaCod2,
+          autorizaciones, firma,
+          numCodudores: numCodudores.value,
+          personaCod1, laboralCod1, financieraCod1, patrimonioCod1,
+          personaCod2, laboralCod2, financieraCod2, patrimonioCod2,
+          ubicacionResidencia, ubicacionExpedicion,
+          ubicacionExpedicionCod1, ubicacionExpedicionCod2,
+          ubicacionCod1, ubicacionCod2,
+          paso: paso.value,
+        })
+        ultimoGuardado.value = new Date()
+      }, 800)
+    },
+    { deep: true }
+  )
 
   // ── Guardar: localStorage + Supabase ─────────────────────
   async function guardarPaso() {
@@ -631,7 +703,9 @@ export function useSolicitudCredito() {
     verificacion, verificado, loadingVerificacion, errorVerificacion,
     asociadoVerificado, mostrarModalNoAsociado,
     tieneBorradorPrevio, borradorRecuperado,
+    mostrarOpcionBorrador, fechaBorrador, ultimoGuardado,
     verificarYContinuar, onCorreoCambia,
+    continuarConBorrador, empezarDeNuevo,
     // Estado
     general, persona, laboral, financiera, patrimonio, cuenta,
     direccionEstructurada, direccionEstructuradaCod1, direccionEstructuradaCod2,

@@ -36,7 +36,9 @@ const {
   verificacion, verificado, loadingVerificacion, errorVerificacion,
   mostrarModalNoAsociado,
   tieneBorradorPrevio, borradorRecuperado,
+  mostrarOpcionBorrador, fechaBorrador, ultimoGuardado,
   verificarYContinuar, onCorreoCambia,
+  continuarConBorrador, empezarDeNuevo,
   general, persona, laboral, financiera, patrimonio, cuenta,
   direccionEstructurada, direccionEstructuradaCod1, direccionEstructuradaCod2,
   numCodudores,
@@ -51,7 +53,7 @@ const {
   mostrarTipoOperacion, mostrarValorCredito,
   mostrarValorReestructura, mostrarValorDesembolso, mostrarCuentaDesembolso,
   salarioBloqueado, montoTotalOperacion, pasoSolicitudValido,
-  siguiente, anterior, irAPaso, enviar, formatMonto,
+  siguiente, anterior, irAPaso, enviar, guardarPaso, formatMonto,
 } = useSolicitudCredito()
 
 const modalAutorizacionesVisible = ref(false)
@@ -129,6 +131,14 @@ const LABEL_TIPO_CUENTA = { ahorros: 'Cuenta de ahorros', corriente: 'Cuenta cor
 
 function label(map, val) { return map[val] || val || '—' }
 
+function formatearFecha(iso) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleString('es-CO', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
 function seleccionarModalidad(v) {
   actualizarGeneral('modalidad_credito', v)
   setTimeout(siguiente, 280)
@@ -182,10 +192,14 @@ function actualizarLaboralCod2(campo, valor) {
 }
 
 // Prefill nombre en la firma cuando llega al paso 19
-watch(paso, (nuevoPaso) => {
+watch(paso, async (nuevoPaso) => {
   if (nuevoPaso === 19 && !firma.value.nombre_firma) {
     const nombreCompleto = [persona.value.nombres, persona.value.apellidos].filter(Boolean).join(' ')
     if (nombreCompleto) firma.value = { ...firma.value, nombre_firma: nombreCompleto }
+  }
+  // Garantiza que la solicitud esté guardada antes de llegar al paso de documentos
+  if (nuevoPaso === 17 && !solicitudId.value) {
+    await guardarPaso()
   }
 })
 </script>
@@ -375,8 +389,51 @@ watch(paso, (nuevoPaso) => {
         </div>
       </div>
 
-      <!-- Banner borrador recuperado -->
-      <div v-if="borradorRecuperado" :style="{
+    </div>
+
+    <!-- ═══ FORMULARIO ACTIVO (13 pasos) ════════════════════ -->
+    <div v-else>
+
+      <!-- Banner: borrador encontrado — Continuar o Empezar de nuevo -->
+      <div v-if="mostrarOpcionBorrador" :style="{
+        background:   'var(--color-primary-light)',
+        border:       '1px solid var(--color-primary)',
+        borderRadius: 'var(--r-xl)',
+        padding:      'var(--sp-lg) var(--sp-xl)',
+        marginBottom: 'var(--sp-xl)',
+        display:      'flex',
+        alignItems:   'center',
+        gap:          'var(--sp-md)',
+        flexWrap:     'wrap',
+      }">
+        <div :style="{ flex: '1', minWidth: '200px' }">
+          <div :style="{
+            fontWeight:   'var(--fw-bold)',
+            color:        'var(--color-primary)',
+            fontSize:     'var(--text-base)',
+            marginBottom: '2px',
+          }">Tiene una solicitud sin terminar</div>
+          <div :style="{
+            fontSize:   'var(--text-sm)',
+            color:      'var(--color-text-2)',
+            fontWeight: 'var(--fw-medium)',
+          }">
+            Guardada el {{ formatearFecha(fechaBorrador) }}.
+            Puede continuar donde la dejó o empezar desde cero.
+          </div>
+        </div>
+        <div :style="{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: '0' }">
+          <PortalButton variant="secondary" @click="empezarDeNuevo">
+            Empezar de nuevo
+          </PortalButton>
+          <PortalButton variant="primary" @click="continuarConBorrador">
+            Continuar solicitud
+          </PortalButton>
+        </div>
+      </div>
+
+      <!-- Banner: datos recuperados (tras elegir Continuar) -->
+      <div v-if="borradorRecuperado && !mostrarOpcionBorrador" :style="{
         display:      'flex',
         alignItems:   'center',
         gap:          'var(--sp-sm)',
@@ -384,22 +441,15 @@ watch(paso, (nuevoPaso) => {
         borderRadius: 'var(--r-lg)',
         background:   'var(--color-success-bg)',
         border:       '1px solid var(--color-success)',
-        maxWidth:     '520px',
-        margin:       'var(--sp-lg) auto 0',
+        marginBottom: 'var(--sp-lg)',
       }">
         <IconCircleCheck :size="16" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
         <span :style="{
           fontSize:   'var(--text-base)',
           color:      'var(--color-success-text)',
           fontWeight: 'var(--fw-semibold)',
-        }">
-          Sus datos anteriores fueron recuperados. Continúa desde donde lo dejó.
-        </span>
+        }">Sus datos anteriores fueron recuperados. Continúa desde donde lo dejó.</span>
       </div>
-    </div>
-
-    <!-- ═══ FORMULARIO ACTIVO (13 pasos) ════════════════════ -->
-    <div v-else>
 
       <!-- Encabezado con progreso -->
       <div :style="{ marginBottom: 'var(--sp-xl)' }">
@@ -417,11 +467,26 @@ watch(paso, (nuevoPaso) => {
               color:      'var(--color-text-1)',
             }">{{ pasoActual?.titulo }}</div>
           </div>
-          <div :style="{
-            fontSize:   'var(--text-sm)',
-            color:      'var(--color-text-3)',
-            fontWeight: 'var(--fw-semibold)',
-          }">Paso {{ indexPasoActual }} de {{ pasosActivos.length }}</div>
+          <div :style="{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--sp-xs)' }">
+            <div :style="{
+              fontSize:   'var(--text-sm)',
+              color:      'var(--color-text-3)',
+              fontWeight: 'var(--fw-semibold)',
+            }">Paso {{ indexPasoActual }} de {{ pasosActivos.length }}</div>
+            <div v-if="ultimoGuardado" :style="{
+              display:    'flex',
+              alignItems: 'center',
+              gap:        '4px',
+              fontSize:   'var(--text-xs)',
+              color:      'var(--color-text-3)',
+              fontWeight: 'var(--fw-medium)',
+            }">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Guardado automáticamente
+            </div>
+          </div>
         </div>
         <!-- Barra de progreso -->
         <div :style="{

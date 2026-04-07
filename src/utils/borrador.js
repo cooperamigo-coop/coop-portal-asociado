@@ -69,3 +69,18 @@ export function tieneBorrador(correo) {
     return false
   }
 }
+
+/**
+ * Retorna la fecha de guardado del borrador sin recuperar todos los datos.
+ */
+export function obtenerFechaBorrador(correo) {
+  if (!correo) return null
+  try {
+    const raw = localStorage.getItem(claveStorage(correo))
+    if (!raw) return null
+    const payload = JSON.parse(raw)
+    return payload.guardadoEn || null
+  } catch {
+    return null
+  }
+}
