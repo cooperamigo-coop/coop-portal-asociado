@@ -317,64 +317,48 @@ async function confirmar() {
         position:'absolute', inset:'0', width:'100%', height:'100%', objectFit:'cover',
       }"/>
 
-      <!-- Overlay SVG con recorte del documento -->
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" :style="{
-        position:'absolute', inset:'0', width:'100%', height:'100%', pointerEvents:'none',
-      }">
-        <defs>
-          <mask id="m">
-            <rect width="100" height="100" fill="white"/>
-            <rect x="5" y="26" width="90" height="48" rx="1.2" fill="black"/>
-          </mask>
-        </defs>
-        <rect width="100" height="100" fill="rgba(0,0,0,0.6)" mask="url(#m)"/>
-        <rect x="5" y="26" width="90" height="48" rx="1.2"
-          fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.3"/>
-      </svg>
-
-      <!-- Esquinas amarillas del visor -->
-      <div :style="{
-        position:'absolute',
-        left:'5%', right:'5%', top:'26%', bottom:'26%',
-        pointerEvents:'none',
-      }">
-        <div v-for="(s,i) in [
-          {top:0,left:0,borderTop:'3px solid #FFC801',borderLeft:'3px solid #FFC801'},
-          {top:0,right:0,borderTop:'3px solid #FFC801',borderRight:'3px solid #FFC801'},
-          {bottom:0,left:0,borderBottom:'3px solid #FFC801',borderLeft:'3px solid #FFC801'},
-          {bottom:0,right:0,borderBottom:'3px solid #FFC801',borderRight:'3px solid #FFC801'},
-        ]" :key="i" :style="{
-          position:'absolute', width:'22px', height:'22px', borderRadius:'2px', ...s,
+      <!-- Overlay CSS puro (compatible iOS Safari) -->
+      <div :style="{ position:'absolute', inset:'0', pointerEvents:'none' }">
+        <!-- Franjas oscuras arriba/abajo/lados -->
+        <div :style="{ position:'absolute', top:'0', left:'0', right:'0', height:'25%', background:'rgba(0,0,0,0.62)' }"/>
+        <div :style="{ position:'absolute', bottom:'0', left:'0', right:'0', height:'25%', background:'rgba(0,0,0,0.62)' }"/>
+        <div :style="{ position:'absolute', top:'25%', bottom:'25%', left:'0', width:'5%', background:'rgba(0,0,0,0.62)' }"/>
+        <div :style="{ position:'absolute', top:'25%', bottom:'25%', right:'0', width:'5%', background:'rgba(0,0,0,0.62)' }"/>
+        <!-- Borde del recuadro -->
+        <div :style="{
+          position:'absolute', top:'25%', bottom:'25%', left:'5%', right:'5%',
+          border:'1.5px solid rgba(255,255,255,0.3)', borderRadius:'6px',
         }"/>
       </div>
 
+      <!-- Esquinas amarillas -->
+      <div :style="{ position:'absolute', top:'calc(25% - 1px)', left:'calc(5% - 1px)', width:'24px', height:'24px', pointerEvents:'none', borderTop:'3px solid #FFC801', borderLeft:'3px solid #FFC801', borderRadius:'3px 0 0 0' }"/>
+      <div :style="{ position:'absolute', top:'calc(25% - 1px)', right:'calc(5% - 1px)', width:'24px', height:'24px', pointerEvents:'none', borderTop:'3px solid #FFC801', borderRight:'3px solid #FFC801', borderRadius:'0 3px 0 0' }"/>
+      <div :style="{ position:'absolute', bottom:'calc(25% - 1px)', left:'calc(5% - 1px)', width:'24px', height:'24px', pointerEvents:'none', borderBottom:'3px solid #FFC801', borderLeft:'3px solid #FFC801', borderRadius:'0 0 0 3px' }"/>
+      <div :style="{ position:'absolute', bottom:'calc(25% - 1px)', right:'calc(5% - 1px)', width:'24px', height:'24px', pointerEvents:'none', borderBottom:'3px solid #FFC801', borderRight:'3px solid #FFC801', borderRadius:'0 0 3px 0' }"/>
+
       <!-- Instrucción superior -->
-      <div :style="{
-        position:'absolute', top:'14%', left:'0', right:'0',
-        textAlign:'center', pointerEvents:'none',
-      }">
+      <div :style="{ position:'absolute', top:'18%', left:'0', right:'0', textAlign:'center', pointerEvents:'none' }">
         <span :style="{
-          background:'rgba(0,0,0,0.5)', backdropFilter:'blur(10px)',
-          borderRadius:'20px', padding:'7px 18px',
+          background:'rgba(0,0,0,0.55)', WebkitBackdropFilter:'blur(10px)',
+          backdropFilter:'blur(10px)', borderRadius:'20px', padding:'7px 18px',
           fontSize:'13px', fontWeight:'700', color:'#fff',
-          letterSpacing:'0.01em',
-        }">
-          {{ labelPaso }} de la cédula · Centra el documento
-        </span>
+          letterSpacing:'0.01em', display:'inline-block',
+        }">{{ labelPaso }} · Centra el documento</span>
       </div>
 
-      <!-- Botón disparador -->
+      <!-- Botón disparador con safe-area para iOS -->
       <div :style="{
         position:'absolute', bottom:'0', left:'0', right:'0',
-        padding:'16px 0 44px', display:'flex',
-        alignItems:'center', justifyContent:'center',
-        background:'linear-gradient(to top,rgba(0,0,0,0.75) 0%,transparent 100%)',
+        paddingTop:'20px',
+        paddingBottom:'max(44px, env(safe-area-inset-bottom, 44px))',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        background:'linear-gradient(to top,rgba(0,0,0,0.8) 0%,transparent 100%)',
       }">
         <button :style="{
           width:'76px', height:'76px', borderRadius:'50%',
           border:'4px solid rgba(255,255,255,0.85)',
-          background:'rgba(255,255,255,0.12)',
-          backdropFilter:'blur(4px)',
+          background:'rgba(255,255,255,0.15)',
           cursor:'pointer', display:'flex',
           alignItems:'center', justifyContent:'center',
           WebkitTapHighlightColor:'transparent', touchAction:'manipulation',
@@ -390,10 +374,13 @@ async function confirmar() {
 
       <canvas ref="canvasRef" style="display:none"/>
 
-      <!-- Cancelar -->
+      <!-- Cancelar con safe-area-inset-top para notch iOS -->
       <button :style="{
-        position:'absolute', top:'12px', left:'14px',
-        background:'rgba(0,0,0,0.5)', backdropFilter:'blur(8px)',
+        position:'absolute',
+        top:'max(12px, env(safe-area-inset-top, 12px))',
+        left:'14px',
+        background:'rgba(0,0,0,0.5)', WebkitBackdropFilter:'blur(8px)',
+        backdropFilter:'blur(8px)',
         border:'none', borderRadius:'10px', color:'rgba(255,255,255,0.8)',
         padding:'8px 14px', fontSize:'13px', fontWeight:'600',
         cursor:'pointer', WebkitTapHighlightColor:'transparent',
