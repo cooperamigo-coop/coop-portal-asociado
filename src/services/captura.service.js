@@ -1,23 +1,46 @@
 const EF_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/captura-documento`
 
+/** Lee la respuesta como texto y luego intenta parsearla como JSON */
+async function leerRespuesta(res) {
+  const texto = await res.text()
+  if (!res.ok) {
+    console.error(`[captura.service] Error ${res.status} de la EF:`, texto.slice(0, 400))
+    let mensaje = `Error ${res.status}`
+    try {
+      const json = JSON.parse(texto)
+      mensaje = json.error || json.message || mensaje
+    } catch { /* body no es JSON — usar el texto crudo */ }
+    throw new Error(mensaje)
+  }
+  try {
+    return JSON.parse(texto)
+  } catch {
+    throw new Error(`Respuesta inesperada de la Edge Function: ${texto.slice(0, 200)}`)
+  }
+}
+
 /**
  * Crea una sesión de captura.
  * solicitudId es opcional: si aún no existe en BD se pasa null
  * y se usa sesionFormulario como identificador temporal.
  */
 export async function crearSesionCaptura(solicitudId, campo = 'documento_identidad', sesionFormulario = null) {
-  const res = await fetch(`${EF_BASE}/crear`, {
+  const url = `${EF_BASE}/crear`
+  const body = {
+    solicitud_id:      solicitudId || null,
+    sesion_formulario: sesionFormulario || null,
+    paso:              'documento_identidad',
+    campo,
+  }
+  console.log('[captura.service] POST', url, body)
+
+  const res = await fetch(url, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({
-      solicitud_id:      solicitudId || null,
-      sesion_formulario: sesionFormulario,
-      paso:              'documento_identidad',
-      campo,
-    }),
+    body:    JSON.stringify(body),
   })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.error || 'Error al crear sesión de captura')
+  const data = await leerRespuesta(res)
+  console.log('[captura.service] sesión creada:', data)
   return data // { sesion_id, token, url_captura }
 }
 
@@ -26,9 +49,7 @@ export async function crearSesionCaptura(solicitudId, campo = 'documento_identid
  */
 export async function consultarEstadoCaptura(token) {
   const res = await fetch(`${EF_BASE}/estado/${token}`)
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.error || 'Error al consultar estado')
-  return data
+  return leerRespuesta(res)
 }
 
 /**
@@ -39,14 +60,11 @@ export async function subirFotoCaptura(token, lado, archivo) {
   fd.append('lado', lado)
   fd.append('foto', archivo)
   const res = await fetch(`${EF_BASE}/subir/${token}`, { method: 'POST', body: fd })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.error || 'Error al subir foto')
-  return data // { url, estado }
+  return leerRespuesta(res) // { url, estado }
 }
 
 /**
- * Vincula una sesión de captura (creada sin solicitud_id) a la solicitud
- * una vez que esta se guarda en BD por primera vez.
+ * Vincula una sesión de captura a la solicitud una vez guardada en BD.
  */
 export async function vincularSolicitudCaptura(token, solicitudId) {
   if (!token || !solicitudId) return
@@ -55,8 +73,5 @@ export async function vincularSolicitudCaptura(token, solicitudId) {
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({ solicitud_id: solicitudId }),
   })
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}))
-    throw new Error(data.error || 'Error al vincular sesión de captura')
-  }
+  if (!res.ok) await leerRespuesta(res) // solo para lanzar el error
 }
