@@ -221,26 +221,20 @@ const nivelEducativoOpciones = [
             fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)',
             marginBottom: 'var(--sp-xs)',
           }">Dirección de residencia *</label>
-          <div :style="{ display: 'flex', gap: 'var(--sp-sm)' }">
-            <input
-              :value="textoResidencia || 'Sin ingresar'"
-              readonly
-              :style="{
-                flex: '1', padding: '9px 14px',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--r-lg)',
-                fontSize: 'var(--text-base)', fontFamily: 'var(--font-body)',
-                background: 'var(--color-bg-surface-alt)',
-                color: textoResidencia ? 'var(--color-text-1)' : 'var(--color-text-3)',
-                cursor: 'pointer', outline: 'none',
-              }"
-              @click="modalDireccionVisible = true"
-            />
-            <PortalButton variant="secondary" @click="modalDireccionVisible = true">
-              <IconMapPin :size="14" />
-              {{ modelValue[clave('direccion_residencia')] ? 'Editar' : 'Ingresar' }}
-            </PortalButton>
-          </div>
+          <input
+            :value="textoResidencia || 'Sin ingresar'"
+            readonly
+            :style="{
+              width: '100%', padding: '9px 14px',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--r-lg)',
+              fontSize: 'var(--text-base)', fontFamily: 'var(--font-body)',
+              background: 'var(--color-bg-surface-alt)',
+              color: textoResidencia ? 'var(--color-text-1)' : 'var(--color-text-3)',
+              cursor: 'pointer', outline: 'none', boxSizing: 'border-box',
+            }"
+            @click="modalDireccionVisible = true"
+          />
         </div>
         <CampoTexto
           v-else
@@ -271,26 +265,20 @@ const nivelEducativoOpciones = [
             fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)',
             marginBottom: 'var(--sp-xs)',
           }">Fecha y lugar de expedición *</label>
-          <div :style="{ display: 'flex', gap: 'var(--sp-sm)' }">
-            <input
-              :value="fechaExpedicionDisplay || 'Sin ingresar'"
-              readonly
-              :style="{
-                flex: '1', padding: '9px 14px',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--r-lg)',
-                fontSize: 'var(--text-base)', fontFamily: 'var(--font-body)',
-                background: 'var(--color-bg-surface-alt)',
-                color: fechaExpedicionDisplay ? 'var(--color-text-1)' : 'var(--color-text-3)',
-                cursor: 'pointer', outline: 'none',
-              }"
-              @click="modalExpedicionVisible = true"
-            />
-            <PortalButton variant="secondary" @click="modalExpedicionVisible = true">
-              <IconCalendar :size="14" />
-              {{ modelValue[clave('fecha_expedicion_documento')] ? 'Editar' : 'Ingresar' }}
-            </PortalButton>
-          </div>
+          <input
+            :value="fechaExpedicionDisplay || 'Sin ingresar'"
+            readonly
+            :style="{
+              width: '100%', padding: '9px 14px',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--r-lg)',
+              fontSize: 'var(--text-base)', fontFamily: 'var(--font-body)',
+              background: 'var(--color-bg-surface-alt)',
+              color: fechaExpedicionDisplay ? 'var(--color-text-1)' : 'var(--color-text-3)',
+              cursor: 'pointer', outline: 'none', boxSizing: 'border-box',
+            }"
+            @click="modalExpedicionVisible = true"
+          />
         </div>
 
         <!-- Fallback: campos separados si no hay ubicacionExpedicion -->

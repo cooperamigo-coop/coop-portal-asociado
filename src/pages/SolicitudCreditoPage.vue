@@ -10,6 +10,7 @@ import SeccionPersona         from '@/components/forms/SeccionPersona.vue'
 import SeccionFinanciera      from '@/components/forms/SeccionFinanciera.vue'
 import SeccionPatrimonio      from '@/components/forms/SeccionPatrimonio.vue'
 import CampoTexto             from '@/components/forms/CampoTexto.vue'
+import CampoSelect            from '@/components/forms/CampoSelect.vue'
 import CampoSelectBuscable    from '@/components/forms/CampoSelectBuscable.vue'
 import CampoMoneda            from '@/components/forms/CampoMoneda.vue'
 import CampoCheck             from '@/components/forms/CampoCheck.vue'
@@ -60,7 +61,19 @@ const {
 const modalAutorizacionesVisible = ref(false)
 const aceptaCondiciones = ref(false)
 const errorCorreo = ref(null)
-const errorPlazo  = ref(null)
+const errorPlazo   = ref(null)
+const plazoFocused = ref(false)
+
+const esMenorDeEdad = computed(() => {
+  const fn = persona.value.fecha_nacimiento
+  if (!fn) return false
+  const nacimiento = new Date(fn)
+  const hoy = new Date()
+  let edad = hoy.getFullYear() - nacimiento.getFullYear()
+  const m = hoy.getMonth() - nacimiento.getMonth()
+  if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) edad--
+  return edad < 18
+})
 
 function validarCorreo(valor) {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -389,9 +402,9 @@ watch(solicitudId, async (nuevoId, prevId) => {
               lineHeight: '1.5',
             }">
               Autorizo a la Cooperativa Multiactiva Luis Amigó para que mi número de celular y correo electrónico sean tratados con el fin de contactarme y enviarme información relacionada con la solicitud del producto. Igualmente, autorizo la consulta de mi información ante centrales de información financiera y crediticia, con el propósito de verificar mis datos personales. Declaro que conozco y acepto los
-              <span :style="{ color: 'var(--color-primary)', cursor: 'pointer', textDecoration: 'underline' }">Términos y Condiciones</span>,
+              <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', textDecoration: 'underline' }">Términos y Condiciones</a>,
               así como la
-              <span :style="{ color: 'var(--color-primary)', cursor: 'pointer', textDecoration: 'underline' }">Política de Privacidad</span>.
+              <a href="https://cooperamigo.coop/aviso-privacidad" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', textDecoration: 'underline' }">Política de Privacidad</a>.
             </span>
           </label>
 
@@ -585,24 +598,25 @@ watch(solicitudId, async (nuevoId, prevId) => {
             />
           </div>
 
-          <!-- Monto total (reestructura con desembolso) -->
+          <!-- Monto total — pill -->
           <div
             v-if="montoTotalOperacion"
             :style="{
-              display:      'flex',
+              display:      'inline-flex',
+              alignSelf:    'flex-start',
               alignItems:   'center',
-              gap:          'var(--sp-md)',
-              padding:      'var(--sp-md) var(--sp-lg)',
-              borderRadius: 'var(--r-lg)',
+              gap:          'var(--sp-sm)',
+              padding:      'var(--sp-xs) var(--sp-lg)',
+              borderRadius: 'var(--r-pill)',
               background:   'var(--color-primary-light)',
-              border:       '1px solid var(--color-border)',
+              border:       '1px solid var(--color-primary)',
             }"
           >
             <span :style="{
               fontSize:   'var(--text-sm)',
               color:      'var(--color-primary)',
               fontWeight: 'var(--fw-semibold)',
-            }">Monto total de la operación:</span>
+            }">Monto total:</span>
             <span :style="{
               fontSize:   'var(--text-base)',
               color:      'var(--color-primary)',
@@ -610,77 +624,138 @@ watch(solicitudId, async (nuevoId, prevId) => {
             }">{{ formatMonto(montoTotalOperacion) }}</span>
           </div>
 
-          <!-- Destino y plazo -->
-          <CampoTexto
-            :model-value="general.destino_credito"
-            label="Destino del crédito"
-            placeholder="¿Para qué usará el crédito?"
-            required
-            @update:model-value="actualizarGeneral('destino_credito', $event)"
-          />
+          <!-- Destino y plazo — en la misma fila -->
+          <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 'var(--sp-lg)' }">
+            <CampoTexto
+              :model-value="general.destino_credito"
+              label="Destino del crédito"
+              placeholder="¿Para qué usará el crédito?"
+              required
+              :maxlength="40"
+              @update:model-value="actualizarGeneral('destino_credito', $event)"
+            />
 
-          <div>
-            <label :style="{
-              fontSize:     'var(--text-sm)',
-              fontWeight:   'var(--fw-semibold)',
-              color:        'var(--color-text-1)',
-              display:      'block',
-              marginBottom: 'var(--sp-xs)',
-            }">Plazo solicitado <span :style="{ color: 'var(--color-error)' }">*</span></label>
-            <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
-              <input
-                :value="general.plazo_solicitado"
-                type="number"
-                min="1"
-                :max="maxPlazo"
-                :placeholder="esEducativo ? '1 a 6' : 'Ej: 24'"
-                :style="{
-                  padding:      '9px 14px',
-                  border:       errorPlazo ? '1px solid var(--color-error)' : '1px solid var(--color-border)',
-                  borderRadius: 'var(--r-lg)',
-                  fontSize:     'var(--text-base)',
-                  fontFamily:   'var(--font-body)',
-                  background:   'var(--color-bg-surface)',
-                  color:        'var(--color-text-1)',
-                  outline:      'none',
-                  width:        '120px',
-                }"
-                @input="actualizarPlazo($event.target.value)"
-              />
-              <span :style="{
-                fontSize:   'var(--text-base)',
-                color:      'var(--color-text-2)',
-                fontWeight: 'var(--fw-medium)',
-              }">meses</span>
-            </div>
-            <div
-              v-if="errorPlazo"
-              :style="{
+            <!-- Plazo con floating label y "meses" dentro del campo -->
+            <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
+              <div :style="{
+                position:     'relative',
+                display:      'flex',
+                alignItems:   'center',
+                gap:          'var(--sp-sm)',
+                padding:      '12px 14px',
+                border:       errorPlazo ? '1px solid var(--color-error)' : plazoFocused ? '1px solid var(--color-primary)' : '1px solid var(--color-border)',
+                borderRadius: 'var(--r-lg)',
+                background:   'var(--color-bg-card)',
+                boxSizing:    'border-box',
+                transition:   'border-color var(--transition-fast)',
+              }">
+                <input
+                  :value="general.plazo_solicitado"
+                  type="number"
+                  min="1"
+                  :max="maxPlazo"
+                  :style="{
+                    flex:       '1',
+                    border:     'none',
+                    outline:    'none',
+                    background: 'transparent',
+                    fontSize:   'var(--text-base)',
+                    fontFamily: 'var(--font-body)',
+                    color:      'var(--color-text-1)',
+                    minWidth:   '0',
+                    padding:    '0',
+                  }"
+                  @input="actualizarPlazo($event.target.value)"
+                  @focus="plazoFocused = true"
+                  @blur="plazoFocused = false"
+                />
+                <span :style="{
+                  fontSize:   'var(--text-base)',
+                  color:      'var(--color-text-2)',
+                  fontWeight: 'var(--fw-medium)',
+                  flexShrink: '0',
+                }">meses</span>
+                <label :style="{
+                  position:      'absolute',
+                  left:          '12px',
+                  top:           (plazoFocused || general.plazo_solicitado) ? '0' : '50%',
+                  transform:     'translateY(-50%)',
+                  fontSize:      (plazoFocused || general.plazo_solicitado) ? '10px' : 'var(--text-base)',
+                  fontWeight:    (plazoFocused || general.plazo_solicitado) ? 'var(--fw-semibold)' : 'var(--fw-medium)',
+                  color:         errorPlazo ? 'var(--color-error-text)' : plazoFocused ? 'var(--color-primary)' : 'var(--color-text-3)',
+                  background:    (plazoFocused || general.plazo_solicitado) ? 'var(--color-bg-card)' : 'transparent',
+                  padding:       (plazoFocused || general.plazo_solicitado) ? '0 3px' : '0',
+                  pointerEvents: 'none',
+                  zIndex:        '1',
+                  whiteSpace:    'nowrap',
+                  transition:    'all var(--transition-fast)',
+                }">
+                  Plazo <span :style="{ color: 'var(--color-error)' }">*</span>
+                </label>
+              </div>
+              <span v-if="errorPlazo" :style="{
                 fontSize:   'var(--text-xs)',
                 color:      'var(--color-error-text)',
-                marginTop:  'var(--sp-xs)',
                 fontWeight: 'var(--fw-semibold)',
-              }"
-            >{{ errorPlazo }}</div>
+              }">{{ errorPlazo }}</span>
+            </div>
           </div>
         </div>
 
         <!-- ── PASO 3: Datos personales solicitante ──────────── -->
-        <SeccionPersona
-          v-if="paso === 3"
-          :model-value="persona"
-          titulo="Información del solicitante"
-          :bloquear-documento="true"
-          :bloquear-correo="true"
-          :direccion-estructurada="direccionEstructurada"
-          :ubicacion="ubicacionResidencia"
-          :ubicacion-expedicion="ubicacionExpedicion"
-          :show-nivel-educativo="true"
-          @update:model-value="persona = $event"
-          @update:direccion-estructurada="direccionEstructurada = $event"
-          @update:ubicacion="ubicacionResidencia = $event"
-          @update:ubicacion-expedicion="ubicacionExpedicion = $event"
-        />
+        <template v-if="paso === 3">
+          <SeccionPersona
+            :model-value="persona"
+            titulo="Información del solicitante"
+            :bloquear-documento="true"
+            :bloquear-correo="true"
+            :direccion-estructurada="direccionEstructurada"
+            :ubicacion="ubicacionResidencia"
+            :ubicacion-expedicion="ubicacionExpedicion"
+            :show-nivel-educativo="true"
+            @update:model-value="persona = $event"
+            @update:direccion-estructurada="direccionEstructurada = $event"
+            @update:ubicacion="ubicacionResidencia = $event"
+            @update:ubicacion-expedicion="ubicacionExpedicion = $event"
+          />
+
+          <!-- Bloqueo por menor de edad -->
+          <div
+            v-if="esMenorDeEdad"
+            :style="{
+              display:      'flex',
+              alignItems:   'flex-start',
+              gap:          'var(--sp-md)',
+              padding:      'var(--sp-lg) var(--sp-xl)',
+              borderRadius: 'var(--r-xl)',
+              background:   'var(--color-error-bg)',
+              border:       '1px solid var(--color-error)',
+              marginTop:    'var(--sp-lg)',
+            }"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;margin-top:2px">
+              <circle cx="12" cy="12" r="10" stroke="var(--color-error)" stroke-width="2"/>
+              <path d="M12 8v4m0 4h.01" stroke="var(--color-error)" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <div>
+              <div :style="{
+                fontWeight:   'var(--fw-bold)',
+                color:        'var(--color-error-text)',
+                fontSize:     'var(--text-base)',
+                marginBottom: 'var(--sp-2xs)',
+              }">No es posible continuar con la solicitud</div>
+              <div :style="{
+                fontSize:   'var(--text-sm)',
+                color:      'var(--color-error-text)',
+                fontWeight: 'var(--fw-medium)',
+                lineHeight: '1.5',
+              }">
+                El solicitante debe ser mayor de 18 años para acceder a productos de crédito.
+                Por favor verifique la fecha de nacimiento ingresada.
+              </div>
+            </div>
+          </div>
+        </template>
 
         <!-- ── PASO 4: Información laboral solicitante ───────── -->
         <div v-if="paso === 4" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
@@ -835,9 +910,7 @@ watch(solicitudId, async (nuevoId, prevId) => {
         />
 
         <!-- ── PASO 7: Cuenta de desembolso (condicional) ─────── -->
-        <div v-if="paso === 7" :style="{
-          display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)',
-        }">
+        <div v-if="paso === 7" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
           <CampoSelectBuscable
             :model-value="cuenta.tipo_cuenta"
             label="Tipo de cuenta"
@@ -861,7 +934,6 @@ watch(solicitudId, async (nuevoId, prevId) => {
             label="Especifique la entidad bancaria"
             placeholder="Nombre del banco o entidad"
             required
-            :style="{ gridColumn: '1 / -1' }"
             @update:model-value="actualizarCuenta('entidad_bancaria_otro', $event)"
           />
           <CampoTexto
@@ -869,10 +941,92 @@ watch(solicitudId, async (nuevoId, prevId) => {
             label="Número de cuenta"
             placeholder="Sin guiones ni espacios"
             required
+            solo-numeros
+            :maxlength="18"
             :disabled="!cuenta.entidad_bancaria || (cuenta.entidad_bancaria === 'otro' && !cuenta.entidad_bancaria_otro)"
-            :style="{ gridColumn: '1 / -1' }"
             @update:model-value="actualizarCuenta('numero_cuenta', $event)"
           />
+
+          <!-- ¿Cuenta de tercero? -->
+          <CampoCheck
+            :model-value="cuenta.cuenta_tercero"
+            label="La cuenta bancaria pertenece a un tercero"
+            @update:model-value="actualizarCuenta('cuenta_tercero', $event)"
+          />
+
+          <!-- Datos del titular + documentos requeridos -->
+          <template v-if="cuenta.cuenta_tercero">
+            <div :style="{
+              padding:      'var(--sp-xl)',
+              borderRadius: 'var(--r-xl)',
+              border:       '1px solid var(--color-border)',
+              background:   'var(--color-bg-surface)',
+              display:      'flex',
+              flexDirection:'column',
+              gap:          'var(--sp-lg)',
+            }">
+              <div :style="{
+                fontFamily: 'var(--font-display)',
+                fontSize:   'var(--text-base)',
+                fontWeight: 'var(--fw-bold)',
+                color:      'var(--color-text-1)',
+              }">Datos del titular de la cuenta</div>
+
+              <CampoTexto
+                :model-value="cuenta.nombre_tercero"
+                label="Nombre completo del titular"
+                placeholder="Nombre como aparece en el banco"
+                required
+                @update:model-value="actualizarCuenta('nombre_tercero', $event)"
+              />
+              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                <CampoSelect
+                  :model-value="cuenta.tipo_doc_tercero"
+                  label="Tipo de documento"
+                  required
+                  :opciones="opsTipoDocVerificacion"
+                  @update:model-value="actualizarCuenta('tipo_doc_tercero', $event)"
+                />
+                <CampoTexto
+                  :model-value="cuenta.numero_doc_tercero"
+                  label="Número de documento"
+                  placeholder="Sin puntos ni espacios"
+                  required
+                  solo-numeros
+                  @update:model-value="actualizarCuenta('numero_doc_tercero', $event)"
+                />
+              </div>
+
+              <!-- Documentos requeridos -->
+              <div :style="{
+                padding:      'var(--sp-md) var(--sp-lg)',
+                borderRadius: 'var(--r-lg)',
+                background:   'var(--color-primary-light)',
+                border:       '1px solid var(--color-primary)',
+              }">
+                <div :style="{
+                  fontSize:     'var(--text-sm)',
+                  fontWeight:   'var(--fw-semibold)',
+                  color:        'var(--color-primary)',
+                  marginBottom: 'var(--sp-xs)',
+                }">Documentos requeridos para cuenta de tercero:</div>
+                <ul :style="{
+                  fontSize:      'var(--text-sm)',
+                  color:         'var(--color-text-2)',
+                  fontWeight:    'var(--fw-medium)',
+                  paddingLeft:   'var(--sp-lg)',
+                  margin:        '0',
+                  display:       'flex',
+                  flexDirection: 'column',
+                  gap:           'var(--sp-2xs)',
+                }">
+                  <li>Carta de autorización firmada por el titular</li>
+                  <li>Copia del documento de identidad del titular</li>
+                  <li>Certificado bancario de la cuenta</li>
+                </ul>
+              </div>
+            </div>
+          </template>
         </div>
 
         <!-- ── PASO 8: Selección de codeudores ─────────────────── -->
@@ -1390,10 +1544,10 @@ watch(solicitudId, async (nuevoId, prevId) => {
           v-if="!esUltimoPaso && paso !== 1"
           variant="primary"
           :loading="loading"
-          :disabled="(paso === 2 && !pasoSolicitudValido) || (paso === 18 && !autorizaciones.autorizacion_aceptada)"
+          :disabled="(paso === 2 && !pasoSolicitudValido) || (paso === 3 && esMenorDeEdad) || (paso === 18 && !autorizaciones.autorizacion_aceptada)"
           :style="{
-            opacity: (paso === 2 && !pasoSolicitudValido) ? '0.45' : '1',
-            cursor:  (paso === 2 && !pasoSolicitudValido) ? 'not-allowed' : 'pointer',
+            opacity: ((paso === 2 && !pasoSolicitudValido) || (paso === 3 && esMenorDeEdad)) ? '0.45' : '1',
+            cursor:  ((paso === 2 && !pasoSolicitudValido) || (paso === 3 && esMenorDeEdad)) ? 'not-allowed' : 'pointer',
           }"
           :full="isMobile"
           @click="siguiente()"

@@ -22,7 +22,7 @@ const router = useRouter()
         </RouterLink>
         <span class="topbar-sep-v"></span>
         <a
-          href="https://www.cooperamigo.com"
+          href="https://cooperamigo.coop"
           target="_blank"
           rel="noopener noreferrer"
           class="topbar-visit"
@@ -50,6 +50,19 @@ const router = useRouter()
 
     <!-- Contenido -->
     <main class="portal-main">
+
+      <!-- Anillos decorativos permanentes -->
+      <div class="deco-ring deco-ring--primary" aria-hidden="true">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">
+          <circle cx="100" cy="100" r="80" fill="none" stroke="var(--color-primary)" stroke-width="30"/>
+        </svg>
+      </div>
+      <div class="deco-ring deco-ring--accent" aria-hidden="true">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">
+          <circle cx="100" cy="100" r="80" fill="none" stroke="var(--color-accent)" stroke-width="30"/>
+        </svg>
+      </div>
+
       <div class="portal-main__inner">
         <slot />
       </div>
@@ -61,21 +74,46 @@ const router = useRouter()
 
 <style scoped>
 
-/* ─── Main ───
-   flex-direction: column + align-items: center centra horizontalmente el inner.
-   El contenido siempre arranca desde arriba, nunca desborda por encima del topbar.
-*/
+/* ─── Main ─── */
 .portal-main {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 40px 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ─── Anillos decorativos ─── */
+.deco-ring {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.14;
+}
+
+.deco-ring--primary {
+  width: clamp(180px, 22vw, 340px);
+  height: clamp(180px, 22vw, 340px);
+  bottom: 0;
+  right: 0;
+  transform: translate(50%, 50%);
+}
+
+.deco-ring--accent {
+  width: clamp(140px, 17vw, 260px);
+  height: clamp(140px, 17vw, 260px);
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
 }
 
 .portal-main__inner {
   width: 100%;
   max-width: 720px;
+  position: relative;
+  z-index: 1;
 }
 
 /* ─── Topbar ─── */

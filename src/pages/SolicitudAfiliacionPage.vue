@@ -203,9 +203,9 @@ const spanFull = { gridColumn: '1 / -1' }
             }">
               Autorizo a la Cooperativa Multiactiva Luis Amigó para consultar mis datos
               ante operadores de información y riesgo, junto a los
-              <a href="#" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)' }">Términos y condiciones</a>
+              <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)' }">Términos y condiciones</a>
               y
-              <a href="#" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)' }">Política de privacidad</a>.
+              <a href="https://cooperamigo.coop/aviso-privacidad" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)' }">Política de privacidad</a>.
             </span>
           </label>
 
@@ -298,6 +298,36 @@ const spanFull = { gridColumn: '1 / -1' }
 
       <StepIndicator :pasos="pasos" :actual="paso" />
 
+      <!-- Título del paso + contador + barra de progreso -->
+      <div :style="{ marginBottom: 'var(--sp-xl)' }">
+        <div :style="{
+          display: 'flex', justifyContent: 'space-between',
+          alignItems: 'flex-end', marginBottom: 'var(--sp-sm)',
+        }">
+          <div :style="{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-extrabold)',
+            color: 'var(--color-text-1)',
+          }">{{ pasos[paso - 1]?.label }}</div>
+          <div :style="{
+            fontSize: 'var(--text-sm)', color: 'var(--color-text-3)',
+            fontWeight: 'var(--fw-semibold)',
+          }">Paso {{ paso }} de {{ pasos.length }}</div>
+        </div>
+        <div :style="{
+          height: '6px', background: 'var(--color-border)',
+          borderRadius: 'var(--r-pill)', overflow: 'hidden',
+        }">
+          <div :style="{
+            height: '100%',
+            width: (paso / pasos.length * 100) + '%',
+            background: 'var(--color-primary)',
+            borderRadius: 'var(--r-pill)',
+            transition: 'width var(--transition-base)',
+          }" />
+        </div>
+      </div>
+
       <div :style="{
         background: 'var(--color-bg-card)',
         border: '1px solid var(--color-border-card)',
@@ -345,7 +375,7 @@ const spanFull = { gridColumn: '1 / -1' }
           <div :style="grid2(isMobile)">
             <CampoSelect
               v-model="datosPersonales.tipo_identificacion"
-              label="Tipo de identificación"
+              label="Tipo"
               :opciones="opsTipoDocumento"
               required
               :disabled="!!asociadoExistente"
@@ -378,6 +408,11 @@ const spanFull = { gridColumn: '1 / -1' }
               required
               :disabled="!!asociadoExistente"
               :error="erroresCampos.apellidos"
+            />
+            <CampoSelect
+              v-model="datosPersonales.nivel_academico"
+              label="Nivel académico"
+              :opciones="opsNivelAcademico"
             />
             <CampoTexto
               v-model="datosPersonales.fecha_expedicion"
@@ -428,11 +463,6 @@ const spanFull = { gridColumn: '1 / -1' }
               label="Título"
               placeholder="Ej. Ingeniero, Licenciado"
             />
-            <CampoSelect
-              v-model="datosPersonales.nivel_academico"
-              label="Nivel académico"
-              :opciones="opsNivelAcademico"
-            />
             <CampoTexto
               v-model="datosPersonales.personas_a_cargo"
               label="Personas a cargo"
@@ -459,13 +489,6 @@ const spanFull = { gridColumn: '1 / -1' }
               v-model="datosPersonales.celular"
               label="Celular"
               placeholder="Ej. 3001234567"
-            />
-            <CampoTexto
-              v-model="datosPersonales.email"
-              label="Correo electrónico"
-              type="email"
-              :disabled="true"
-              helper="Correo verificado al inicio"
             />
             <CampoTexto
               v-model="datosPersonales.otro_email"
@@ -811,7 +834,7 @@ const spanFull = { gridColumn: '1 / -1' }
             <div :style="grid2(isMobile)">
               <CampoSelect
                 v-model="datosConyuge.tipo_identificacion"
-                label="Tipo de identificación"
+                label="Tipo"
                 :opciones="opsTipoDocumento"
               />
               <CampoTexto

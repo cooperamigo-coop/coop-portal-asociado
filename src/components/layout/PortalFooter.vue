@@ -4,7 +4,7 @@
 
       <!-- Col 1: logo con enlace -->
       <div class="footer-col-logo">
-        <a href="https://www.cooperamigo.com" target="_blank" rel="noopener noreferrer" class="footer-logo-link">
+        <a href="https://cooperamigo.coop" target="_blank" rel="noopener noreferrer" class="footer-logo-link">
           <img src="/logo-principal.svg" alt="Cooperamigó" class="footer-logo" />
         </a>
       </div>
@@ -17,14 +17,14 @@
           <span class="footer-sep">·</span>
           NIT 800.191.482-7
           <span class="footer-sep">·</span>
-          <span class="footer-email">info@cooperamigo.com</span>
+          <span class="footer-email">info@cooperamigo.coop</span>
         </p>
         <!-- Mobile: dos líneas -->
         <p class="footer-info-row footer-info--mobile">© 2026 Cooperativa Multiactiva Luis Amigó</p>
         <p class="footer-info-row footer-info--mobile footer-nit-mobile">
           NIT 800.191.482-7
           <span class="footer-sep">·</span>
-          <span class="footer-email">info@cooperamigo.com</span>
+          <span class="footer-email">info@cooperamigo.coop</span>
         </p>
         <div class="footer-vigilada-mobile">
           <div class="fvm-block">

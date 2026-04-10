@@ -21,6 +21,8 @@ const busqueda     = ref('')
 const inputRef     = ref(null)
 const containerRef = ref(null)
 
+const floated = computed(() => abierto.value || !!props.modelValue)
+
 const labelSeleccionado = computed(() => {
   if (!props.modelValue) return ''
   return props.opciones.find(o => o.value === props.modelValue)?.label ?? ''
@@ -77,59 +79,39 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickFuera))
 <template>
   <div
     ref="containerRef"
-    :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)', position: 'relative' }"
+    class="csb-wrapper"
   >
-    <!-- Label -->
-    <label :style="{
-      fontSize:   'var(--text-sm)',
-      fontWeight: 'var(--fw-semibold)',
-      color:      error ? 'var(--color-error-text)' : 'var(--color-text-1)',
-    }">
-      {{ label }}
-      <span v-if="required" :style="{ color: 'var(--color-error)' }"> *</span>
-    </label>
-
-    <!-- Trigger -->
+    <!-- Trigger con label flotante integrada -->
     <div
-      :style="{
-        display:        'flex',
-        alignItems:     'center',
-        justifyContent: 'space-between',
-        padding:        '9px 14px',
-        border:         `1px solid ${error
-          ? 'var(--color-error)'
-          : abierto
-            ? 'var(--color-primary)'
-            : 'var(--color-border)'}`,
-        borderRadius:   'var(--r-lg)',
-        background:     disabled ? 'var(--color-bg-surface-alt)' : 'var(--color-bg-surface)',
-        cursor:         disabled ? 'not-allowed' : 'pointer',
-        transition:     'border-color var(--transition-fast)',
-        userSelect:     'none',
-        gap:            'var(--sp-sm)',
-        outline:        abierto ? '3px solid var(--color-primary-light)' : 'none',
+      class="csb-field"
+      :class="{
+        'csb-field--floated':  floated,
+        'csb-field--open':     abierto,
+        'csb-field--error':    !!error,
+        'csb-field--disabled': disabled,
       }"
       @click="abierto ? cerrar() : abrir()"
     >
-      <span :style="{
-        fontSize:     'var(--text-base)',
-        color:        modelValue ? 'var(--color-text-1)' : 'var(--color-text-3)',
-        fontFamily:   'var(--font-body)',
-        flex:         '1',
-        overflow:     'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace:   'nowrap',
-      }">
-        {{ labelSeleccionado || placeholder }}
+      <!-- Valor seleccionado -->
+      <span class="csb-value" :class="{ 'csb-value--empty': !modelValue }">
+        {{ labelSeleccionado }}
       </span>
 
+      <!-- Label flotante -->
+      <label
+        class="csb-label"
+        :class="{
+          'csb-label--focused': abierto && !error,
+          'csb-label--error':   !!error,
+        }"
+      >
+        {{ label }}<span v-if="required" class="csb-required"> *</span>
+      </label>
+
+      <!-- Botón limpiar -->
       <button
         v-if="clearable && modelValue && !disabled"
-        :style="{
-          background: 'none', border: 'none', padding: '0',
-          cursor: 'pointer', display: 'flex', alignItems: 'center',
-          color: 'var(--color-text-3)', flexShrink: '0',
-        }"
+        class="csb-clear"
         @click.stop="limpiar($event)"
       >
         <IconX :size="14" />
@@ -137,12 +119,8 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickFuera))
 
       <IconChevronDown
         :size="16"
-        :style="{
-          color:      'var(--color-text-3)',
-          transition: 'transform var(--transition-fast)',
-          transform:  abierto ? 'rotate(180deg)' : 'rotate(0deg)',
-          flexShrink: '0',
-        }"
+        class="csb-chevron"
+        :class="{ 'csb-chevron--open': abierto }"
       />
     </div>
 
@@ -253,20 +231,125 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickFuera))
     </Transition>
 
     <!-- Error / Helper -->
-    <span v-if="error" :style="{
-      fontSize:   'var(--text-xs)',
-      color:      'var(--color-error-text)',
-      fontWeight: 'var(--fw-medium)',
-    }">{{ error }}</span>
-    <span v-else-if="helper" :style="{
-      fontSize:   'var(--text-xs)',
-      color:      'var(--color-text-3)',
-      fontWeight: 'var(--fw-medium)',
-    }">{{ helper }}</span>
+    <span v-if="error"       class="csb-msg csb-msg--error">{{ error }}</span>
+    <span v-else-if="helper" class="csb-msg csb-msg--helper">{{ helper }}</span>
   </div>
 </template>
 
 <style scoped>
+/* ── Wrapper ── */
+.csb-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-xs);
+  position: relative;
+}
+
+/* ── Trigger / field ── */
+.csb-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-bg-card);
+  cursor: pointer;
+  user-select: none;
+  transition: padding var(--transition-fast), border-color var(--transition-fast);
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.csb-field--floated  { padding: 20px 14px 4px; }
+.csb-field--open     { border-color: var(--color-primary); outline: 3px solid var(--color-primary-light); }
+.csb-field--error    { border-color: var(--color-error) !important; outline: none; }
+.csb-field--disabled { background: var(--color-bg-surface-alt); cursor: not-allowed; }
+
+/* ── Valor ── */
+.csb-value {
+  flex: 1;
+  font-size: var(--text-base);
+  font-family: var(--font-body);
+  color: var(--color-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.csb-value--empty { color: transparent; }
+
+/* ── Label: en reposo actúa como placeholder dentro del trigger ── */
+.csb-label {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--text-base);
+  font-weight: var(--fw-medium);
+  color: var(--color-text-3);
+  background: transparent;
+  padding: 0 2px;
+  pointer-events: none;
+  z-index: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 50px);
+  transition:
+    top var(--transition-fast),
+    transform var(--transition-fast),
+    font-size var(--transition-fast),
+    font-weight var(--transition-fast),
+    color var(--transition-fast),
+    background var(--transition-fast),
+    padding var(--transition-fast);
+}
+
+/* ── Flotado: incrustado sobre el borde superior ── */
+.csb-field--floated .csb-label {
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 10px;
+  font-weight: var(--fw-semibold);
+  background: var(--color-bg-card);
+  padding: 0 3px;
+}
+
+.csb-label--focused { color: var(--color-primary); }
+.csb-label--error   { color: var(--color-error-text); }
+
+.csb-required { color: var(--color-error); }
+
+/* ── Botón limpiar ── */
+.csb-clear {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: var(--color-text-3);
+  flex-shrink: 0;
+}
+
+/* ── Chevron ── */
+.csb-chevron {
+  color: var(--color-text-3);
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+.csb-chevron--open { transform: rotate(180deg); }
+
+/* ── Mensajes error/helper ── */
+.csb-msg {
+  font-size: var(--text-xs);
+  font-weight: var(--fw-medium);
+}
+.csb-msg--error  { color: var(--color-error-text); }
+.csb-msg--helper { color: var(--color-text-3); }
+
+/* ── Dropdown ── */
 .dropdown-fade-enter-active,
 .dropdown-fade-leave-active {
   transition: opacity 0.15s ease, transform 0.15s ease;

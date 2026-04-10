@@ -18,7 +18,7 @@ const SERVICIOS_ASOCIADO = [
     id: 'credito',
     icono: IconCreditCard,
     nombre: 'Solicitar crédito',
-    descripcion: 'Consumo, educativo, vivienda o emergencia.',
+    descripcion: 'Crédito ordinario o de consumo · Crédito educativo',
     disponible: true,
     ruta: '/solicitar-credito',
     iconoBg: 'var(--color-bg-surface-alt)',
@@ -66,19 +66,19 @@ const SERVICIOS_NO_ASOCIADO = [
       <!-- Desktop: Visitar sitio, izquierda -->
       <div class="topbar-desktop">
         <a
-          href="https://www.cooperamigo.com"
+          href="https://cooperamigo.coop"
           target="_blank"
           rel="noopener noreferrer"
           class="topbar-visit"
         ><IconWorld :size="14" />Visitar sitio</a>
       </div>
-      <!-- Mobile: link a cooperamigo.com -->
+      <!-- Mobile: link a cooperamigo.coop -->
       <a
-        href="https://www.cooperamigo.com"
+        href="https://cooperamigo.coop"
         target="_blank"
         rel="noopener noreferrer"
         class="topbar-back"
-        aria-label="Visitar cooperamigo.com"
+        aria-label="Visitar cooperamigo.coop"
       >
         <IconArrowLeft :size="18" />
       </a>
@@ -100,6 +100,19 @@ const SERVICIOS_NO_ASOCIADO = [
 
     <!-- ── Contenido principal ─────────────────────────────── -->
     <main class="home-main">
+
+      <!-- Anillos decorativos -->
+      <div class="deco-ring deco-ring--primary" aria-hidden="true">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">
+          <circle cx="100" cy="100" r="80" fill="none" stroke="var(--color-primary)" stroke-width="30"/>
+        </svg>
+      </div>
+      <div class="deco-ring deco-ring--accent" aria-hidden="true">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">
+          <circle cx="100" cy="100" r="80" fill="none" stroke="var(--color-accent)" stroke-width="30"/>
+        </svg>
+      </div>
+
       <div class="home-content">
 
         <!-- ── Vista: pregunta inicial ───────────────────────── -->
@@ -206,6 +219,34 @@ const SERVICIOS_NO_ASOCIADO = [
   align-items: center;
   justify-content: center;
   padding: 40px 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ─── Anillos decorativos ─── */
+.deco-ring {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.18;
+}
+
+/* Anillo primary: esquina inferior derecha */
+.deco-ring--primary {
+  width: clamp(180px, 28vw, 360px);
+  height: clamp(180px, 28vw, 360px);
+  bottom: 0;
+  right: 0;
+  transform: translate(50%, 50%);
+}
+
+/* Anillo accent: esquina superior izquierda */
+.deco-ring--accent {
+  width: clamp(140px, 22vw, 280px);
+  height: clamp(140px, 22vw, 280px);
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
 }
 
 @media (max-width: 767px) {
@@ -217,6 +258,8 @@ const SERVICIOS_NO_ASOCIADO = [
 .home-content {
   width: 100%;
   max-width: 480px;
+  position: relative;
+  z-index: 1;
 }
 
 /* ─── Vista genérica ─── */
