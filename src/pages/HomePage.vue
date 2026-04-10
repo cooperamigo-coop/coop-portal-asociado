@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { IconCreditCard, IconUserPlus, IconClipboardList, IconFileText, IconArrowRight, IconArrowLeft, IconClock, IconWorld } from '@tabler/icons-vue'
 import PortalFooter from '@/components/layout/PortalFooter.vue'
@@ -7,6 +7,10 @@ import PortalFooter from '@/components/layout/PortalFooter.vue'
 const router = useRouter()
 const route  = useRoute()
 const paso = ref('pregunta') // 'pregunta' | 'asociado' | 'no-asociado'
+
+const proximamente = computed(() =>
+  window.location.hostname === 'serviciosdigitales.cooperamigo.coop'
+)
 
 onMounted(() => {
   if (route.query.vista === 'no-asociado') paso.value = 'no-asociado'
@@ -121,13 +125,26 @@ const SERVICIOS_NO_ASOCIADO = [
           <h1 class="hero-title">Le damos la bienvenida</h1>
           <p class="hero-question">¿Ya hace parte de nuestra cooperativa?</p>
           <div class="opciones">
-            <button class="btn-opcion btn-opcion--primary" @click="paso = 'asociado'">
+            <button
+              class="btn-opcion btn-opcion--primary"
+              :class="{ 'btn-opcion--disabled': proximamente }"
+              :disabled="proximamente"
+              @click="!proximamente && (paso = 'asociado')"
+            >
               Sí, soy asociado
             </button>
-            <button class="btn-opcion btn-opcion--secondary" @click="paso = 'no-asociado'">
+            <button
+              class="btn-opcion btn-opcion--secondary"
+              :class="{ 'btn-opcion--disabled': proximamente }"
+              :disabled="proximamente"
+              @click="!proximamente && (paso = 'no-asociado')"
+            >
               No, no estoy afiliado
             </button>
           </div>
+          <p v-if="proximamente" class="proximamente-msg">
+            Pronto habilitaremos el acceso digital para nuestros asociados. ¡Estamos trabajando en ello!
+          </p>
         </div>
 
         <!-- ── Vista: servicios asociado ─────────────────────── -->
@@ -337,6 +354,32 @@ const SERVICIOS_NO_ASOCIADO = [
   background: var(--color-primary);
   color: #ffffff;
   border-color: var(--color-primary);
+}
+
+.btn-opcion--disabled,
+.btn-opcion--disabled:hover {
+  opacity: 0.38;
+  cursor: not-allowed;
+  transform: none;
+  background: var(--color-bg-surface-alt);
+  color: var(--color-text-3);
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+
+.proximamente-msg {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  color: var(--color-text-3);
+  text-align: center;
+  margin: 0;
+  padding: var(--sp-sm) var(--sp-md);
+  background: var(--color-bg-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  width: 100%;
+  max-width: 320px;
+  line-height: 1.5;
 }
 
 /* ─── Botón volver ─── */
