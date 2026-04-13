@@ -265,7 +265,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickFuera))
 .csb-field--floated  { padding: 20px 14px 4px; }
 .csb-field--open     { border-color: var(--color-primary); outline: 3px solid var(--color-primary-light); }
 .csb-field--error    { border-color: var(--color-error) !important; outline: none; }
-.csb-field--disabled { background: var(--color-bg-surface-alt); cursor: not-allowed; }
+.csb-field--disabled { background: var(--color-bg-card); cursor: not-allowed; }
 
 /* ── Valor ── */
 .csb-value {
@@ -315,6 +315,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickFuera))
   background: var(--color-bg-card);
   padding: 0 3px;
 }
+
 
 .csb-label--focused { color: var(--color-primary); }
 .csb-label--error   { color: var(--color-error-text); }

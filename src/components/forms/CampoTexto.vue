@@ -35,7 +35,7 @@ function onBlur()  { focused.value = false; emit('blur') }
 
 <template>
   <div class="campo-wrapper">
-    <div class="campo-field" :class="{ 'campo-field--floated': floated }">
+    <div class="campo-field" :class="{ 'campo-field--floated': floated, 'campo-field--disabled': disabled }">
       <input
         :type="type"
         :value="modelValue"
@@ -97,7 +97,7 @@ function onBlur()  { focused.value = false; emit('blur') }
 .campo-input--focused  { border-color: var(--color-primary); }
 .campo-input--error    { border-color: var(--color-error) !important; }
 .campo-input--disabled {
-  background: var(--color-bg-surface-alt);
+  background: var(--color-bg-card);
   color: var(--color-text-3);
   cursor: not-allowed;
 }
@@ -134,6 +134,7 @@ function onBlur()  { focused.value = false; emit('blur') }
   background: var(--color-bg-card);
   padding: 0 3px;
 }
+
 
 .campo-label--focused { color: var(--color-primary); }
 .campo-label--error   { color: var(--color-error-text); }

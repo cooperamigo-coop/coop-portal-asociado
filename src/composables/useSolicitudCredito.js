@@ -5,6 +5,7 @@ import {
   enviarSolicitud,
   verificarAsociado,
 } from '@/services/solicitudCredito.service'
+import { actualizarCamposAsociado, buscarAsociadoPorCedula } from '@/services/afiliacion.service'
 import { sanitizarObjeto } from '@/utils/seguridad'
 import {
   guardarBorradorLocal,
@@ -262,8 +263,7 @@ export function useSolicitudCredito() {
 
   const mostrarValorCredito = computed(() =>
     general.value.modalidad_credito === 'educativo' ||
-    general.value.tipo_operacion === 'credito_nuevo' ||
-    (general.value.modalidad_credito === 'ordinario' && !general.value.tipo_operacion)
+    general.value.tipo_operacion === 'credito_nuevo'
   )
 
   const mostrarValorReestructura = computed(() =>
@@ -334,6 +334,8 @@ export function useSolicitudCredito() {
     if (necesitaDesembolso    && !d.valor_desembolso) return false
     if (!d.destino_credito) return false
     if (!d.plazo_solicitado) return false
+    const maxPlazo = esEducativo ? 6 : esOrdinario ? 60 : 120
+    if (Number(d.plazo_solicitado) > maxPlazo) return false
     return true
   })
 
@@ -448,7 +450,13 @@ export function useSolicitudCredito() {
           mostrarModalNoAsociado.value = true
           return
         }
-        asociadoVerificado.value = resultado
+        // Fetch del registro completo para tener el id y poder sincronizar campos
+        try {
+          const registroCompleto = await buscarAsociadoPorCedula(verificacion.value.numero_documento)
+          asociadoVerificado.value = registroCompleto ?? resultado
+        } catch {
+          asociadoVerificado.value = resultado
+        }
       }
 
       persona.value.numero_identificacion = verificacion.value.numero_documento
@@ -573,6 +581,99 @@ export function useSolicitudCredito() {
       paso:                     paso.value,
     }
   }
+
+  // ── Sincronización de campos con tabla asociados ──────────────
+  let _syncTimer = null
+
+  async function _sincronizarCampoAsociado(columnaAsociado, nuevoValor) {
+    if (!asociadoVerificado.value?.id || !nuevoValor) return
+    const valorActual = asociadoVerificado.value[columnaAsociado]
+    if (valorActual === nuevoValor) return
+    try {
+      await actualizarCamposAsociado(asociadoVerificado.value.id, { [columnaAsociado]: nuevoValor })
+      asociadoVerificado.value = { ...asociadoVerificado.value, [columnaAsociado]: nuevoValor }
+    } catch (e) {
+      console.warn('[SolicitudCredito] No se pudo sincronizar campo:', columnaAsociado, e)
+    }
+  }
+
+  function _syncDebounced(columnaAsociado, nuevoValor) {
+    clearTimeout(_syncTimer)
+    _syncTimer = setTimeout(() => _sincronizarCampoAsociado(columnaAsociado, nuevoValor), 800)
+  }
+
+  // persona
+  watch(() => persona.value.nombres,                     v => _syncDebounced('nombres', v))
+  watch(() => persona.value.apellidos,                   v => _syncDebounced('apellidos', v))
+  watch(() => persona.value.correo_electronico,          v => _syncDebounced('email', v))
+  watch(() => persona.value.tipo_documento,              v => _sincronizarCampoAsociado('tipo_identificacion', v))
+  watch(() => persona.value.nivel_educativo_solicitante, v => _sincronizarCampoAsociado('nivel_academico', v))
+  watch(() => persona.value.fecha_nacimiento,            v => _sincronizarCampoAsociado('fecha_nacimiento', v))
+  watch(() => persona.value.fecha_expedicion_documento,  v => _sincronizarCampoAsociado('fecha_expedicion', v))
+  watch(() => persona.value.direccion_residencia,        v => _syncDebounced('direccion', v))
+  watch(() => persona.value.ciudad_expedicion,           v => _syncDebounced('ciudad_expedicion', v))
+
+  // ubicación de residencia — municipio → ciudad
+  watch(() => ubicacionResidencia.value.municipio_nombre, v => _syncDebounced('ciudad', v))
+
+  // dirección estructurada
+  watch(() => direccionEstructurada.value.barrio,        v => _syncDebounced('barrio', v))
+
+  // laboral
+  watch(() => laboral.value.nombre_empresa,              v => _syncDebounced('empresa', v))
+  watch(() => laboral.value.cargo_oficio,                v => _syncDebounced('cargo', v))
+  watch(() => laboral.value.ocupacion,                   v => _syncDebounced('ocupacion', v))
+  watch(() => laboral.value.tipo_contrato,               v => _sincronizarCampoAsociado('tipo_contrato', v))
+  watch(() => laboral.value.fecha_ingreso,               v => _sincronizarCampoAsociado('fecha_ingreso_empresa', v))
+
+  // laboral — personas a cargo
+  watch(() => laboral.value.numero_dependientes, v => {
+    if (laboral.value.tiene_dependientes && v) _sincronizarCampoAsociado('personas_a_cargo', Number(v))
+  })
+  watch(() => laboral.value.tiene_dependientes, v => {
+    if (!v) _sincronizarCampoAsociado('personas_a_cargo', 0)
+  })
+
+  // laboral — actividad independiente (jsonb)
+  watch(laboral, l => {
+    if (l.tipo_trabajador !== 'independiente') return
+    const actividad = {
+      actividad_comercial:    l.actividad_comercial    || null,
+      ocupacion:              l.ocupacion              || null,
+      fecha_inicio_actividad: l.fecha_inicio_actividad || null,
+    }
+    clearTimeout(_syncTimer)
+    _syncTimer = setTimeout(() => _sincronizarCampoAsociado('actividad_independiente', actividad), 800)
+  }, { deep: true })
+
+  // financiera — campos individuales
+  watch(() => financiera.value.salario_ingresos_fijos,   v => _syncDebounced('salario', v))
+  watch(() => financiera.value.gastos_familiares,        v => _syncDebounced('gastos_familiares', v))
+  watch(() => financiera.value.ingresos_independiente,   v => _syncDebounced('otros_ingresos', v))
+  watch(() => financiera.value.obligaciones_financieras, v => _syncDebounced('cuotas_credito', v))
+
+  // financiera — totales calculados
+  watch(financiera, f => {
+    const totalIngresos = (Number(f.salario_ingresos_fijos) || 0) + (Number(f.ingresos_independiente) || 0)
+    const totalEgresos  = (Number(f.gastos_familiares) || 0) + (Number(f.otros_gastos) || 0) + (Number(f.obligaciones_financieras) || 0)
+    clearTimeout(_syncTimer)
+    _syncTimer = setTimeout(() => {
+      if (totalIngresos) _sincronizarCampoAsociado('total_ingresos', totalIngresos)
+      if (totalEgresos)  _sincronizarCampoAsociado('total_egresos', totalEgresos)
+    }, 800)
+  }, { deep: true })
+
+  // patrimonio → activos_pasivos (jsonb)
+  watch(patrimonio, p => {
+    const activos = {
+      tiene_propiedad_raiz: p.tiene_propiedad_raiz,
+      valor_propiedad_raiz: Number(p.valor_propiedad_raiz) || 0,
+      tiene_vehiculo:       p.tiene_vehiculo,
+      valor_vehiculo:       Number(p.valor_vehiculo) || 0,
+    }
+    clearTimeout(_syncTimer)
+    _syncTimer = setTimeout(() => _sincronizarCampoAsociado('activos_pasivos', activos), 800)
+  }, { deep: true })
 
   // ── Auto-guardado en localStorage mientras el usuario escribe ─
   watch(

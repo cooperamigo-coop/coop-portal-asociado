@@ -2,8 +2,8 @@
 import { ref, computed, watch } from 'vue'
 import { VIAS_PRINCIPALES, DEPARTAMENTOS, getMunicipios } from '@/data/colombiaData.js'
 import { IconMapPin, IconX, IconCheck } from '@tabler/icons-vue'
-import PortalButton          from '@/components/ui/PortalButton.vue'
-import CampoSelectBuscable   from './CampoSelectBuscable.vue'
+import PortalButton        from '@/components/ui/PortalButton.vue'
+import CampoSelectBuscable from './CampoSelectBuscable.vue'
 
 const props = defineProps({
   modelValue: { type: Object, default: () => ({}) },
@@ -21,9 +21,7 @@ const local = ref({
 })
 
 watch(() => props.modelValue, v => { local.value = { ...local.value, ...v } }, { deep: true })
-watch(() => props.visible, v => {
-  if (v) local.value = { ...local.value, ...props.modelValue }
-})
+watch(() => props.visible,    v => { if (v) local.value = { ...local.value, ...props.modelValue } })
 
 const opcionesDeptos = computed(() =>
   DEPARTAMENTOS.map(d => ({ value: d.codigo, label: d.nombre }))
@@ -32,11 +30,18 @@ const opcionesMunicipios = computed(() =>
   getMunicipios(local.value.depto_codigo || '')
     .map(m => ({ value: m.codigo, label: m.nombre }))
 )
+const opcionesCuadrante = [
+  { value: '',      label: 'Sin cuadrante' },
+  { value: 'Norte', label: 'Norte' },
+  { value: 'Sur',   label: 'Sur' },
+  { value: 'Este',  label: 'Este' },
+  { value: 'Oeste', label: 'Oeste' },
+]
 
 function onDeptoChange(codigo) {
-  local.value.depto_codigo    = codigo
-  local.value.municipio_codigo  = ''
-  local.value.municipio_nombre  = ''
+  local.value.depto_codigo   = codigo
+  local.value.municipio_codigo = ''
+  local.value.municipio_nombre = ''
   const depto = DEPARTAMENTOS.find(d => d.codigo === codigo)
   local.value.depto_nombre = depto?.nombre || ''
 }
@@ -56,7 +61,7 @@ const preview = computed(() => {
   dir += ' #'
   if (d.numero_cruce)    dir += ` ${d.numero_cruce}`
   if (d.letra_cruce)     dir += d.letra_cruce.toUpperCase()
-  dir += ` - ${d.numero_placa || '0'}`
+  dir += ` - ${d.numero_placa || '?'}`
   if (d.cuadrante_cruce) dir += ` ${d.cuadrante_cruce}`
   if (d.complemento)     dir += `, ${d.complemento}`
   if (d.barrio)          dir += `, Barrio ${d.barrio}`
@@ -71,23 +76,31 @@ function confirmar() {
 function cerrar() { emit('update:visible', false) }
 
 const inputStyle = {
-  padding: '9px 10px',
-  border: '1px solid var(--color-border)',
+  padding:      '9px 10px',
+  border:       '1px solid var(--color-border)',
   borderRadius: 'var(--r-lg)',
-  fontSize: 'var(--text-base)',
-  fontFamily: 'var(--font-body)',
-  background: 'var(--color-bg-surface)',
-  color: 'var(--color-text-1)',
-  outline: 'none',
-  width: '100%',
-  boxSizing: 'border-box',
+  fontSize:     'var(--text-base)',
+  fontFamily:   'var(--font-body)',
+  background:   'var(--color-bg-card)',
+  color:        'var(--color-text-1)',
+  outline:      'none',
+  width:        '100%',
+  boxSizing:    'border-box',
 }
 const labelStyle = {
-  display: 'block',
-  fontSize: 'var(--text-sm)',
-  fontWeight: 'var(--fw-semibold)',
-  color: 'var(--color-text-1)',
+  display:      'block',
+  fontSize:     'var(--text-sm)',
+  fontWeight:   'var(--fw-semibold)',
+  color:        'var(--color-text-2)',
   marginBottom: 'var(--sp-xs)',
+}
+const sectionLabel = {
+  fontSize:      'var(--text-xs)',
+  fontWeight:    'var(--fw-bold)',
+  color:         'var(--color-text-3)',
+  textTransform: 'uppercase',
+  letterSpacing: '0.07em',
+  marginBottom:  'var(--sp-md)',
 }
 </script>
 
@@ -99,62 +112,56 @@ const labelStyle = {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 'var(--sp-lg)',
       }">
+        <!-- Backdrop -->
         <div :style="{
           position: 'absolute', inset: '0',
           background: 'rgba(23,43,54,0.55)',
           backdropFilter: 'blur(3px)',
         }" @click="cerrar()" />
 
+        <!-- Modal -->
         <div :style="{
-          position: 'relative', width: '100%', maxWidth: '580px',
+          position: 'relative', width: '100%', maxWidth: '540px',
           background: 'var(--color-bg-card)', borderRadius: 'var(--r-2xl)',
           boxShadow: 'var(--shadow-modal)', overflow: 'hidden',
-          maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+          maxHeight: '92vh', display: 'flex', flexDirection: 'column',
         }">
+
           <!-- Header -->
           <div :style="{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: 'var(--sp-xl) var(--sp-2xl)',
+            padding: 'var(--sp-lg) var(--sp-xl)',
             borderBottom: '1px solid var(--color-border-card)',
             background: 'var(--color-bg-surface)',
             flexShrink: '0',
           }">
             <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)' }">
               <div :style="{
-                width: '36px', height: '36px', borderRadius: '50%',
+                width: '32px', height: '32px', borderRadius: '50%',
                 background: 'var(--color-primary)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }">
-                <IconMapPin :size="18" style="color: white;" />
+                <IconMapPin :size="16" style="color:white" />
               </div>
-              <div>
-                <div :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)', fontSize: 'var(--text-lg)' }">Ingresar dirección</div>
-                <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">Formato estándar colombiano</div>
+              <div :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)', fontSize: 'var(--text-md)' }">
+                Ingresar dirección
               </div>
             </div>
-            <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--sp-sm)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center' }" @click="cerrar()">
-              <IconX :size="20" :style="{ color: 'var(--color-text-3)' }" />
+            <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--sp-xs)', display: 'flex', borderRadius: 'var(--r-md)' }" @click="cerrar()">
+              <IconX :size="18" :style="{ color: 'var(--color-text-3)' }" />
             </button>
           </div>
 
           <!-- Contenido scrollable -->
-          <div :style="{ padding: 'var(--sp-2xl)', overflowY: 'auto', flex: '1' }">
+          <div :style="{ padding: 'var(--sp-xl)', overflowY: 'auto', flex: '1', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
 
-            <!-- Sección 1: Ubicación -->
-            <div :style="{
-              display:             'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap:                 'var(--sp-md)',
-              marginBottom:        'var(--sp-xl)',
-              paddingBottom:       'var(--sp-xl)',
-              borderBottom:        '1px solid var(--color-border-light)',
-            }">
+            <!-- Departamento y municipio -->
+            <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-md)' }">
               <CampoSelectBuscable
                 :model-value="local.depto_codigo"
                 label="Departamento"
                 required
                 :opciones="opcionesDeptos"
-                placeholder="Seleccione departamento"
                 @update:model-value="onDeptoChange($event)"
               />
               <CampoSelectBuscable
@@ -163,134 +170,128 @@ const labelStyle = {
                 required
                 :disabled="!local.depto_codigo"
                 :opciones="opcionesMunicipios"
-                placeholder="Seleccione ciudad"
                 @update:model-value="onMunicipioChange($event)"
               />
             </div>
 
-            <!-- Separador sección dirección -->
-            <div :style="{
-              fontSize:      'var(--text-sm)',
-              fontWeight:    'var(--fw-bold)',
-              color:         'var(--color-text-3)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              marginBottom:  'var(--sp-md)',
-            }">Dirección</div>
+            <!-- Dirección -->
+            <div>
+              <div :style="sectionLabel">Dirección</div>
 
-            <!-- Fila 1: Vía # número letra BIS cuadrante -->
-            <div :style="{ display: 'flex', alignItems: 'flex-end', gap: 'var(--sp-sm)', marginBottom: 'var(--sp-md)', flexWrap: 'wrap' }">
-              <div :style="{ flex: '0 0 150px' }">
-                <CampoSelectBuscable
-                  :model-value="local.via_principal"
-                  label="Tipo de vía *"
-                  :opciones="VIAS_PRINCIPALES.map(v => ({ value: v, label: v }))"
-                  placeholder="Tipo de vía"
-                  @update:model-value="local.via_principal = $event"
-                />
+              <!-- Parte 1: Tipo vía Nº Letra BIS Cuadrante -->
+              <div :style="{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto 1.5fr', gap: 'var(--sp-sm)', alignItems: 'end', marginBottom: 'var(--sp-sm)' }">
+                <div>
+                  <label :style="labelStyle">Tipo de vía <span :style="{ color: 'var(--color-error)' }">*</span></label>
+                  <CampoSelectBuscable
+                    :model-value="local.via_principal"
+                    label="Tipo de vía"
+                    :opciones="VIAS_PRINCIPALES.map(v => ({ value: v, label: v }))"
+                    @update:model-value="local.via_principal = $event"
+                  />
+                </div>
+                <div>
+                  <label :style="labelStyle">Número <span :style="{ color: 'var(--color-error)' }">*</span></label>
+                  <input v-model="local.numero_via" placeholder="45" :style="inputStyle" />
+                </div>
+                <div>
+                  <label :style="labelStyle">Letra</label>
+                  <input v-model="local.letra_via" placeholder="A" maxlength="2" :style="{ ...inputStyle, textTransform: 'uppercase', textAlign: 'center' }" />
+                </div>
+                <div :style="{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--sp-xs)' }">
+                  <label :style="labelStyle">BIS</label>
+                  <div
+                    :style="{
+                      width: '44px', height: '38px',
+                      border: local.bis ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                      borderRadius: 'var(--r-lg)',
+                      background: local.bis ? 'var(--color-primary)' : 'var(--color-bg-card)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', transition: 'all var(--transition-fast)',
+                    }"
+                    @click="local.bis = !local.bis"
+                  >
+                    <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: local.bis ? 'white' : 'var(--color-text-3)' }">BIS</span>
+                  </div>
+                </div>
+                <div>
+                  <label :style="labelStyle">Cuadrante</label>
+                  <CampoSelectBuscable
+                    :model-value="local.cuadrante_via"
+                    label="Cuadrante"
+                    :opciones="opcionesCuadrante"
+                    @update:model-value="local.cuadrante_via = $event"
+                  />
+                </div>
               </div>
-              <div :style="{ flex: '0 0 70px' }">
-                <label :style="labelStyle">Número *</label>
-                <input v-model="local.numero_via" placeholder="45" :style="inputStyle" />
-              </div>
-              <div :style="{ flex: '0 0 55px' }">
-                <label :style="labelStyle">Letra</label>
-                <input v-model="local.letra_via" placeholder="A" maxlength="2" :style="{ ...inputStyle, textTransform: 'uppercase' }" />
-              </div>
-              <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', paddingBottom: '9px' }">
-                <input type="checkbox" v-model="local.bis" id="dir-bis" :style="{ cursor: 'pointer', width: '16px', height: '16px' }" />
-                <label for="dir-bis" :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)', cursor: 'pointer' }">BIS</label>
-              </div>
-              <div :style="{ flex: '0 0 110px' }">
-                <CampoSelectBuscable
-                  :model-value="local.cuadrante_via"
-                  label="Cuadrante"
-                  :opciones="[
-                    { value: '', label: 'Sin cuadrante' },
-                    { value: 'Norte', label: 'Norte' },
-                    { value: 'Sur', label: 'Sur' },
-                    { value: 'Este', label: 'Este' },
-                    { value: 'Oeste', label: 'Oeste' },
-                  ]"
-                  placeholder="-"
-                  @update:model-value="local.cuadrante_via = $event"
-                />
-              </div>
-            </div>
 
-            <!-- Separador # -->
-            <div :style="{ textAlign: 'center', fontSize: '22px', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-primary)', margin: 'var(--sp-xs) 0' }">#</div>
+              <!-- Separador # -->
+              <div :style="{ textAlign: 'center', fontSize: '20px', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-primary)', margin: 'var(--sp-xs) 0' }">#</div>
 
-            <!-- Fila 2: Cruce letra - placa cuadrante -->
-            <div :style="{ display: 'flex', alignItems: 'flex-end', gap: 'var(--sp-sm)', marginBottom: 'var(--sp-lg)', flexWrap: 'wrap' }">
-              <div :style="{ flex: '0 0 70px' }">
-                <label :style="labelStyle">Cruce</label>
-                <input v-model="local.numero_cruce" placeholder="23" :style="inputStyle" />
-              </div>
-              <div :style="{ flex: '0 0 55px' }">
-                <label :style="labelStyle">Letra</label>
-                <input v-model="local.letra_cruce" placeholder="B" maxlength="2" :style="{ ...inputStyle, textTransform: 'uppercase' }" />
-              </div>
-              <div :style="{ fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-primary)', paddingBottom: '9px' }">-</div>
-              <div :style="{ flex: '0 0 70px' }">
-                <label :style="labelStyle">Placa *</label>
-                <input v-model="local.numero_placa" placeholder="18" :style="inputStyle" />
-              </div>
-              <div :style="{ flex: '0 0 110px' }">
-                <CampoSelectBuscable
-                  :model-value="local.cuadrante_cruce"
-                  label="Cuadrante"
-                  :opciones="[
-                    { value: '', label: 'Sin cuadrante' },
-                    { value: 'Norte', label: 'Norte' },
-                    { value: 'Sur', label: 'Sur' },
-                    { value: 'Este', label: 'Este' },
-                    { value: 'Oeste', label: 'Oeste' },
-                  ]"
-                  placeholder="-"
-                  @update:model-value="local.cuadrante_cruce = $event"
-                />
+              <!-- Parte 2: Cruce Letra - Placa Cuadrante -->
+              <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr auto 1fr 1.5fr', gap: 'var(--sp-sm)', alignItems: 'end' }">
+                <div>
+                  <label :style="labelStyle">Cruce</label>
+                  <input v-model="local.numero_cruce" placeholder="23" :style="inputStyle" />
+                </div>
+                <div>
+                  <label :style="labelStyle">Letra</label>
+                  <input v-model="local.letra_cruce" placeholder="B" maxlength="2" :style="{ ...inputStyle, textTransform: 'uppercase', textAlign: 'center' }" />
+                </div>
+                <div :style="{ fontSize: '18px', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-3)', paddingBottom: '10px' }">—</div>
+                <div>
+                  <label :style="labelStyle">Placa <span :style="{ color: 'var(--color-error)' }">*</span></label>
+                  <input v-model="local.numero_placa" placeholder="18" :style="inputStyle" />
+                </div>
+                <div>
+                  <label :style="labelStyle">Cuadrante</label>
+                  <CampoSelectBuscable
+                    :model-value="local.cuadrante_cruce"
+                    label="Cuadrante"
+                    :opciones="opcionesCuadrante"
+                    @update:model-value="local.cuadrante_cruce = $event"
+                  />
+                </div>
               </div>
             </div>
 
             <!-- Complemento y barrio -->
-            <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-md)', marginBottom: 'var(--sp-xl)' }">
+            <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-md)' }">
               <div>
                 <label :style="labelStyle">Complemento</label>
-                <input v-model="local.complemento" placeholder="Apto 301, Casa 5..." :style="{ ...inputStyle, padding: '9px 14px' }" />
+                <input v-model="local.complemento" placeholder="Apto 301, Casa 5…" :style="inputStyle" />
               </div>
               <div>
                 <label :style="labelStyle">Barrio</label>
-                <input v-model="local.barrio" placeholder="El Poblado" :style="{ ...inputStyle, padding: '9px 14px' }" />
+                <input v-model="local.barrio" placeholder="El Poblado" :style="{ ...inputStyle, textTransform: 'uppercase' }" />
               </div>
             </div>
 
             <!-- Vista previa -->
             <div v-if="preview" :style="{
-              background: 'var(--color-primary-light)',
-              border: '1px solid var(--color-border)',
+              background:   'var(--color-primary-light)',
               borderRadius: 'var(--r-xl)',
-              padding: 'var(--sp-lg)',
-              marginBottom: 'var(--sp-xl)',
+              padding:      'var(--sp-md) var(--sp-lg)',
             }">
               <div :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 'var(--sp-xs)' }">Vista previa</div>
               <div :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', fontSize: 'var(--text-base)' }">{{ preview }}</div>
             </div>
+
           </div>
 
-          <!-- Acciones fijas -->
+          <!-- Acciones -->
           <div :style="{
             display: 'flex', gap: 'var(--sp-md)', justifyContent: 'flex-end',
-            padding: 'var(--sp-lg) var(--sp-2xl)',
+            padding: 'var(--sp-md) var(--sp-xl)',
             borderTop: '1px solid var(--color-border-card)',
             background: 'var(--color-bg-surface)',
             flexShrink: '0',
           }">
-            <PortalButton variant="secondary" @click="cerrar()">Cancelar</PortalButton>
-            <PortalButton variant="primary" :disabled="!preview" @click="confirmar()">
-              <IconCheck :size="15" /> Confirmar dirección
+            <PortalButton variant="secondary" small @click="cerrar()">Cancelar</PortalButton>
+            <PortalButton variant="primary" small :disabled="!preview" @click="confirmar()">
+              <IconCheck :size="14" /> Confirmar dirección
             </PortalButton>
           </div>
+
         </div>
       </div>
     </Transition>

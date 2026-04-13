@@ -1,5 +1,17 @@
 @import 'tailwindcss';
 
+/* === FUENTES BILMOND === */
+@font-face { font-family: 'Bilmond'; src: url('../assets/fonts/Bilmond-Thin.ttf') format('truetype'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Bilmond'; src: url('../assets/fonts/Bilmond-ExtraLight.ttf') format('truetype'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Bilmond'; src: url('../assets/fonts/Bilmond-Light.ttf') format('truetype'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Bilmond'; src: url('../assets/fonts/Bilmond-Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Bilmond'; src: url('../assets/fonts/Bilmond-Medium.ttf') format('truetype'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Bilmond'; src: url('../assets/fonts/Bilmond-SemiBold.ttf') format('truetype'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Bilmond'; src: url('../assets/fonts/Bilmond-Bold.ttf') format('truetype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Bilmond'; src: url('../assets/fonts/Bilmond-ExtraBold.ttf') format('truetype'); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Bilmond'; src: url('../assets/fonts/Bilmond-Black.ttf') format('truetype'); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Bilmond'; src: url('../assets/fonts/Bilmond-ExtraBlack.ttf') format('truetype'); font-weight: 950; font-style: normal; font-display: swap; }
+
 @theme {
   /* === BRAND COOPERAMIGÓ === */
   --color-primary:        #172B36;
@@ -80,8 +92,8 @@
   --shadow-input:  inset 0 2px 4px rgba(23,43,54,0.04);
 
   /* === TIPOGRAFÍA === */
-  --font-body:    'Nunito', sans-serif;
-  --font-display: 'Nunito', sans-serif;
+  --font-body:    'Bilmond', sans-serif;
+  --font-display: 'Bilmond', sans-serif;
 
   --text-xs:   10px;
   --text-sm:   11px;

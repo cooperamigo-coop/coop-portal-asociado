@@ -147,20 +147,9 @@ const nivelEducativoOpciones = [
         placeholder="Ej: 1023456789"
         required
         :disabled="bloquearDocumento"
-        :helper="bloquearDocumento ? 'Verificado al inicio' : null"
+        :helper="null"
         :error="errores[clave('numero_identificacion')]"
         @update:model-value="actualizar(clave('numero_identificacion'), $event)"
-      />
-
-      <!-- Nivel educativo — ancho completo, solo solicitante -->
-      <CampoSelectBuscable
-        v-if="showNivelEducativo"
-        :model-value="modelValue.nivel_educativo_solicitante"
-        label="Nivel educativo"
-        required
-        :opciones="nivelEducativoOpciones"
-        :style="{ gridColumn: '1 / -1' }"
-        @update:model-value="actualizar('nivel_educativo_solicitante', $event)"
       />
 
       <!-- Nombres -->
@@ -185,6 +174,17 @@ const nivelEducativoOpciones = [
         @blur="actualizarUpper(clave('apellidos'), modelValue[clave('apellidos')])"
       />
 
+      <!-- Nivel educativo — ancho completo, solo solicitante -->
+      <CampoSelectBuscable
+        v-if="showNivelEducativo"
+        :model-value="modelValue.nivel_educativo_solicitante"
+        label="Nivel educativo"
+        required
+        :opciones="nivelEducativoOpciones"
+        :style="{ gridColumn: '1 / -1' }"
+        @update:model-value="actualizar('nivel_educativo_solicitante', $event)"
+      />
+
       <!-- Correo electrónico — ancho completo -->
       <CampoTexto
         :model-value="modelValue[clave('correo_electronico')]"
@@ -193,7 +193,7 @@ const nivelEducativoOpciones = [
         placeholder="correo@ejemplo.com"
         required
         :disabled="bloquearCorreo"
-        :helper="bloquearCorreo ? 'Ingresado al inicio del proceso' : null"
+        :helper="null"
         :error="errores[clave('correo_electronico')]"
         :style="{ gridColumn: '1 / -1' }"
         @update:model-value="actualizar(clave('correo_electronico'), $event)"

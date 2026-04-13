@@ -9,6 +9,7 @@ defineProps({
   loading:  { type: Boolean, default: false },
   type:     { type: String,  default: 'button' },
   full:     { type: Boolean, default: false },
+  small:    { type: Boolean, default: false },
 })
 
 const estilos = {
@@ -21,8 +22,8 @@ const estilos = {
   secondary: {
     background: 'transparent',
     color:      'var(--color-text-2)',
-    border:     '1px solid var(--color-border)',
-    boxShadow:  'none',
+    border:     'none',
+    boxShadow:  '0 0 0 1px rgba(23,43,54,0.2)',
   },
   accent: {
     background: 'var(--color-accent)',
@@ -40,8 +41,8 @@ const estilos = {
     :style="{
       ...estilos[variant],
       width:          full ? '100%' : 'auto',
-      height:         '48px',
-      padding:        '0 var(--sp-xl)',
+      height:         small ? '32px' : '36px',
+      padding:        small ? '0 var(--sp-md)' : '0 var(--sp-xl)',
       borderRadius:   'var(--r-pill)',
       fontSize:       'var(--text-base)',
       fontWeight:     'var(--fw-semibold)',

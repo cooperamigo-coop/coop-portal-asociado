@@ -429,16 +429,14 @@ watch(solicitudId, async (nuevoId, prevId) => {
       <!-- Banner: borrador encontrado — Continuar o Empezar de nuevo -->
       <div v-if="mostrarOpcionBorrador" :style="{
         background:   'var(--color-primary-light)',
-        border:       '1px solid var(--color-primary)',
         borderRadius: 'var(--r-xl)',
         padding:      'var(--sp-lg) var(--sp-xl)',
         marginBottom: 'var(--sp-xl)',
         display:      'flex',
         alignItems:   'center',
         gap:          'var(--sp-md)',
-        flexWrap:     'wrap',
       }">
-        <div :style="{ flex: '1', minWidth: '200px' }">
+        <div :style="{ flex: '1' }">
           <div :style="{
             fontWeight:   'var(--fw-bold)',
             color:        'var(--color-primary)',
@@ -454,12 +452,12 @@ watch(solicitudId, async (nuevoId, prevId) => {
             Puede continuar donde la dejó o empezar desde cero.
           </div>
         </div>
-        <div :style="{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: '0' }">
-          <PortalButton variant="secondary" @click="empezarDeNuevo">
-            Empezar de nuevo
-          </PortalButton>
-          <PortalButton variant="primary" @click="continuarConBorrador">
+        <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)', flexShrink: '0' }">
+          <PortalButton variant="primary" small @click="continuarConBorrador">
             Continuar solicitud
+          </PortalButton>
+          <PortalButton variant="secondary" small @click="empezarDeNuevo">
+            Empezar de nuevo
           </PortalButton>
         </div>
       </div>
@@ -472,19 +470,27 @@ watch(solicitudId, async (nuevoId, prevId) => {
         padding:      'var(--sp-md) var(--sp-lg)',
         borderRadius: 'var(--r-lg)',
         background:   'var(--color-success-bg)',
-        border:       '1px solid var(--color-success)',
         marginBottom: 'var(--sp-lg)',
+        maxWidth:     isMobile ? '100%' : '480px',
+        marginLeft:   'auto',
+        marginRight:  'auto',
       }">
         <IconCircleCheck :size="16" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
         <span :style="{
-          fontSize:   'var(--text-base)',
+          fontSize:   'var(--text-sm)',
           color:      'var(--color-success-text)',
           fontWeight: 'var(--fw-semibold)',
         }">Sus datos anteriores fueron recuperados. Continúa desde donde lo dejó.</span>
+
       </div>
 
       <!-- Encabezado con progreso -->
-      <div :style="{ marginBottom: 'var(--sp-xl)' }">
+      <div :style="{
+        marginBottom: 'var(--sp-xl)',
+        maxWidth:     isMobile ? '100%' : '480px',
+        marginLeft:   'auto',
+        marginRight:  'auto',
+      }">
         <div :style="{
           display:        'flex',
           justifyContent: 'space-between',
@@ -503,37 +509,23 @@ watch(solicitudId, async (nuevoId, prevId) => {
             <div :style="{
               fontSize:   'var(--text-sm)',
               color:      'var(--color-text-3)',
-              fontWeight: 'var(--fw-semibold)',
+              fontWeight: 'var(--fw-regular)',
             }">Paso {{ indexPasoActual }} de {{ pasosActivos.length }}</div>
-            <div v-if="ultimoGuardado" :style="{
-              display:    'flex',
-              alignItems: 'center',
-              gap:        '4px',
-              fontSize:   'var(--text-xs)',
-              color:      'var(--color-text-3)',
-              fontWeight: 'var(--fw-medium)',
-            }">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              Guardado automáticamente
-            </div>
           </div>
         </div>
-        <!-- Barra de progreso -->
-        <div :style="{
-          height:       '6px',
-          background:   'var(--color-border)',
-          borderRadius: 'var(--r-pill)',
-          overflow:     'hidden',
-        }">
-          <div :style="{
-            height:       '100%',
-            width:        porcentaje + '%',
-            background:   'var(--color-primary)',
-            borderRadius: 'var(--r-pill)',
-            transition:   'width 0.4s ease',
-          }" />
+        <!-- Barra de progreso segmentada -->
+        <div :style="{ display: 'flex', gap: '3px' }">
+          <div
+            v-for="(p, i) in pasosActivos"
+            :key="p.numero"
+            :style="{
+              flex:         '1',
+              height:       '4px',
+              borderRadius: 'var(--r-pill)',
+              background:   i < indexPasoActual ? 'var(--color-primary)' : 'var(--color-border)',
+              transition:   'background 0.3s ease',
+            }"
+          />
         </div>
       </div>
 
@@ -542,9 +534,12 @@ watch(solicitudId, async (nuevoId, prevId) => {
         background:   'var(--color-bg-card)',
         border:       '1px solid var(--color-border-card)',
         borderRadius: 'var(--r-xl)',
-        padding:      isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
+        padding:      'var(--sp-xl)',
         boxShadow:    'var(--shadow-card)',
         marginBottom: 'var(--sp-lg)',
+        maxWidth:     isMobile ? '100%' : '480px',
+        marginLeft:   'auto',
+        marginRight:  'auto',
       }">
 
         <!-- ── PASO 1: Modalidad de crédito ─────────────────── -->
@@ -568,64 +563,46 @@ watch(solicitudId, async (nuevoId, prevId) => {
             @update:model-value="actualizarGeneral('tipo_operacion', $event)"
           />
 
-          <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
-            <!-- Valor del crédito (nuevo o educativo) -->
-            <CampoMoneda
-              v-if="mostrarValorCredito"
-              :model-value="general.valor_credito"
-              label="Valor del crédito"
-              required
-              helper="Monto total solicitado"
-              @update:model-value="actualizarGeneral('valor_credito', $event)"
-            />
+          <!-- Valor del crédito (nuevo o educativo) -->
+          <CampoMoneda
+            v-if="mostrarValorCredito"
+            :model-value="general.valor_credito"
+            label="Valor del crédito"
+            required
+            @update:model-value="actualizarGeneral('valor_credito', $event)"
+          />
 
-            <!-- Valor de reestructura -->
+          <!-- Reestructura con desembolso: dos campos lado a lado -->
+          <div
+            v-if="mostrarValorReestructura && mostrarValorDesembolso"
+            :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-md)' }"
+          >
             <CampoMoneda
-              v-if="mostrarValorReestructura"
               :model-value="general.valor_reestructura"
-              label="Valor de la reestructura"
+              label="Valor reestructura"
               required
               @update:model-value="actualizarGeneral('valor_reestructura', $event)"
             />
-
-            <!-- Valor de desembolso adicional (reestructura + desembolso) -->
             <CampoMoneda
-              v-if="mostrarValorDesembolso"
               :model-value="general.valor_desembolso"
-              label="Valor del desembolso adicional"
+              label="Valor desembolso"
               required
               @update:model-value="actualizarGeneral('valor_desembolso', $event)"
             />
           </div>
 
-          <!-- Monto total — pill -->
-          <div
-            v-if="montoTotalOperacion"
-            :style="{
-              display:      'inline-flex',
-              alignSelf:    'flex-start',
-              alignItems:   'center',
-              gap:          'var(--sp-sm)',
-              padding:      'var(--sp-xs) var(--sp-lg)',
-              borderRadius: 'var(--r-pill)',
-              background:   'var(--color-primary-light)',
-              border:       '1px solid var(--color-primary)',
-            }"
-          >
-            <span :style="{
-              fontSize:   'var(--text-sm)',
-              color:      'var(--color-primary)',
-              fontWeight: 'var(--fw-semibold)',
-            }">Monto total:</span>
-            <span :style="{
-              fontSize:   'var(--text-base)',
-              color:      'var(--color-primary)',
-              fontWeight: 'var(--fw-extrabold)',
-            }">{{ formatMonto(montoTotalOperacion) }}</span>
-          </div>
+          <!-- Solo reestructura (sin desembolso) -->
+          <CampoMoneda
+            v-if="mostrarValorReestructura && !mostrarValorDesembolso"
+            :model-value="general.valor_reestructura"
+            label="Valor de la reestructura"
+            required
+            @update:model-value="actualizarGeneral('valor_reestructura', $event)"
+          />
+
 
           <!-- Destino y plazo — en la misma fila -->
-          <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 'var(--sp-lg)' }">
+          <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '7fr 3fr', gap: 'var(--sp-lg)' }">
             <CampoTexto
               :model-value="general.destino_credito"
               label="Destino del crédito"
@@ -669,12 +646,6 @@ watch(solicitudId, async (nuevoId, prevId) => {
                   @focus="plazoFocused = true"
                   @blur="plazoFocused = false"
                 />
-                <span :style="{
-                  fontSize:   'var(--text-base)',
-                  color:      'var(--color-text-2)',
-                  fontWeight: 'var(--fw-medium)',
-                  flexShrink: '0',
-                }">meses</span>
                 <label :style="{
                   position:      'absolute',
                   left:          '12px',
@@ -690,7 +661,7 @@ watch(solicitudId, async (nuevoId, prevId) => {
                   whiteSpace:    'nowrap',
                   transition:    'all var(--transition-fast)',
                 }">
-                  Plazo <span :style="{ color: 'var(--color-error)' }">*</span>
+                  Plazo (meses) <span :style="{ color: 'var(--color-error)' }">*</span>
                 </label>
               </div>
               <span v-if="errorPlazo" :style="{
@@ -1531,6 +1502,9 @@ watch(solicitudId, async (nuevoId, prevId) => {
         justifyContent: (!isMobile && paso === pasosActivos[0]?.numero) ? 'flex-end' : 'space-between',
         alignItems:     'stretch',
         gap:            'var(--sp-md)',
+        maxWidth:       isMobile ? '100%' : '480px',
+        marginLeft:     'auto',
+        marginRight:    'auto',
       }">
         <PortalButton
           v-if="paso !== pasosActivos[0]?.numero"
@@ -1583,7 +1557,7 @@ watch(solicitudId, async (nuevoId, prevId) => {
             background:   paso === p.numero
               ? 'var(--color-primary)'
               : paso > p.numero
-                ? 'var(--color-success)'
+                ? 'var(--color-primary)'
                 : 'var(--color-border)',
             transition:   'all var(--transition-base)',
             cursor:       paso > p.numero ? 'pointer' : 'default',

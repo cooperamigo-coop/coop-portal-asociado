@@ -88,7 +88,7 @@ function cerrar() { emit('update:visible', false) }
         <div :style="{
           position: 'relative', width: '100%', maxWidth: '500px',
           background: 'var(--color-bg-card)', borderRadius: 'var(--r-2xl)',
-          boxShadow: 'var(--shadow-modal)', overflow: 'hidden',
+          boxShadow: 'var(--shadow-modal)',
           maxHeight: '90vh', display: 'flex', flexDirection: 'column',
         }">
           <!-- Header -->
@@ -97,6 +97,7 @@ function cerrar() { emit('update:visible', false) }
             padding: 'var(--sp-xl) var(--sp-2xl)',
             borderBottom: '1px solid var(--color-border-card)',
             background: 'var(--color-bg-surface)',
+            borderRadius: 'var(--r-2xl) var(--r-2xl) 0 0',
             flexShrink: '0',
           }">
             <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)' }">
@@ -163,6 +164,7 @@ function cerrar() { emit('update:visible', false) }
             padding: 'var(--sp-lg) var(--sp-2xl)',
             borderTop: '1px solid var(--color-border-card)',
             background: 'var(--color-bg-surface)',
+            borderRadius: '0 0 var(--r-2xl) var(--r-2xl)',
             flexShrink: '0',
           }">
             <PortalButton variant="secondary" @click="cerrar()">Cancelar</PortalButton>

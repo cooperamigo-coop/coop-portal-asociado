@@ -12,7 +12,7 @@ const opciones = [
   { value: 'independiente', label: 'Independiente',   icono: IconBuildingStore  },
   { value: 'pensionado',    label: 'Pensionado',      icono: IconHeartHandshake },
   { value: 'estudiante',    label: 'Estudiante',      icono: IconBook           },
-  { value: 'cuidado_hogar', label: 'Cuidado del hogar', icono: IconHome         },
+  { value: 'cuidado_hogar', label: 'Cuidado hogar', icono: IconHome         },
 ]
 </script>
 
@@ -27,21 +27,22 @@ const opciones = [
     </label>
 
     <div :style="{
-      display:   'flex',
-      flexWrap:  'wrap',
-      gap:       'var(--sp-sm)',
-      marginTop: 'var(--sp-xs)',
+      display:  'flex',
+      flexWrap: 'nowrap',
+      gap:      'var(--sp-xs)',
+      marginTop:'var(--sp-xs)',
     }">
       <div
         v-for="op in opciones"
         :key="op.value"
         :style="{
+          flex:           '1',
           display:        'flex',
           flexDirection:  'column',
           alignItems:     'center',
-          gap:            'var(--sp-xs)',
-          padding:        'var(--sp-md) var(--sp-lg)',
-          borderRadius:   'var(--r-xl)',
+          gap:            'var(--sp-sm)',
+          padding:        'var(--sp-sm) var(--sp-xs)',
+          borderRadius:   'var(--r-lg)',
           border:         modelValue === op.value
             ? '2px solid var(--color-primary)'
             : '1px solid var(--color-border)',
@@ -50,26 +51,23 @@ const opciones = [
             : 'var(--color-bg-surface)',
           cursor:         'pointer',
           transition:     'all var(--transition-fast)',
-          minWidth:       '100px',
+          textAlign:      'center',
         }"
         @click="$emit('update:modelValue', op.value)"
       >
         <component
           :is="op.icono"
-          :size="22"
+          :size="18"
           :style="{
-            color: modelValue === op.value
-              ? 'var(--color-primary)'
-              : 'var(--color-text-3)',
+            color:      modelValue === op.value ? 'var(--color-primary)' : 'var(--color-text-3)',
             transition: 'color var(--transition-fast)',
           }"
         />
         <span :style="{
-          fontSize:   'var(--text-sm)',
+          fontSize:   '9px',
           fontWeight: modelValue === op.value ? 'var(--fw-bold)' : 'var(--fw-medium)',
           color:      modelValue === op.value ? 'var(--color-primary)' : 'var(--color-text-2)',
-          textAlign:  'center',
-          lineHeight: '1.3',
+          lineHeight: '1.2',
         }">{{ op.label }}</span>
       </div>
     </div>
