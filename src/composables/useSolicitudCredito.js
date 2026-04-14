@@ -47,13 +47,15 @@ export function useSolicitudCredito() {
 
   // ── Sección 1-2: Solicitud ────────────────────────────────
   const general = ref({
-    modalidad_credito:  '',
-    tipo_operacion:     '',
-    valor_credito:      '',
-    valor_reestructura: '',
-    valor_desembolso:   '',
-    destino_credito:    '',
-    plazo_solicitado:   '',
+    modalidad_credito:    '',
+    tipo_operacion:       '',
+    valor_credito:        '',
+    valor_reestructura:   '',
+    valor_desembolso:     '',
+    destino_credito:      '',
+    tipo_estudio:         '',
+    denominacion_carrera: '',
+    plazo_solicitado:     '',
   })
 
   // ── Sección 3: Datos personales solicitante ───────────────
@@ -332,7 +334,11 @@ export function useSolicitudCredito() {
     if (necesitaValorCredito && !d.valor_credito) return false
     if (necesitaReestructura  && !d.valor_reestructura) return false
     if (necesitaDesembolso    && !d.valor_desembolso) return false
-    if (!d.destino_credito) return false
+    if (esEducativo) {
+      if (!d.tipo_estudio || !d.denominacion_carrera) return false
+    } else {
+      if (!d.destino_credito) return false
+    }
     if (!d.plazo_solicitado) return false
     const maxPlazo = esEducativo ? 6 : esOrdinario ? 60 : 120
     if (Number(d.plazo_solicitado) > maxPlazo) return false

@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import PortalLayout           from '@/components/layout/PortalLayout.vue'
+import ModalOtpEmail          from '@/components/forms/ModalOtpEmail.vue'
 import PortalButton           from '@/components/ui/PortalButton.vue'
 import SelectorModalidad      from '@/components/forms/SelectorModalidad.vue'
 import SeccionDocumentos      from '@/components/forms/SeccionDocumentos.vue'
@@ -99,6 +100,11 @@ const opsTipoOperacion = [
   { value: 'reestructura_desembolso', label: 'Reestructura con desembolso' },
 ]
 
+const opsTipoEstudio = [
+  { value: 'pregrado',  label: 'Pregrado'  },
+  { value: 'postgrado', label: 'Postgrado' },
+]
+
 const opsTipoCuenta = [
   { value: 'ahorros',   label: 'Cuenta de ahorros' },
   { value: 'corriente', label: 'Cuenta corriente'   },
@@ -122,7 +128,8 @@ const opsEntidadesPensiones = ENTIDADES_PENSIONES.map(e => ({ value: e, label: e
 const opsTipoContrato = TIPOS_CONTRATO
 
 // ── Helpers de etiquetas para la pantalla de resumen ─────
-const LABEL_MODALIDAD = { ordinario: 'Crédito ordinario', educativo: 'Crédito educativo' }
+const LABEL_MODALIDAD    = { ordinario: 'Crédito ordinario', educativo: 'Crédito educativo' }
+const LABEL_TIPO_ESTUDIO = { pregrado: 'Pregrado', postgrado: 'Postgrado' }
 const LABEL_TIPO_OP   = {
   credito_nuevo:           'Crédito nuevo',
   reestructura:            'Reestructura',
@@ -234,6 +241,28 @@ watch(solicitudId, async (nuevoId, prevId) => {
     }
   }
 })
+
+// ── OTP: validación de correo ────────────────────────────────────────────────
+const emailValidado   = ref(false)
+const mostrarModalOtp = ref(false)
+
+const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function onDocumentoAreaClick() {
+  if (emailValidado.value) return
+  const email = verificacion.value.correo.trim()
+  if (!email || !RE_EMAIL.test(email)) return
+  if (import.meta.env.VITE_SKIP_OTP === 'true') {
+    emailValidado.value = true
+    return
+  }
+  mostrarModalOtp.value = true
+}
+
+function onOtpValidado() {
+  emailValidado.value   = true
+  mostrarModalOtp.value = false
+}
 </script>
 
 <template>
@@ -354,7 +383,10 @@ watch(solicitudId, async (nuevoId, prevId) => {
             </div>
           </div>
 
-          <div :style="{ display: 'flex', gap: 'var(--sp-md)', alignItems: 'flex-start' }">
+          <div
+            :style="{ display: 'flex', gap: 'var(--sp-md)', alignItems: 'flex-start' }"
+            @click="onDocumentoAreaClick"
+          >
             <div :style="{ flex: '0 0 90px' }">
               <CampoSelectBuscable
                 v-model="verificacion.tipo_documento"
@@ -372,6 +404,21 @@ watch(solicitudId, async (nuevoId, prevId) => {
                 solo-numeros
               />
             </div>
+          </div>
+
+          <!-- Badge: correo verificado -->
+          <div v-if="emailValidado" :style="{
+            display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)',
+            padding: 'var(--sp-sm) var(--sp-md)',
+            borderRadius: 'var(--r-lg)',
+            background: 'var(--color-success-bg)',
+            border: '1px solid var(--color-success)',
+          }">
+            <IconCircleCheck :size="15" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
+            <span :style="{
+              fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)',
+              color: 'var(--color-success)',
+            }">Correo electrónico verificado</span>
           </div>
 
           <div v-if="errorVerificacion" :style="{
@@ -411,7 +458,7 @@ watch(solicitudId, async (nuevoId, prevId) => {
           <PortalButton
             variant="primary"
             :loading="loadingVerificacion"
-            :disabled="!aceptaCondiciones || !!errorCorreo"
+            :disabled="!aceptaCondiciones || !!errorCorreo || !emailValidado"
             :full="true"
             @click="verificarYContinuar()"
           >
@@ -420,6 +467,14 @@ watch(solicitudId, async (nuevoId, prevId) => {
 
         </div>
       </div>
+
+      <!-- Modal OTP (Teleport to body — no afecta la cadena v-if) -->
+      <ModalOtpEmail
+        v-if="mostrarModalOtp"
+        :email="verificacion.correo"
+        contexto="credito"
+        @validado="onOtpValidado"
+      />
 
     </div>
 
@@ -601,76 +656,162 @@ watch(solicitudId, async (nuevoId, prevId) => {
           />
 
 
-          <!-- Destino y plazo — en la misma fila -->
-          <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '7fr 3fr', gap: 'var(--sp-lg)' }">
-            <CampoTexto
-              :model-value="general.destino_credito"
-              label="Destino del crédito"
-              placeholder="¿Para qué usará el crédito?"
-              required
-              :maxlength="40"
-              @update:model-value="actualizarGeneral('destino_credito', $event)"
-            />
+          <!-- Destino / campos educativo + plazo — visibles cuando hay tipo de operación (o es educativo) -->
+          <template v-if="!mostrarTipoOperacion || general.tipo_operacion">
 
-            <!-- Plazo con floating label y "meses" dentro del campo -->
-            <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
-              <div :style="{
-                position:     'relative',
-                display:      'flex',
-                alignItems:   'center',
-                gap:          'var(--sp-sm)',
-                padding:      '12px 14px',
-                border:       errorPlazo ? '1px solid var(--color-error)' : plazoFocused ? '1px solid var(--color-primary)' : '1px solid var(--color-border)',
-                borderRadius: 'var(--r-lg)',
-                background:   'var(--color-bg-card)',
-                boxSizing:    'border-box',
-                transition:   'border-color var(--transition-fast)',
-              }">
-                <input
-                  :value="general.plazo_solicitado"
-                  type="number"
-                  min="1"
-                  :max="maxPlazo"
-                  :style="{
-                    flex:       '1',
-                    border:     'none',
-                    outline:    'none',
-                    background: 'transparent',
-                    fontSize:   'var(--text-base)',
-                    fontFamily: 'var(--font-body)',
-                    color:      'var(--color-text-1)',
-                    minWidth:   '0',
-                    padding:    '0',
-                  }"
-                  @input="actualizarPlazo($event.target.value)"
-                  @focus="plazoFocused = true"
-                  @blur="plazoFocused = false"
+            <!-- ── Crédito educativo ── -->
+            <template v-if="esEducativo">
+              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                <CampoSelectBuscable
+                  :model-value="general.tipo_estudio"
+                  label="Tipo de estudio"
+                  required
+                  :opciones="opsTipoEstudio"
+                  @update:model-value="actualizarGeneral('tipo_estudio', $event)"
                 />
-                <label :style="{
-                  position:      'absolute',
-                  left:          '12px',
-                  top:           (plazoFocused || general.plazo_solicitado) ? '0' : '50%',
-                  transform:     'translateY(-50%)',
-                  fontSize:      (plazoFocused || general.plazo_solicitado) ? '10px' : 'var(--text-base)',
-                  fontWeight:    (plazoFocused || general.plazo_solicitado) ? 'var(--fw-semibold)' : 'var(--fw-medium)',
-                  color:         errorPlazo ? 'var(--color-error-text)' : plazoFocused ? 'var(--color-primary)' : 'var(--color-text-3)',
-                  background:    (plazoFocused || general.plazo_solicitado) ? 'var(--color-bg-card)' : 'transparent',
-                  padding:       (plazoFocused || general.plazo_solicitado) ? '0 3px' : '0',
-                  pointerEvents: 'none',
-                  zIndex:        '1',
-                  whiteSpace:    'nowrap',
-                  transition:    'all var(--transition-fast)',
-                }">
-                  Plazo (meses) <span :style="{ color: 'var(--color-error)' }">*</span>
-                </label>
+
+                <!-- Plazo -->
+                <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
+                  <div :style="{
+                    position:     'relative',
+                    display:      'flex',
+                    alignItems:   'center',
+                    gap:          'var(--sp-sm)',
+                    padding:      '12px 14px',
+                    border:       errorPlazo ? '1px solid var(--color-error)' : plazoFocused ? '1px solid var(--color-primary)' : '1px solid var(--color-border)',
+                    borderRadius: 'var(--r-lg)',
+                    background:   'var(--color-bg-card)',
+                    boxSizing:    'border-box',
+                    transition:   'border-color var(--transition-fast)',
+                  }">
+                    <input
+                      :value="general.plazo_solicitado"
+                      type="number"
+                      min="1"
+                      :max="maxPlazo"
+                      :style="{
+                        flex:       '1',
+                        border:     'none',
+                        outline:    'none',
+                        background: 'transparent',
+                        fontSize:   'var(--text-base)',
+                        fontFamily: 'var(--font-body)',
+                        color:      'var(--color-text-1)',
+                        minWidth:   '0',
+                        padding:    '0',
+                      }"
+                      @input="actualizarPlazo($event.target.value)"
+                      @focus="plazoFocused = true"
+                      @blur="plazoFocused = false"
+                    />
+                    <label :style="{
+                      position:      'absolute',
+                      left:          '12px',
+                      top:           (plazoFocused || general.plazo_solicitado) ? '0' : '50%',
+                      transform:     'translateY(-50%)',
+                      fontSize:      (plazoFocused || general.plazo_solicitado) ? '10px' : 'var(--text-base)',
+                      fontWeight:    (plazoFocused || general.plazo_solicitado) ? 'var(--fw-semibold)' : 'var(--fw-medium)',
+                      color:         errorPlazo ? 'var(--color-error-text)' : plazoFocused ? 'var(--color-primary)' : 'var(--color-text-3)',
+                      background:    (plazoFocused || general.plazo_solicitado) ? 'var(--color-bg-card)' : 'transparent',
+                      padding:       (plazoFocused || general.plazo_solicitado) ? '0 3px' : '0',
+                      pointerEvents: 'none',
+                      zIndex:        '1',
+                      whiteSpace:    'nowrap',
+                      transition:    'all var(--transition-fast)',
+                    }">
+                      Plazo (meses) <span :style="{ color: 'var(--color-error)' }">*</span>
+                    </label>
+                  </div>
+                  <span v-if="errorPlazo" :style="{
+                    fontSize:   'var(--text-xs)',
+                    color:      'var(--color-error-text)',
+                    fontWeight: 'var(--fw-semibold)',
+                  }">{{ errorPlazo }}</span>
+                </div>
               </div>
-              <span v-if="errorPlazo" :style="{
-                fontSize:   'var(--text-xs)',
-                color:      'var(--color-error-text)',
-                fontWeight: 'var(--fw-semibold)',
-              }">{{ errorPlazo }}</span>
+
+              <CampoTexto
+                :model-value="general.denominacion_carrera"
+                label="Carrera o denominación"
+                placeholder="Ej: Ingeniería de sistemas"
+                required
+                :maxlength="80"
+                @update:model-value="actualizarGeneral('denominacion_carrera', $event)"
+              />
+            </template>
+
+            <!-- ── Crédito ordinario ── -->
+            <div v-else :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '7fr 3fr', gap: 'var(--sp-lg)' }">
+              <CampoTexto
+                :model-value="general.destino_credito"
+                label="Destino del crédito"
+                placeholder="¿Para qué usará el crédito?"
+                required
+                :maxlength="40"
+                @update:model-value="actualizarGeneral('destino_credito', $event)"
+              />
+
+              <!-- Plazo con floating label y "meses" dentro del campo -->
+              <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
+                <div :style="{
+                  position:     'relative',
+                  display:      'flex',
+                  alignItems:   'center',
+                  gap:          'var(--sp-sm)',
+                  padding:      '12px 14px',
+                  border:       errorPlazo ? '1px solid var(--color-error)' : plazoFocused ? '1px solid var(--color-primary)' : '1px solid var(--color-border)',
+                  borderRadius: 'var(--r-lg)',
+                  background:   'var(--color-bg-card)',
+                  boxSizing:    'border-box',
+                  transition:   'border-color var(--transition-fast)',
+                }">
+                  <input
+                    :value="general.plazo_solicitado"
+                    type="number"
+                    min="1"
+                    :max="maxPlazo"
+                    :style="{
+                      flex:       '1',
+                      border:     'none',
+                      outline:    'none',
+                      background: 'transparent',
+                      fontSize:   'var(--text-base)',
+                      fontFamily: 'var(--font-body)',
+                      color:      'var(--color-text-1)',
+                      minWidth:   '0',
+                      padding:    '0',
+                    }"
+                    @input="actualizarPlazo($event.target.value)"
+                    @focus="plazoFocused = true"
+                    @blur="plazoFocused = false"
+                  />
+                  <label :style="{
+                    position:      'absolute',
+                    left:          '12px',
+                    top:           (plazoFocused || general.plazo_solicitado) ? '0' : '50%',
+                    transform:     'translateY(-50%)',
+                    fontSize:      (plazoFocused || general.plazo_solicitado) ? '10px' : 'var(--text-base)',
+                    fontWeight:    (plazoFocused || general.plazo_solicitado) ? 'var(--fw-semibold)' : 'var(--fw-medium)',
+                    color:         errorPlazo ? 'var(--color-error-text)' : plazoFocused ? 'var(--color-primary)' : 'var(--color-text-3)',
+                    background:    (plazoFocused || general.plazo_solicitado) ? 'var(--color-bg-card)' : 'transparent',
+                    padding:       (plazoFocused || general.plazo_solicitado) ? '0 3px' : '0',
+                    pointerEvents: 'none',
+                    zIndex:        '1',
+                    whiteSpace:    'nowrap',
+                    transition:    'all var(--transition-fast)',
+                  }">
+                    Plazo (meses) <span :style="{ color: 'var(--color-error)' }">*</span>
+                  </label>
+                </div>
+                <span v-if="errorPlazo" :style="{
+                  fontSize:   'var(--text-xs)',
+                  color:      'var(--color-error-text)',
+                  fontWeight: 'var(--fw-semibold)',
+                }">{{ errorPlazo }}</span>
+              </div>
             </div>
-          </div>
+
+          </template>
         </div>
 
         <!-- ── PASO 3: Datos personales solicitante ──────────── -->
@@ -1267,7 +1408,19 @@ watch(solicitudId, async (nuevoId, prevId) => {
                   <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Plazo</div>
                   <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ general.plazo_solicitado ? general.plazo_solicitado + ' meses' : '—' }}</div>
                 </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)' }">
+                <!-- Educativo: tipo estudio + carrera -->
+                <template v-if="esEducativo">
+                  <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderTop: '1px solid var(--color-border)' }">
+                    <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Tipo de estudio</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ label(LABEL_TIPO_ESTUDIO, general.tipo_estudio) }}</div>
+                  </div>
+                  <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderTop: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
+                    <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Carrera o denominación</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ general.denominacion_carrera || '—' }}</div>
+                  </div>
+                </template>
+                <!-- Ordinario: destino -->
+                <div v-else :style="{ padding: 'var(--sp-sm) var(--sp-lg)' }">
                   <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Destino</div>
                   <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ general.destino_credito || '—' }}</div>
                 </div>

@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PortalLayout       from '@/components/layout/PortalLayout.vue'
 import StepIndicator      from '@/components/ui/StepIndicator.vue'
@@ -9,6 +10,7 @@ import CampoSelect        from '@/components/forms/CampoSelect.vue'
 import CampoSelectBuscable from '@/components/forms/CampoSelectBuscable.vue'
 import CampoMoneda        from '@/components/forms/CampoMoneda.vue'
 import CampoCheck         from '@/components/forms/CampoCheck.vue'
+import ModalOtpEmail      from '@/components/forms/ModalOtpEmail.vue'
 import { useAfiliacion }  from '@/composables/useAfiliacion'
 import { useBreakpoint }  from '@/composables/useBreakpoint'
 import { IconCircleCheck, IconUserCheck } from '@tabler/icons-vue'
@@ -114,6 +116,28 @@ const grid2 = (mobile) => ({
   gap: 'var(--sp-lg)',
 })
 const spanFull = { gridColumn: '1 / -1' }
+
+// ── OTP: validación de correo ────────────────────────────────────────────────
+const emailValidado    = ref(false)
+const mostrarModalOtp  = ref(false)
+
+const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function onDocumentoAreaClick() {
+  if (emailValidado.value) return
+  const email = emailInicial.value.trim()
+  if (!email || !RE_EMAIL.test(email)) return
+  if (import.meta.env.VITE_SKIP_OTP === 'true') {
+    emailValidado.value = true
+    return
+  }
+  mostrarModalOtp.value = true
+}
+
+function onOtpValidado() {
+  emailValidado.value   = true
+  mostrarModalOtp.value = false
+}
 </script>
 
 <template>
@@ -164,7 +188,10 @@ const spanFull = { gridColumn: '1 / -1' }
             @keyup.enter="verificarYContinuar"
           />
 
-          <div :style="{ display: 'flex', gap: 'var(--sp-md)', alignItems: 'flex-start' }">
+          <div
+            :style="{ display: 'flex', gap: 'var(--sp-md)', alignItems: 'flex-start' }"
+            @click="onDocumentoAreaClick"
+          >
             <div :style="{ flex: '0 0 90px' }">
               <CampoSelectBuscable
                 v-model="tipoDocumentoInicial"
@@ -183,6 +210,21 @@ const spanFull = { gridColumn: '1 / -1' }
                 :error="errorNumeroDoc"
               />
             </div>
+          </div>
+
+          <!-- Badge: correo verificado -->
+          <div v-if="emailValidado" :style="{
+            display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)',
+            padding: 'var(--sp-sm) var(--sp-md)',
+            borderRadius: 'var(--r-lg)',
+            background: 'var(--color-success-bg)',
+            border: '1px solid var(--color-success)',
+          }">
+            <IconCircleCheck :size="15" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
+            <span :style="{
+              fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)',
+              color: 'var(--color-success)',
+            }">Correo electrónico verificado</span>
           </div>
 
           <label :style="{
@@ -216,7 +258,7 @@ const spanFull = { gridColumn: '1 / -1' }
             <PortalButton variant="secondary" @click="router.push('/')">Volver</PortalButton>
             <PortalButton
               variant="primary"
-              :disabled="!pasoValido"
+              :disabled="!pasoValido || !emailValidado"
               :loading="loadingVerificacion"
               @click="verificarYContinuar"
             >
@@ -226,6 +268,14 @@ const spanFull = { gridColumn: '1 / -1' }
         </div>
       </template>
     </div>
+
+    <!-- Modal OTP -->
+    <ModalOtpEmail
+      v-if="mostrarModalOtp"
+      :email="emailInicial"
+      contexto="afiliacion"
+      @validado="onOtpValidado"
+    />
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- PASO 7: Éxito                                                       -->

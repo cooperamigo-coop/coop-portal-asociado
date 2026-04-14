@@ -263,5 +263,6 @@ const router = useRouter()
   }
 
   .portal-main { padding: 28px 20px; }
+  .portal-main__inner { margin: auto; }
 }
 </style>
