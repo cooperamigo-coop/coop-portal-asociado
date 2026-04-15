@@ -19,12 +19,18 @@
           <span class="footer-sep">·</span>
           <span class="footer-email">info@cooperamigo.coop</span>
         </p>
+        <p class="footer-info-row footer-info-tagline footer-info--desktop">
+          Portal de trámites digitales para asociados Cooperamigó
+        </p>
         <!-- Mobile: dos líneas -->
         <p class="footer-info-row footer-info--mobile">© 2026 Cooperativa Multiactiva Luis Amigó</p>
         <p class="footer-info-row footer-info--mobile footer-nit-mobile">
           NIT 800.191.482-7
           <span class="footer-sep">·</span>
           <span class="footer-email">info@cooperamigo.coop</span>
+        </p>
+        <p class="footer-info-row footer-info-tagline footer-info--mobile">
+          Portal de trámites digitales para asociados Cooperamigó
         </p>
         <div class="footer-vigilada-mobile">
           <div class="fvm-block">
@@ -85,7 +91,7 @@
 
 /* Línea de info genérica */
 .footer-info-row {
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.38);
   font-weight: var(--fw-medium);
   margin: 0;
@@ -106,6 +112,16 @@
 }
 .footer-email:hover { color: rgba(255, 255, 255, 0.7); }
 
+.footer-info-tagline {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+@media (max-width: 960px) {
+  .footer-info-tagline {
+    line-height: 1.3;
+  }
+}
+
 /* Mobile: ocultar versión desktop de las líneas */
 .footer-info--mobile    { display: none; }
 .footer-vigilada-mobile { display: none; }
@@ -117,7 +133,7 @@
   .footer-inner   { display: flex; flex-direction: column; align-items: center; gap: 10px; }
   .footer-col-logo   { display: none; }
   .footer-col-spacer { display: none; }
-  .footer-col-copy   { gap: 8px; }
+  .footer-col-copy   { gap: 8px; align-items: center; text-align: center; }
   .footer-info--desktop { display: none; }
   .footer-info--mobile  { display: flex; }
   .footer-vigilada-mobile {

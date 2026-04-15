@@ -123,7 +123,7 @@ const SERVICIOS_NO_ASOCIADO = [
         <div v-if="paso === 'pregunta'" class="vista animate-in">
           <img src="/favicon.svg" alt="Cooperamigó" class="hero-favicon" />
           <h1 class="hero-title">Le damos la bienvenida</h1>
-          <p class="hero-question">¿Ya hace parte de nuestra cooperativa?</p>
+          <p class="hero-question">¿Ya hace parte de nuestra cooperativa? Acceda a sus trámites digitales o inicie su proceso de vinculación como asociado.</p>
           <div class="opciones">
             <button
               class="btn-opcion btn-opcion--primary"
@@ -412,7 +412,7 @@ const SERVICIOS_NO_ASOCIADO = [
   display: flex;
   flex-direction: column;
   border: 1px solid var(--color-border-card);
-  border-radius: var(--r-xl);
+  border-radius: var(--r-lg);
   overflow: hidden;
 }
 
@@ -574,25 +574,25 @@ const SERVICIOS_NO_ASOCIADO = [
 
 .vb-line {
   display: block;
-  height: 1.5px;
-  background: var(--color-text-3);
+  height: 2px;
+  background: var(--color-primary);
   border-radius: 1px;
 }
 
 .vb-vigilada {
-  font-size: 0.56rem;
+  font-size: 0.62rem;
   font-weight: var(--fw-extrabold);
   letter-spacing: 0.2em;
-  color: var(--color-text-2);
+  color: var(--color-primary);
   text-align: center;
   line-height: 1.5;
 }
 
 .vb-nombre {
-  font-size: 0.6rem;
-  font-weight: var(--fw-semibold);
+  font-size: 0.66rem;
+  font-weight: var(--fw-medium);
   letter-spacing: 0.06em;
-  color: var(--color-text-3);
+  color: var(--color-primary);
 }
 
 /* ─── Responsive ─── */

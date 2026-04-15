@@ -196,25 +196,25 @@ const router = useRouter()
 
 .vb-line {
   display: block;
-  height: 1.5px;
-  background: var(--color-text-3);
+  height: 2px;
+  background: var(--color-primary);
   border-radius: 1px;
 }
 
 .vb-vigilada {
-  font-size: 0.56rem;
+  font-size: 0.62rem;
   font-weight: var(--fw-extrabold);
   letter-spacing: 0.2em;
-  color: var(--color-text-2);
+  color: var(--color-primary);
   text-align: center;
   line-height: 1.5;
 }
 
 .vb-nombre {
-  font-size: 0.6rem;
-  font-weight: var(--fw-semibold);
+  font-size: 0.66rem;
+  font-weight: var(--fw-medium);
   letter-spacing: 0.06em;
-  color: var(--color-text-3);
+  color: var(--color-primary);
 }
 
 @media (max-width: 960px) {
