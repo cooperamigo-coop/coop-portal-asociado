@@ -14,7 +14,6 @@ const colores = {
 <template>
   <div :style="{
     background: colores[tipo].bg,
-    border: '1px solid ' + colores[tipo].border,
     color: colores[tipo].text,
     padding: 'var(--sp-md) var(--sp-lg)',
     borderRadius: 'var(--r-lg)',

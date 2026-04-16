@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import PortalLayout           from '@/components/layout/PortalLayout.vue'
+import StepIndicator         from '@/components/ui/StepIndicator.vue'
 import ModalOtpEmail          from '@/components/forms/ModalOtpEmail.vue'
 import PortalButton           from '@/components/ui/PortalButton.vue'
 import SelectorModalidad      from '@/components/forms/SelectorModalidad.vue'
@@ -22,6 +23,7 @@ import ModalAutorizaciones    from '@/components/forms/ModalAutorizaciones.vue'
 import {
   IconCircleCheck, IconShieldCheck,
   IconUserX, IconMail, IconRotate, IconUsers, IconUserCheck, IconFileDescription,
+  IconCheck
 } from '@tabler/icons-vue'
 import { useSolicitudCredito } from '@/composables/useSolicitudCredito'
 import { useBreakpoint } from '@/composables/useBreakpoint'
@@ -90,9 +92,28 @@ function onCorreoBlur() {
   validarCorreo(verificacion.value.correo)
 }
 
-const indexPasoActual = computed(() =>
-  pasosActivos.value.findIndex(p => p.numero === paso.value) + 1
-)
+const indexPasoActual = computed(() => {
+  if (paso.value === 1) return 0
+  return pasosActivos.value.findIndex(p => p.numero === paso.value)
+})
+
+const totalPasosVisibles = computed(() => pasosActivos.value.length - 1)
+
+const secciones = [
+  { label: 'Solicitud'   },
+  { label: 'Solicitante' },
+  { label: 'Codeudores'  },
+  { label: 'Legal'       },
+]
+
+const seccionActual = computed(() => {
+  const s = pasoActual.value?.seccion
+  if (['Solicitud'].includes(s))   return 1
+  if (['Solicitante'].includes(s)) return 2
+  if (['Codeudores', 'Codeudor 1', 'Codeudor 2'].includes(s)) return 3
+  if (['Legal'].includes(s))       return 4
+  return 1
+})
 
 const opsTipoOperacion = [
   { value: 'credito_nuevo',           label: 'Crédito nuevo'               },
@@ -162,7 +183,6 @@ function formatearFecha(iso) {
 
 function seleccionarModalidad(v) {
   actualizarGeneral('modalidad_credito', v)
-  setTimeout(siguiente, 280)
 }
 
 function actualizarGeneral(campo, valor) {
@@ -331,7 +351,7 @@ function onOtpValidado() {
     <!-- ═══ PANTALLA PREVIA — Verificación de identidad ═════ -->
     <div v-else-if="!verificado">
 
-      <div :style="{ maxWidth: '380px', margin: '0 auto' }">
+      <div :style="{ maxWidth: '420px', width: '100%', margin: '0 auto' }">
 
         <!-- Título -->
         <div :style="{ marginBottom: 'var(--sp-2xl)' }">
@@ -340,7 +360,7 @@ function onOtpValidado() {
             fontSize:   'var(--text-xl)',
             fontWeight: 'var(--fw-extrabold)',
             color:      'var(--color-text-1)',
-          }">Comencemos con algunos datos</div>
+          }">¡Saludos! Comencemos con algunos datos</div>
         </div>
 
         <!-- Campos de verificación -->
@@ -368,7 +388,6 @@ function onOtpValidado() {
                 padding:      'var(--sp-sm) var(--sp-md)',
                 borderRadius: 'var(--r-lg)',
                 background:   'var(--color-warning-bg)',
-                border:       '1px solid var(--color-border)',
               }"
             >
               <IconRotate :size="14" :style="{ color: 'var(--color-warning-text)', flexShrink: '0' }" />
@@ -387,14 +406,60 @@ function onOtpValidado() {
             :style="{ display: 'flex', gap: 'var(--sp-md)', alignItems: 'flex-start' }"
             @click="onDocumentoAreaClick"
           >
-            <div :style="{ flex: '0 0 90px' }">
-              <CampoSelectBuscable
-                v-model="verificacion.tipo_documento"
-                label="Tipo de doc."
-                required
-                :opciones="opsTipoDocVerificacion"
-              />
+            <!-- Selector de Tipo Check Circle (Encuadrado) -->
+            <div :style="{
+              flex: '0 0 30%',
+              display: 'flex',
+              background: 'var(--color-bg-card)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--r-md)',
+              height: '54px',
+              boxSizing: 'border-box',
+              padding: '0 12px',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 'var(--sp-md)'
+            }">
+              <label
+                v-for="op in opsTipoDocVerificacion"
+                :key="op.value"
+                :style="{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--sp-xs)',
+                  cursor: 'pointer',
+                  userSelect: 'none'
+                }"
+              >
+                <div :style="{
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  border: '2px solid ' + (verificacion.tipo_documento === op.value ? 'var(--color-primary)' : 'var(--color-border)'),
+                  background: verificacion.tipo_documento === op.value ? 'var(--color-primary)' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all var(--transition-base)',
+                  color: 'white'
+                }">
+                  <IconCheck v-if="verificacion.tipo_documento === op.value" :size="12" stroke-width="4" />
+                </div>
+                <input
+                  type="radio"
+                  v-model="verificacion.tipo_documento"
+                  :value="op.value"
+                  style="display: none"
+                />
+                <span :style="{
+                  fontSize: 'var(--text-base)',
+                  fontWeight: verificacion.tipo_documento === op.value ? 'var(--fw-bold)' : 'var(--fw-medium)',
+                  color: verificacion.tipo_documento === op.value ? 'var(--color-text-1)' : 'var(--color-text-3)'
+                }">{{ op.label }}</span>
+              </label>
             </div>
+
+            <!-- Número de Documento -->
             <div :style="{ flex: '1' }">
               <CampoTexto
                 v-model="verificacion.numero_documento"
@@ -412,7 +477,6 @@ function onOtpValidado() {
             padding: 'var(--sp-sm) var(--sp-md)',
             borderRadius: 'var(--r-lg)',
             background: 'var(--color-success-bg)',
-            border: '1px solid var(--color-success)',
           }">
             <IconCircleCheck :size="15" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
             <span :style="{
@@ -440,30 +504,40 @@ function onOtpValidado() {
             <input
               v-model="aceptaCondiciones"
               type="checkbox"
-              :style="{ marginTop: '3px', flexShrink: '0', accentColor: 'var(--color-primary)', width: '16px', height: '16px', cursor: 'pointer' }"
+              :style="{ marginTop: '3px', flexShrink: '0', accentColor: 'var(--color-primary)', width: '15px', height: '15px', cursor: 'pointer' }"
             />
+
             <span :style="{
-              fontSize:   'var(--text-sm)',
+              fontSize:   'var(--text-xs)',
               color:      'var(--color-text-2)',
               fontWeight: 'var(--fw-medium)',
-              lineHeight: '1.5',
+              lineHeight: '1.7',
             }">
-              Autorizo a la Cooperativa Multiactiva Luis Amigó para que mi número de celular y correo electrónico sean tratados con el fin de contactarme y enviarme información relacionada con la solicitud del producto. Igualmente, autorizo la consulta de mi información ante centrales de información financiera y crediticia, con el propósito de verificar mis datos personales. Declaro que conozco y acepto los
-              <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', textDecoration: 'underline' }">Términos y Condiciones</a>,
-              así como la
-              <a href="https://cooperamigo.coop/aviso-privacidad" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', textDecoration: 'underline' }">Política de Privacidad</a>.
+              Autorizo a la Cooperativa Multiactiva Luis Amigó para tratar mis datos personales, incluyendo mi número de celular y correo electrónico, con la finalidad de contactarme, gestionar mi solicitud, realizar seguimiento y enviarme información relacionada con los productos y servicios ofrecidos por la cooperativa.
+              Asimismo, autorizo la consulta, reporte y actualización de mi información en centrales de información financiera y crediticia, con el fin de verificar mis datos y evaluar mi comportamiento crediticio.
+              <br><br>
+              Declaro que conozco mis derechos como titular de la información y que puedo ejercerlos conforme a la ley. Igualmente, manifiesto que he leído y acepto los
+              <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">términos y condiciones</a>
+              y la
+              <a href="https://cooperamigo.coop/aviso-privacidad" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">política de tratamiento de datos personales</a>
+              publicados en <a href="https://www.cooperamigo.coop" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">www.cooperamigo.coop</a> para mi permanente consulta y revisión.
             </span>
           </label>
 
-          <PortalButton
-            variant="primary"
-            :loading="loadingVerificacion"
-            :disabled="!aceptaCondiciones || !!errorCorreo || !emailValidado"
-            :full="true"
-            @click="verificarYContinuar()"
-          >
-            Verificar y continuar
-          </PortalButton>
+          <div :style="{
+            display: 'flex', justifyContent: 'space-between',
+            gap: 'var(--sp-md)', marginTop: 'var(--sp-sm)',
+          }">
+            <PortalButton variant="secondary" @click="router.push('/')">Volver</PortalButton>
+            <PortalButton
+              variant="primary"
+              :loading="loadingVerificacion"
+              :disabled="!aceptaCondiciones || !!errorCorreo || !emailValidado"
+              @click="verificarYContinuar()"
+            >
+              Verificar y continuar
+            </PortalButton>
+          </div>
 
         </div>
       </div>
@@ -479,7 +553,7 @@ function onOtpValidado() {
     </div>
 
     <!-- ═══ FORMULARIO ACTIVO (13 pasos) ════════════════════ -->
-    <div v-else>
+    <div v-else :style="{ width: '100%', margin: '0 auto' }">
 
       <!-- Banner: borrador encontrado — Continuar o Empezar de nuevo -->
       <div v-if="mostrarOpcionBorrador" :style="{
@@ -526,9 +600,6 @@ function onOtpValidado() {
         borderRadius: 'var(--r-lg)',
         background:   'var(--color-success-bg)',
         marginBottom: 'var(--sp-lg)',
-        maxWidth:     isMobile ? '100%' : '480px',
-        marginLeft:   'auto',
-        marginRight:  'auto',
       }">
         <IconCircleCheck :size="16" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
         <span :style="{
@@ -536,88 +607,96 @@ function onOtpValidado() {
           color:      'var(--color-success-text)',
           fontWeight: 'var(--fw-semibold)',
         }">Sus datos anteriores fueron recuperados. Continúa desde donde lo dejó.</span>
-
       </div>
 
-      <!-- Encabezado con progreso -->
-      <div :style="{
-        marginBottom: 'var(--sp-xl)',
-        maxWidth:     isMobile ? '100%' : '480px',
-        marginLeft:   'auto',
-        marginRight:  'auto',
-      }">
+      <!-- Encabezado -->
+      <div :style="{ marginBottom: 'var(--sp-xl)' }">
         <div :style="{
-          display:        'flex',
-          justifyContent: 'space-between',
-          alignItems:     'flex-end',
-          marginBottom:   'var(--sp-sm)',
-        }">
-          <div>
-            <div :style="{
-              fontFamily: 'var(--font-display)',
-              fontSize:   'var(--text-xl)',
-              fontWeight: 'var(--fw-extrabold)',
-              color:      'var(--color-text-1)',
-            }">{{ pasoActual?.titulo }}</div>
-          </div>
-          <div :style="{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--sp-xs)' }">
-            <div :style="{
-              fontSize:   'var(--text-sm)',
-              color:      'var(--color-text-3)',
-              fontWeight: 'var(--fw-regular)',
-            }">Paso {{ indexPasoActual }} de {{ pasosActivos.length }}</div>
-          </div>
-        </div>
-        <!-- Barra de progreso segmentada -->
-        <div :style="{ display: 'flex', gap: '3px' }">
-          <div
-            v-for="(p, i) in pasosActivos"
-            :key="p.numero"
-            :style="{
-              flex:         '1',
-              height:       '4px',
-              borderRadius: 'var(--r-pill)',
-              background:   i < indexPasoActual ? 'var(--color-primary)' : 'var(--color-border)',
-              transition:   'background 0.3s ease',
-            }"
-          />
+          fontFamily: 'var(--font-display)',
+          fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-extrabold)',
+          color: 'var(--color-text-1)', marginBottom: 'var(--sp-xs)',
+        }">Solicitud de crédito</div>
+        <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-text-2)', fontWeight: 'var(--fw-medium)' }">
+          Obtenga el financiamiento que necesita con las mejores condiciones
         </div>
       </div>
+
+      <StepIndicator v-if="paso > 1" :pasos="secciones" :actual="seccionActual" />
+
+      <!-- Título del paso + contador + barra de progreso -->
+      <div v-if="paso > 1" :style="{ marginBottom: 'var(--sp-xl)' }">
+        <div :style="{
+          display: 'flex', justifyContent: 'space-between',
+          alignItems: 'flex-end', marginBottom: 'var(--sp-sm)',
+        }">
+          <div :style="{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-extrabold)',
+            color: 'var(--color-text-1)',
+          }">{{ pasoActual?.titulo }}</div>
+          <div :style="{
+              fontSize: 'var(--text-sm)', color: 'var(--color-text-3)',
+              fontWeight: 'var(--fw-semibold)',
+            }">Paso {{ indexPasoActual }} de {{ totalPasosVisibles }}</div>
+          </div>
+          <div :style="{
+            height: '6px', background: 'var(--color-border)',
+            borderRadius: 'var(--r-pill)', overflow: 'hidden',
+          }">
+            <div :style="{
+              height: '100%',
+              width: (indexPasoActual / totalPasosVisibles * 100) + '%',
+              background: 'var(--color-primary)',
+              borderRadius: 'var(--r-pill)',
+              transition: 'width var(--transition-base)',
+            }" />
+          </div>
+        </div>
 
       <!-- Contenido del paso -->
       <div :style="{
         background:   'var(--color-bg-card)',
         border:       '1px solid var(--color-border-card)',
-        borderRadius: 'var(--r-xl)',
-        padding:      'var(--sp-xl)',
+        borderRadius: 'var(--r-2xl)',
+        padding:      isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
         boxShadow:    'var(--shadow-card)',
-        marginBottom: 'var(--sp-lg)',
-        maxWidth:     isMobile ? '100%' : '480px',
-        marginLeft:   'auto',
-        marginRight:  'auto',
+        position:     'relative',
       }">
 
         <!-- ── PASO 1: Modalidad de crédito ─────────────────── -->
-        <SelectorModalidad
-          v-if="paso === 1"
-          :model-value="general.modalidad_credito"
-          @update:model-value="seleccionarModalidad"
-        />
+        <div v-if="paso === 1" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+          <SelectorModalidad
+            :model-value="general.modalidad_credito"
+            @update:model-value="seleccionarModalidad"
+          />
+
+          <!-- Tipo de operación — solo para crédito ordinario -->
+          <div v-if="mostrarTipoOperacion" :style="{
+            marginTop: 'var(--sp-sm)',
+            animation: 'fadeIn 0.3s ease-out'
+          }">
+            <div :style="{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'var(--text-base)',
+              fontWeight: 'var(--fw-bold)',
+              color: 'var(--color-primary)',
+              marginBottom: 'var(--sp-md)',
+              textAlign: 'center'
+            }">¿Qué tipo de operación desea realizar?</div>
+            <CampoSelectBuscable
+              :model-value="general.tipo_operacion"
+              label="Tipo de operación"
+              required
+              :opciones="opsTipoOperacion"
+              @update:model-value="actualizarGeneral('tipo_operacion', $event)"
+            />
+          </div>
+        </div>
 
         <!-- ── PASO 2: Datos de la solicitud ────────────────── -->
         <div v-if="paso === 2" :style="{
           display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)',
         }">
-          <!-- Tipo de operación — solo para crédito ordinario -->
-          <CampoSelectBuscable
-            v-if="mostrarTipoOperacion"
-            :model-value="general.tipo_operacion"
-            label="Tipo de operación"
-            required
-            :opciones="opsTipoOperacion"
-            @update:model-value="actualizarGeneral('tipo_operacion', $event)"
-          />
-
           <!-- Valor del crédito (nuevo o educativo) -->
           <CampoMoneda
             v-if="mostrarValorCredito"
@@ -1652,71 +1731,42 @@ function onOtpValidado() {
       <div :style="{
         display:        'flex',
         flexDirection:  isMobile ? 'column-reverse' : 'row',
-        justifyContent: (!isMobile && paso === pasosActivos[0]?.numero) ? 'flex-end' : 'space-between',
+        justifyContent: 'space-between',
         alignItems:     'stretch',
         gap:            'var(--sp-md)',
-        maxWidth:       isMobile ? '100%' : '480px',
-        marginLeft:     'auto',
-        marginRight:    'auto',
+        marginTop:      'var(--sp-2xl)',
       }">
         <PortalButton
-          v-if="paso !== pasosActivos[0]?.numero"
           variant="secondary"
           :full="isMobile"
-          @click="anterior()"
+          @click="paso === pasosActivos[0]?.numero ? router.push('/') : anterior()"
         >
-          Anterior
+          {{ paso === pasosActivos[0]?.numero ? 'Cancelar' : 'Anterior' }}
         </PortalButton>
         <PortalButton
-          v-if="!esUltimoPaso && paso !== 1"
+          v-if="!esUltimoPaso"
           variant="primary"
           :loading="loading"
-          :disabled="(paso === 2 && !pasoSolicitudValido) || (paso === 3 && esMenorDeEdad) || (paso === 18 && !autorizaciones.autorizacion_aceptada)"
-          :style="{
-            opacity: ((paso === 2 && !pasoSolicitudValido) || (paso === 3 && esMenorDeEdad)) ? '0.45' : '1',
-            cursor:  ((paso === 2 && !pasoSolicitudValido) || (paso === 3 && esMenorDeEdad)) ? 'not-allowed' : 'pointer',
-          }"
+          :disabled="
+            (paso === 1 && (!general.modalidad_credito || (mostrarTipoOperacion && !general.tipo_operacion))) ||
+            (paso === 2 && !pasoSolicitudValido) ||
+            (paso === 3 && esMenorDeEdad) ||
+            (paso === 18 && !autorizaciones.autorizacion_aceptada)
+          "
           :full="isMobile"
           @click="siguiente()"
         >
-          Continuar
+          Siguiente
         </PortalButton>
         <PortalButton
           v-if="esUltimoPaso"
-          variant="accent"
+          variant="primary"
           :loading="loading"
           :full="isMobile"
           @click="enviar()"
         >
           Enviar solicitud
         </PortalButton>
-      </div>
-
-      <!-- Dots de navegación -->
-      <div :style="{
-        display:        'flex',
-        justifyContent: 'center',
-        gap:            'var(--sp-xs)',
-        marginTop:      'var(--sp-xl)',
-        flexWrap:       'wrap',
-      }">
-        <div
-          v-for="p in pasosActivos"
-          :key="p.numero"
-          :style="{
-            width:        paso === p.numero ? '24px' : '8px',
-            height:       '8px',
-            borderRadius: 'var(--r-pill)',
-            background:   paso === p.numero
-              ? 'var(--color-primary)'
-              : paso > p.numero
-                ? 'var(--color-primary)'
-                : 'var(--color-border)',
-            transition:   'all var(--transition-base)',
-            cursor:       paso > p.numero ? 'pointer' : 'default',
-          }"
-          @click="paso > p.numero && irAPaso(p.numero)"
-        />
       </div>
 
     </div>

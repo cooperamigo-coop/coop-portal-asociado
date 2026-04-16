@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { IconCreditCard, IconUserPlus, IconClipboardList, IconFileText, IconArrowRight, IconArrowLeft, IconClock, IconWorld } from '@tabler/icons-vue'
+import { IconCreditCard, IconUserPlus, IconUserMinus, IconClipboardList, IconFileText, IconArrowRight, IconArrowLeft, IconClock, IconWorld } from '@tabler/icons-vue'
 import PortalFooter from '@/components/layout/PortalFooter.vue'
 
 const router = useRouter()
@@ -27,6 +27,15 @@ const SERVICIOS_ASOCIADO = [
     ruta: '/solicitar-credito',
     iconoBg: 'var(--color-bg-surface-alt)',
     iconoColor: 'var(--color-primary)',
+  },
+  {
+    id: 'retiro',
+    icono: IconUserMinus,
+    nombre: 'Formalizar retiro',
+    descripcion: 'Inicie su proceso de desvinculación de manera virtual',
+    disponible: false,
+    iconoBg: 'var(--color-bg-surface-alt)',
+    iconoColor: 'var(--color-text-3)',
   },
   {
     id: 'estado',
@@ -74,7 +83,7 @@ const SERVICIOS_NO_ASOCIADO = [
           target="_blank"
           rel="noopener noreferrer"
           class="topbar-visit"
-        ><IconWorld :size="14" />Visitar sitio</a>
+        ><IconWorld :size="14" />Cooperamigo.coop</a>
       </div>
       <!-- Mobile: link a cooperamigo.coop -->
       <a
@@ -122,8 +131,8 @@ const SERVICIOS_NO_ASOCIADO = [
         <!-- ── Vista: pregunta inicial ───────────────────────── -->
         <div v-if="paso === 'pregunta'" class="vista animate-in">
           <img src="/favicon.svg" alt="Cooperamigó" class="hero-favicon" />
-          <h1 class="hero-title">Le damos la bienvenida</h1>
-          <p class="hero-question">¿Ya hace parte de nuestra cooperativa? Acceda a sus trámites digitales o inicie su proceso de vinculación como asociado.</p>
+          <h1 class="hero-title">Te damos la bienvenida</h1>
+          <p class="hero-question">¿Ya haces parte de nuestra cooperativa? Accede a tus trámites digitales o inicia tu proceso de vinculación como asociado.</p>
           <div class="opciones">
             <button
               class="btn-opcion btn-opcion--primary"
@@ -155,7 +164,7 @@ const SERVICIOS_NO_ASOCIADO = [
           </button>
           <div class="services-list">
             <div
-              v-for="srv in SERVICIOS_ASOCIADO.filter(s => s.id === 'credito')"
+              v-for="srv in SERVICIOS_ASOCIADO.filter(s => s.id === 'credito' || s.id === 'retiro')"
               :key="srv.id"
               class="service-row"
               :class="srv.disponible ? 'service-row--on' : 'service-row--off'"
@@ -227,12 +236,14 @@ const SERVICIOS_NO_ASOCIADO = [
   align-items: stretch;
   background: #ffffff;
   font-family: var(--font-body);
+  position: relative;
 }
 
 /* ─── Main ─── */
 .home-main {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 40px 32px;
@@ -306,7 +317,7 @@ const SERVICIOS_NO_ASOCIADO = [
 
 .hero-question {
   font-size: var(--text-lg);
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-regular);
   color: var(--color-text-2);
   margin: 0;
   text-align: center;
@@ -515,7 +526,11 @@ const SERVICIOS_NO_ASOCIADO = [
 
 /* ─── Topbar ─── */
 .portal-topbar {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 20;
   background: transparent;
   display: flex;
   align-items: center;
@@ -523,6 +538,7 @@ const SERVICIOS_NO_ASOCIADO = [
   padding: 0 32px;
   height: 44px;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .topbar-desktop {
@@ -598,6 +614,7 @@ const SERVICIOS_NO_ASOCIADO = [
 /* ─── Responsive ─── */
 @media (max-width: 960px) {
   .portal-topbar {
+    position: relative;
     background: var(--color-primary);
     justify-content: flex-start;
     padding: 0 16px;

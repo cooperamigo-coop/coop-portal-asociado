@@ -11,6 +11,7 @@ const router = useRouter()
     minHeight: '100vh',
     background: '#ffffff',
     display: 'flex', flexDirection: 'column',
+    position: 'relative'
   }">
     <!-- Topbar -->
     <header class="portal-topbar">
@@ -26,7 +27,7 @@ const router = useRouter()
           target="_blank"
           rel="noopener noreferrer"
           class="topbar-visit"
-        ><IconWorld :size="14" />Visitar sitio</a>
+        ><IconWorld :size="14" />Cooperamigo.coop</a>
       </div>
       <!-- Mobile: botón retroceso -->
       <button class="topbar-back" @click="router.push('/')" aria-label="Inicio">
@@ -52,15 +53,17 @@ const router = useRouter()
     <main class="portal-main">
 
       <!-- Anillos decorativos permanentes -->
-      <div class="deco-ring deco-ring--primary" aria-hidden="true">
-        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">
-          <circle cx="100" cy="100" r="80" fill="none" stroke="var(--color-primary)" stroke-width="30"/>
-        </svg>
-      </div>
-      <div class="deco-ring deco-ring--accent" aria-hidden="true">
-        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">
-          <circle cx="100" cy="100" r="80" fill="none" stroke="var(--color-accent)" stroke-width="30"/>
-        </svg>
+      <div class="deco-container" aria-hidden="true">
+        <div class="deco-ring deco-ring--primary">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">
+            <circle cx="100" cy="100" r="80" fill="none" stroke="var(--color-primary)" stroke-width="30"/>
+          </svg>
+        </div>
+        <div class="deco-ring deco-ring--accent">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">
+            <circle cx="100" cy="100" r="80" fill="none" stroke="var(--color-accent)" stroke-width="30"/>
+          </svg>
+        </div>
       </div>
 
       <div class="portal-main__inner">
@@ -80,16 +83,25 @@ const router = useRouter()
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   padding: 40px 32px;
   position: relative;
-  overflow: hidden;
 }
 
 /* ─── Anillos decorativos ─── */
-.deco-ring {
+.deco-container {
   position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
   pointer-events: none;
   z-index: 0;
+}
+
+.deco-ring {
+  position: absolute;
   opacity: 0.14;
 }
 
@@ -119,7 +131,11 @@ const router = useRouter()
 
 /* ─── Topbar ─── */
 .portal-topbar {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 20;
   background: transparent;
   display: flex;
   align-items: center;
@@ -127,6 +143,7 @@ const router = useRouter()
   padding: 0 32px;
   height: 44px;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .topbar-desktop {
@@ -219,6 +236,7 @@ const router = useRouter()
 
 @media (max-width: 960px) {
   .portal-topbar {
+    position: relative;
     background: var(--color-primary);
     justify-content: flex-start;
     padding: 0 16px;

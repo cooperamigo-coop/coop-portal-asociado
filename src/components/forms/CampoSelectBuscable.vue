@@ -6,7 +6,7 @@ const props = defineProps({
   modelValue:  { type: String, default: '' },
   label:       { type: String, required: true },
   opciones:    { type: Array,  required: true }, // [{ value, label }]
-  placeholder: { type: String, default: 'Seleccione...' },
+  placeholder: { type: String, default: 'Seleccione' },
   required:    { type: Boolean, default: false },
   disabled:    { type: Boolean, default: false },
   clearable:   { type: Boolean, default: false },
@@ -20,6 +20,15 @@ const abierto      = ref(false)
 const busqueda     = ref('')
 const inputRef     = ref(null)
 const containerRef = ref(null)
+const dropdownRef  = ref(null)
+
+const dropdownStyle = ref({
+  position: 'fixed',
+  top: '0',
+  left: '0',
+  width: '0',
+  zIndex: '9999',
+})
 
 const floated = computed(() => abierto.value || !!props.modelValue)
 
@@ -36,8 +45,31 @@ const opcionesFiltradas = computed(() => {
   return props.limit > 0 ? todas.slice(0, props.limit) : todas
 })
 
+function calcularPosicion() {
+  if (!containerRef.value) return
+  const rect = containerRef.value.getBoundingClientRect()
+  const viewportHeight = window.innerHeight
+  const dropdownHeight = 300 // Estimación max-height buscador + lista
+
+  let top = rect.bottom + 4
+  
+  // Si no cabe abajo, abrir arriba
+  if (top + dropdownHeight > viewportHeight && rect.top > dropdownHeight) {
+    top = rect.top - dropdownHeight - 4
+  }
+
+  dropdownStyle.value = {
+    position: 'fixed',
+    top: `${top}px`,
+    left: `${rect.left}px`,
+    width: `${rect.width}px`,
+    zIndex: '9999',
+  }
+}
+
 function abrir() {
   if (props.disabled) return
+  calcularPosicion()
   abierto.value = true
   busqueda.value = ''
   setTimeout(() => inputRef.value?.focus(), 50)
@@ -67,13 +99,32 @@ function onKeydown(e) {
 }
 
 function onClickFuera(e) {
-  if (containerRef.value && !containerRef.value.contains(e.target)) {
-    if (abierto.value) cerrar()
+  if (!abierto.value) return
+  
+  const clickEnContenedor = containerRef.value?.contains(e.target)
+  const clickEnDropdown = dropdownRef.value?.contains(e.target)
+
+  if (!clickEnContenedor && !clickEnDropdown) {
+    cerrar()
   }
 }
 
-onMounted(() => document.addEventListener('mousedown', onClickFuera))
-onUnmounted(() => document.removeEventListener('mousedown', onClickFuera))
+// Actualizar posición si se hace scroll o resize mientras está abierto
+function actualizarPosicion() {
+  if (!abierto.value) return
+  calcularPosicion()
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', onClickFuera)
+  window.addEventListener('scroll', actualizarPosicion, true)
+  window.addEventListener('resize', actualizarPosicion)
+})
+onUnmounted(() => {
+  document.removeEventListener('mousedown', onClickFuera)
+  window.removeEventListener('scroll', actualizarPosicion, true)
+  window.removeEventListener('resize', actualizarPosicion)
+})
 </script>
 
 <template>
@@ -124,111 +175,111 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickFuera))
       />
     </div>
 
-    <!-- Dropdown -->
-    <Transition name="dropdown-fade">
-      <div
-        v-if="abierto"
-        :style="{
-          position:     'absolute',
-          top:          'calc(100% + 4px)',
-          left:         '0',
-          minWidth:     '180px',
-          zIndex:       '50',
-          background:   'var(--color-bg-card)',
-          border:       '1px solid var(--color-border)',
-          borderRadius: 'var(--r-xl)',
-          boxShadow:    'var(--shadow-modal)',
-          overflow:     'hidden',
-        }"
-      >
-        <!-- Buscador -->
-        <div :style="{
-          padding:      'var(--sp-sm)',
-          borderBottom: '1px solid var(--color-border-light)',
-          background:   'var(--color-bg-surface)',
-          display:      'flex',
-          alignItems:   'center',
-          gap:          'var(--sp-sm)',
-        }">
-          <IconSearch :size="14" :style="{ color: 'var(--color-text-3)', flexShrink: '0' }" />
-          <input
-            ref="inputRef"
-            v-model="busqueda"
-            type="text"
-            placeholder="Buscar..."
-            :style="{
-              flex:       '1',
-              border:     'none',
-              outline:    'none',
-              background: 'transparent',
-              fontSize:   'var(--text-base)',
-              fontFamily: 'var(--font-body)',
-              color:      'var(--color-text-1)',
-            }"
-            @keydown="onKeydown"
-          />
-        </div>
-
-        <!-- Lista de opciones -->
-        <div :style="{ maxHeight: '240px', overflowY: 'auto' }">
-          <div
-            v-if="opcionesFiltradas.length === 0"
-            :style="{
-              padding:    'var(--sp-xl)',
-              textAlign:  'center',
-              fontSize:   'var(--text-base)',
-              color:      'var(--color-text-3)',
-              fontWeight: 'var(--fw-medium)',
-            }"
-          >Sin resultados</div>
-
-          <div
-            v-for="opcion in opcionesFiltradas"
-            :key="opcion.value"
-            :style="{
-              display:        'flex',
-              alignItems:     'center',
-              justifyContent: 'space-between',
-              padding:        'var(--sp-md) var(--sp-lg)',
-              cursor:         'pointer',
-              fontSize:       'var(--text-base)',
-              fontWeight:     modelValue === opcion.value ? 'var(--fw-bold)' : 'var(--fw-medium)',
-              color:          modelValue === opcion.value ? 'var(--color-primary)' : 'var(--color-text-1)',
-              background:     modelValue === opcion.value ? 'var(--color-primary-light)' : 'transparent',
-              transition:     'background var(--transition-fast)',
-              borderBottom:   '1px solid var(--color-border-light)',
-            }"
-            @mouseenter="e => { if (modelValue !== opcion.value) e.currentTarget.style.background = 'var(--color-bg-surface)' }"
-            @mouseleave="e => { if (modelValue !== opcion.value) e.currentTarget.style.background = 'transparent' }"
-            @click="seleccionar(opcion)"
-          >
-            <span>{{ opcion.label }}</span>
-            <IconCheck
-              v-if="modelValue === opcion.value"
-              :size="14"
-              :style="{ color: 'var(--color-primary)', flexShrink: '0' }"
-            />
-          </div>
-        </div>
-
-        <!-- Contador si hay más resultados de los mostrados -->
+    <Teleport to="body">
+      <Transition name="dropdown-fade">
         <div
-          v-if="limit > 0 && busqueda && opciones.filter(o => o.label.toLowerCase().includes(busqueda.toLowerCase())).length > limit"
+          v-if="abierto"
+          ref="dropdownRef"
+          class="csb-dropdown"
           :style="{
-            padding:    'var(--sp-sm) var(--sp-lg)',
-            fontSize:   'var(--text-xs)',
-            color:      'var(--color-text-3)',
-            fontWeight: 'var(--fw-medium)',
-            borderTop:  '1px solid var(--color-border-light)',
-            textAlign:  'center',
+            ...dropdownStyle,
+            boxSizing:    'border-box',
+            background:   'var(--color-bg-card)',
+            border:       '1px solid var(--color-border)',
+            borderRadius: 'var(--r-md)',
+            boxShadow:    'var(--shadow-modal)',
+            overflow:     'hidden',
           }"
         >
-          Mostrando 10 de
-          {{ opciones.filter(o => o.label.toLowerCase().includes(busqueda.toLowerCase())).length }}
-          resultados. Refine su búsqueda.
+          <!-- Buscador -->
+          <div :style="{
+            padding:      'var(--sp-sm)',
+            borderBottom: '1px solid var(--color-border-light)',
+            background:   'var(--color-bg-surface)',
+            display:      'flex',
+            alignItems:   'center',
+            gap:          'var(--sp-sm)',
+          }">
+            <IconSearch :size="14" :style="{ color: 'var(--color-text-3)', flexShrink: '0' }" />
+            <input
+              ref="inputRef"
+              v-model="busqueda"
+              type="text"
+              placeholder="Buscar..."
+              :style="{
+                flex:       '1',
+                border:     'none',
+                outline:    'none',
+                background: 'transparent',
+                fontSize:   'var(--text-base)',
+                fontFamily: 'var(--font-body)',
+                color:      'var(--color-text-1)',
+              }"
+              @keydown="onKeydown"
+            />
+          </div>
+
+          <!-- Lista de opciones -->
+          <div :style="{ maxHeight: '240px', overflowY: 'auto' }">
+            <div
+              v-if="opcionesFiltradas.length === 0"
+              :style="{
+                padding:    'var(--sp-xl)',
+                textAlign:  'center',
+                fontSize:   'var(--text-base)',
+                color:      'var(--color-text-3)',
+                fontWeight: 'var(--fw-medium)',
+              }"
+            >Sin resultados</div>
+
+            <div
+              v-for="opcion in opcionesFiltradas"
+              :key="opcion.value"
+              :style="{
+                display:        'flex',
+                alignItems:     'center',
+                justifyContent: 'space-between',
+                padding:        'var(--sp-md) var(--sp-lg)',
+                cursor:         'pointer',
+                fontSize:       'var(--text-base)',
+                fontWeight:     modelValue === opcion.value ? 'var(--fw-bold)' : 'var(--fw-medium)',
+                color:          modelValue === opcion.value ? 'var(--color-primary)' : 'var(--color-text-1)',
+                background:     modelValue === opcion.value ? 'var(--color-primary-light)' : 'transparent',
+                transition:     'background var(--transition-fast)',
+                borderBottom:   '1px solid var(--color-border-light)',
+              }"
+              @mouseenter="e => { if (modelValue !== opcion.value) e.currentTarget.style.background = 'var(--color-bg-surface)' }"
+              @mouseleave="e => { if (modelValue !== opcion.value) e.currentTarget.style.background = 'transparent' }"
+              @click="seleccionar(opcion)"
+            >
+              <span>{{ opcion.label }}</span>
+              <IconCheck
+                v-if="modelValue === opcion.value"
+                :size="14"
+                :style="{ color: 'var(--color-primary)', flexShrink: '0' }"
+              />
+            </div>
+          </div>
+
+          <!-- Contador si hay más resultados de los mostrados -->
+          <div
+            v-if="limit > 0 && busqueda && opciones.filter(o => o.label.toLowerCase().includes(busqueda.toLowerCase())).length > limit"
+            :style="{
+              padding:    'var(--sp-sm) var(--sp-lg)',
+              fontSize:   'var(--text-xs)',
+              color:      'var(--color-text-3)',
+              fontWeight: 'var(--fw-medium)',
+              borderTop:  '1px solid var(--color-border-light)',
+              textAlign:  'center',
+            }"
+          >
+            Mostrando 10 de
+            {{ opciones.filter(o => o.label.toLowerCase().includes(busqueda.toLowerCase())).length }}
+            resultados. Refine su búsqueda.
+          </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
 
     <!-- Error / Helper -->
     <span v-if="error"       class="csb-msg csb-msg--error">{{ error }}</span>
@@ -251,18 +302,18 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickFuera))
   display: flex;
   align-items: center;
   gap: var(--sp-sm);
-  padding: 12px 14px;
+  padding: 0 16px;
   border: 1px solid var(--color-border);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-md);
   background: var(--color-bg-card);
   cursor: pointer;
   user-select: none;
-  transition: padding var(--transition-fast), border-color var(--transition-fast);
-  min-height: 44px;
+  transition: border-color var(--transition-fast);
+  height: 54px;
   box-sizing: border-box;
 }
 
-.csb-field--floated  { padding: 20px 14px 4px; }
+.csb-field--floated  { padding: 0 16px; }
 .csb-field--open     { border-color: var(--color-primary); outline: 3px solid var(--color-primary-light); }
 .csb-field--error    { border-color: var(--color-error) !important; outline: none; }
 .csb-field--disabled { background: var(--color-bg-card); cursor: not-allowed; }
@@ -276,6 +327,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickFuera))
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: left;
 }
 .csb-value--empty { color: transparent; }
 
@@ -320,7 +372,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickFuera))
 .csb-label--focused { color: var(--color-primary); }
 .csb-label--error   { color: var(--color-error-text); }
 
-.csb-required { color: var(--color-error); }
+.csb-required { color: var(--color-primary); }
 
 /* ── Botón limpiar ── */
 .csb-clear {

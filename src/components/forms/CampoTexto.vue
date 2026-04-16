@@ -82,9 +82,10 @@ function onBlur()  { focused.value = false; emit('blur') }
 .campo-input {
   display: block;
   width: 100%;
-  padding: 12px 14px;
+  height: 54px;
+  padding: 0 16px;
   border: 1px solid var(--color-border);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-md);
   font-size: var(--text-base);
   font-family: var(--font-body);
   background: var(--color-bg-card);
@@ -92,6 +93,7 @@ function onBlur()  { focused.value = false; emit('blur') }
   outline: none;
   box-sizing: border-box;
   transition: border-color var(--transition-fast);
+  text-align: left;
 }
 
 .campo-input--focused  { border-color: var(--color-primary); }
@@ -138,7 +140,7 @@ function onBlur()  { focused.value = false; emit('blur') }
 
 .campo-label--focused { color: var(--color-primary); }
 .campo-label--error   { color: var(--color-error-text); }
-.campo-required       { color: var(--color-error); }
+.campo-required       { color: var(--color-primary); }
 
 /* ── Mensajes ── */
 .campo-msg { font-size: var(--text-xs); font-weight: var(--fw-medium); }

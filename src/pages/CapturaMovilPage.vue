@@ -580,7 +580,7 @@ async function confirmar() {
       padding:'10px', fontSize:'10px',
       color:'rgba(255,255,255,0.15)', fontWeight:'500',
     }">
-      Cooperativa Multiactiva Luis Amigó · NIT 800.191.482-7
+      COOPERATIVA MULTIACTIVA LUIS AMIGÓ - COOPERAMIGÓ · NIT 800.191.482-7
     </div>
   </div>
 </template>

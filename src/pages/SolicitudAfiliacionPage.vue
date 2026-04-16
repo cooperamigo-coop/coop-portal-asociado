@@ -13,7 +13,7 @@ import CampoCheck         from '@/components/forms/CampoCheck.vue'
 import ModalOtpEmail      from '@/components/forms/ModalOtpEmail.vue'
 import { useAfiliacion }  from '@/composables/useAfiliacion'
 import { useBreakpoint }  from '@/composables/useBreakpoint'
-import { IconCircleCheck, IconUserCheck } from '@tabler/icons-vue'
+import { IconCircleCheck, IconUserCheck, IconCheck } from '@tabler/icons-vue'
 
 const router = useRouter()
 const { isMobile } = useBreakpoint()
@@ -146,7 +146,7 @@ function onOtpValidado() {
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- PASO 0: Verificación inicial                                        -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <div v-if="paso === 0" :style="{ maxWidth: '380px', margin: '0 auto' }">
+    <div v-if="paso === 0" :style="{ maxWidth: '420px', width: '100%', margin: '0 auto' }">
 
       <div :style="{ marginBottom: 'var(--sp-2xl)' }">
         <div :style="{
@@ -154,7 +154,7 @@ function onOtpValidado() {
           fontSize:   'var(--text-xl)',
           fontWeight: 'var(--fw-extrabold)',
           color:      'var(--color-text-1)',
-        }">Comencemos con tu solicitud</div>
+        }">¡Saludos! Comencemos con tu solicitud</div>
       </div>
 
       <!-- Borrador disponible -->
@@ -192,14 +192,60 @@ function onOtpValidado() {
             :style="{ display: 'flex', gap: 'var(--sp-md)', alignItems: 'flex-start' }"
             @click="onDocumentoAreaClick"
           >
-            <div :style="{ flex: '0 0 90px' }">
-              <CampoSelectBuscable
-                v-model="tipoDocumentoInicial"
-                label="Tipo"
-                required
-                :opciones="opsTipoDocVerificacion"
-              />
+            <!-- Selector de Tipo Check Circle (Encuadrado) -->
+            <div :style="{
+              flex: '0 0 30%',
+              display: 'flex',
+              background: 'var(--color-bg-card)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--r-md)',
+              height: '54px',
+              boxSizing: 'border-box',
+              padding: '0 12px',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 'var(--sp-md)'
+            }">
+              <label
+                v-for="op in opsTipoDocVerificacion"
+                :key="op.value"
+                :style="{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--sp-xs)',
+                  cursor: 'pointer',
+                  userSelect: 'none'
+                }"
+              >
+                <div :style="{
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  border: '2px solid ' + (tipoDocumentoInicial === op.value ? 'var(--color-primary)' : 'var(--color-border)'),
+                  background: tipoDocumentoInicial === op.value ? 'var(--color-primary)' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all var(--transition-base)',
+                  color: 'white'
+                }">
+                  <IconCheck v-if="tipoDocumentoInicial === op.value" :size="12" stroke-width="4" />
+                </div>
+                <input
+                  type="radio"
+                  v-model="tipoDocumentoInicial"
+                  :value="op.value"
+                  style="display: none"
+                />
+                <span :style="{
+                  fontSize: 'var(--text-base)',
+                  fontWeight: tipoDocumentoInicial === op.value ? 'var(--fw-bold)' : 'var(--fw-medium)',
+                  color: tipoDocumentoInicial === op.value ? 'var(--color-text-1)' : 'var(--color-text-3)'
+                }">{{ op.label }}</span>
+              </label>
             </div>
+
+            <!-- Número de Documento -->
             <div :style="{ flex: '1' }">
               <CampoTexto
                 v-model="numeroDocumentoInicial"
@@ -218,7 +264,6 @@ function onOtpValidado() {
             padding: 'var(--sp-sm) var(--sp-md)',
             borderRadius: 'var(--r-lg)',
             background: 'var(--color-success-bg)',
-            border: '1px solid var(--color-success)',
           }">
             <IconCircleCheck :size="15" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
             <span :style="{
@@ -243,11 +288,12 @@ function onOtpValidado() {
               fontSize: 'var(--text-xs)', color: 'var(--color-text-2)',
               fontWeight: 'var(--fw-medium)', lineHeight: '1.7',
             }">
-              Autorizo a la Cooperativa Multiactiva Luis Amigó para consultar mis datos
-              ante operadores de información y riesgo, junto a los
-              <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)' }">Términos y condiciones</a>
-              y
-              <a href="https://cooperamigo.coop/aviso-privacidad" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)' }">Política de privacidad</a>.
+              Autorizo a la Cooperativa Multiactiva Luis Amigó – cooperamigó para tratar mis datos personales con la finalidad de gestionar mi proceso de afiliación, contactarme y suministrarme información relacionada con los servicios y beneficios de la cooperativa.
+              Asimismo, autorizo, cuando sea necesario, la consulta de mi información en operadores de información y riesgo, con el fin de validar mis datos.
+              Declaro que conozco mis derechos como titular de la información. Igualmente, manifiesto que he leído y acepto los
+              <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">Términos y condiciones</a>
+              y la
+              <a href="https://cooperamigo.coop/aviso-privacidad" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">Política de tratamiento de datos personales</a>.
             </span>
           </label>
 
@@ -268,14 +314,6 @@ function onOtpValidado() {
         </div>
       </template>
     </div>
-
-    <!-- Modal OTP -->
-    <ModalOtpEmail
-      v-if="mostrarModalOtp"
-      :email="emailInicial"
-      contexto="afiliacion"
-      @validado="onOtpValidado"
-    />
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- PASO 7: Éxito                                                       -->
@@ -333,9 +371,10 @@ function onOtpValidado() {
     <!-- PASOS 1–6: Formulario principal                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <template v-else>
+      <div :style="{ width: '100%', margin: '0 auto' }">
 
-      <!-- Encabezado -->
-      <div :style="{ marginBottom: 'var(--sp-xl)' }">
+        <!-- Encabezado -->
+        <div :style="{ marginBottom: 'var(--sp-xl)' }">
         <div :style="{
           fontFamily: 'var(--font-display)',
           fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-extrabold)',
@@ -362,15 +401,16 @@ function onOtpValidado() {
           <div :style="{
             fontSize: 'var(--text-sm)', color: 'var(--color-text-3)',
             fontWeight: 'var(--fw-semibold)',
-          }">Paso {{ paso }} de {{ pasos.length }}</div>
+          }">Paso {{ paso }} de 6</div>
         </div>
         <div :style="{
           height: '6px', background: 'var(--color-border)',
           borderRadius: 'var(--r-pill)', overflow: 'hidden',
+          maxWidth: '480px'
         }">
           <div :style="{
             height: '100%',
-            width: (paso / pasos.length * 100) + '%',
+            width: (paso / 6 * 100) + '%',
             background: 'var(--color-primary)',
             borderRadius: 'var(--r-pill)',
             transition: 'width var(--transition-base)',
@@ -1236,9 +1276,17 @@ function onOtpValidado() {
             {{ paso === 6 ? (loading ? 'Enviando...' : 'Enviar solicitud') : 'Siguiente' }}
           </PortalButton>
         </div>
-
       </div>
-    </template>
+    </div>
+  </template>
+
+    <!-- Modal OTP -->
+    <ModalOtpEmail
+      v-if="mostrarModalOtp"
+      :email="emailInicial"
+      contexto="afiliacion"
+      @validado="onOtpValidado"
+    />
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- MODAL — Ya es asociado                                              -->
@@ -1287,14 +1335,14 @@ function onOtpValidado() {
                 fontFamily: 'var(--font-display)',
                 fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-extrabold)',
                 color: 'var(--color-text-1)', marginBottom: 'var(--sp-sm)',
-              }">Ya eres asociado</div>
+              }">¡Ya haces parte de Cooperamigó!</div>
               <div :style="{
                 fontSize: 'var(--text-base)', color: 'var(--color-text-2)',
                 fontWeight: 'var(--fw-medium)', lineHeight: '1.6',
               }">
-                El documento
-                <strong :style="{ color: 'var(--color-text-1)' }">{{ numeroDocumentoInicial }}</strong>
-                ya está registrado como asociado activo de Cooperamigó.
+                El documento <strong :style="{ color: 'var(--color-text-1)' }">{{ numeroDocumentoInicial }}</strong> ya está vinculado como asociado activo de nuestra Cooperativa.
+                <br><br>
+                Puedes comunicarte al correo electrónico <span :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)' }">bienestarsocial@cooperamigo.coop</span> o al contacto <span :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)' }">304 455 0161</span> para obtener más información.
               </div>
             </div>
             <div :style="{

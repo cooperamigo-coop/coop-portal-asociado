@@ -35,7 +35,7 @@ export function useAfiliacion() {
   const emailInicial = ref('')
   const errorEmail = ref('')
   const borradorDisponible = ref(null)
-  const tipoDocumentoInicial = ref('cedula_ciudadania')
+  const tipoDocumentoInicial = ref('')
   const numeroDocumentoInicial = ref('')
   const errorNumeroDoc = ref('')
   const aceptaAutorizacion = ref(false)

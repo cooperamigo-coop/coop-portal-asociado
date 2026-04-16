@@ -174,16 +174,39 @@ const nivelEducativoOpciones = [
         @blur="actualizarUpper(clave('apellidos'), modelValue[clave('apellidos')])"
       />
 
-      <!-- Nivel educativo — ancho completo, solo solicitante -->
-      <CampoSelectBuscable
-        v-if="showNivelEducativo"
-        :model-value="modelValue.nivel_educativo_solicitante"
-        label="Nivel educativo"
-        required
-        :opciones="nivelEducativoOpciones"
-        :style="{ gridColumn: '1 / -1' }"
-        @update:model-value="actualizar('nivel_educativo_solicitante', $event)"
-      />
+      <!-- Nivel educativo y Fecha de nacimiento en la misma fila -->
+      <template v-if="showNivelEducativo">
+        <CampoSelectBuscable
+          :model-value="modelValue.nivel_educativo_solicitante"
+          label="Nivel educativo"
+          required
+          :opciones="nivelEducativoOpciones"
+          @update:model-value="actualizar('nivel_educativo_solicitante', $event)"
+        />
+        <SelectorFecha
+          :model-value="modelValue[clave('fecha_nacimiento')]"
+          label="Fecha de nacimiento"
+          required
+          :error="errores[clave('fecha_nacimiento')]"
+          :max-year="new Date().getFullYear() - 18"
+          :min-year="1930"
+          @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
+        />
+      </template>
+
+      <!-- Si no se muestra nivel educativo, solo fecha de nacimiento y un espacio vacío -->
+      <template v-else>
+        <SelectorFecha
+          :model-value="modelValue[clave('fecha_nacimiento')]"
+          label="Fecha de nacimiento"
+          required
+          :error="errores[clave('fecha_nacimiento')]"
+          :max-year="new Date().getFullYear() - 18"
+          :min-year="1930"
+          @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
+        />
+        <div />
+      </template>
 
       <!-- Correo electrónico — ancho completo -->
       <CampoTexto
@@ -198,21 +221,15 @@ const nivelEducativoOpciones = [
         :style="{ gridColumn: '1 / -1' }"
         @update:model-value="actualizar(clave('correo_electronico'), $event)"
       />
+    </div>
 
-      <!-- Fecha de nacimiento -->
-      <SelectorFecha
-        :model-value="modelValue[clave('fecha_nacimiento')]"
-        label="Fecha de nacimiento"
-        required
-        :error="errores[clave('fecha_nacimiento')]"
-        :max-year="new Date().getFullYear() - 18"
-        :min-year="1930"
-        @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
-      />
-
-      <!-- Columna vacía para mantener el grid par -->
-      <div v-if="!showNivelEducativo" />
-
+    <!-- El resto de campos siguen abajo (Dirección, Expedición) -->
+    <div :style="{
+      display:             'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap:                 'var(--sp-lg)',
+      marginTop:           'var(--sp-lg)',
+    }">
       <!-- Dirección de residencia (modal colombiano o campo libre) -->
       <div :style="{ gridColumn: '1 / -1' }">
         <div v-if="direccionEstructurada !== null">
@@ -225,9 +242,10 @@ const nivelEducativoOpciones = [
             :value="textoResidencia || 'Sin ingresar'"
             readonly
             :style="{
-              width: '100%', padding: '9px 14px',
+              width: '100%', padding: '0 14px',
+              height: '54px',
               border: '1px solid var(--color-border)',
-              borderRadius: 'var(--r-lg)',
+              borderRadius: 'var(--r-md)',
               fontSize: 'var(--text-base)', fontFamily: 'var(--font-body)',
               background: 'var(--color-bg-surface-alt)',
               color: textoResidencia ? 'var(--color-text-1)' : 'var(--color-text-3)',
@@ -247,16 +265,6 @@ const nivelEducativoOpciones = [
         />
       </div>
 
-      <!-- ModalDireccion -->
-      <ModalDireccion
-        v-if="direccionEstructurada !== null"
-        :model-value="direccionEstructurada"
-        :visible="modalDireccionVisible"
-        @update:model-value="actualizarDireccion($event)"
-        @confirmar="actualizar(clave('direccion_residencia'), $event)"
-        @update:visible="modalDireccionVisible = $event"
-      />
-
       <!-- Fecha + lugar de expedición — campo display + modal -->
       <div :style="{ gridColumn: '1 / -1' }">
         <div v-if="ubicacionExpedicion !== null">
@@ -269,9 +277,10 @@ const nivelEducativoOpciones = [
             :value="fechaExpedicionDisplay || 'Sin ingresar'"
             readonly
             :style="{
-              width: '100%', padding: '9px 14px',
+              width: '100%', padding: '0 14px',
+              height: '54px',
               border: '1px solid var(--color-border)',
-              borderRadius: 'var(--r-lg)',
+              borderRadius: 'var(--r-md)',
               fontSize: 'var(--text-base)', fontFamily: 'var(--font-body)',
               background: 'var(--color-bg-surface-alt)',
               color: fechaExpedicionDisplay ? 'var(--color-text-1)' : 'var(--color-text-3)',
@@ -304,17 +313,27 @@ const nivelEducativoOpciones = [
           </div>
         </template>
       </div>
-
-      <!-- ModalExpedicion -->
-      <ModalExpedicion
-        v-if="ubicacionExpedicion !== null"
-        :visible="modalExpedicionVisible"
-        :fecha="modelValue[clave('fecha_expedicion_documento')]"
-        :ubicacion="ubicacionExpedicion"
-        @update:visible="modalExpedicionVisible = $event"
-        @update:fecha="actualizar(clave('fecha_expedicion_documento'), $event)"
-        @update:ubicacion="emit('update:ubicacionExpedicion', $event)"
-      />
     </div>
+
+    <!-- ModalExpedicion -->
+    <ModalExpedicion
+      v-if="ubicacionExpedicion !== null"
+      :visible="modalExpedicionVisible"
+      :fecha="modelValue[clave('fecha_expedicion_documento')]"
+      :ubicacion="ubicacionExpedicion"
+      @update:visible="modalExpedicionVisible = $event"
+      @update:fecha="actualizar(clave('fecha_expedicion_documento'), $event)"
+      @update:ubicacion="emit('update:ubicacionExpedicion', $event)"
+    />
+
+    <!-- ModalDireccion -->
+    <ModalDireccion
+      v-if="direccionEstructurada !== null"
+      :model-value="direccionEstructurada"
+      :visible="modalDireccionVisible"
+      @update:model-value="actualizarDireccion($event)"
+      @confirmar="actualizar(clave('direccion_residencia'), $event)"
+      @update:visible="modalDireccionVisible = $event"
+    />
   </div>
 </template>

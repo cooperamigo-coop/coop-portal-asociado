@@ -73,11 +73,11 @@
   --color-purple:         #8B5CF6;
 
   /* === BORDER RADIUS === */
-  --r-sm:   8px;
-  --r-md:   14px;
-  --r-lg:   20px;
-  --r-xl:   28px;
-  --r-2xl:  36px;
+  --r-sm:   6px;
+  --r-md:   12px;
+  --r-lg:   18px;
+  --r-xl:   24px;
+  --r-2xl:  32px;
   --r-pill: 99px;
 
   /* === SOMBRAS — color base sincronizado con primary #172B36 === */
@@ -93,13 +93,13 @@
   --font-body:    'Afacad', sans-serif;
   --font-display: 'Afacad', sans-serif;
 
-  --text-xs:   10px;
-  --text-sm:   11px;
-  --text-base: 13px;
-  --text-md:   14px;
-  --text-lg:   16px;
-  --text-xl:   22px;
-  --text-2xl:  32px;
+  --text-xs:   11px;
+  --text-sm:   13px;
+  --text-base: 16px;
+  --text-md:   17px;
+  --text-lg:   20px;
+  --text-xl:   24px;
+  --text-2xl:  28px;
 
   --fw-regular:   400;
   --fw-medium:    600;

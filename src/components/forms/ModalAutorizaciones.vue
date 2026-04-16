@@ -104,7 +104,7 @@ function cerrar() {
                   fontSize:   'var(--text-sm)',
                   color:      'var(--color-text-3)',
                   fontWeight: 'var(--fw-medium)',
-                }">COOPERATIVA MULTIACTIVA LUIS AMIGÓ — Cooperamigó</div>
+                }">COOPERATIVA MULTIACTIVA LUIS AMIGÓ - COOPERAMIGÓ — Cooperamigó</div>
               </div>
             </div>
             <button :style="{
@@ -171,7 +171,7 @@ function cerrar() {
               Y PARA COMPARTIR INFORMACIÓN CON ALIADOS COMERCIALES Y DE CONVENIOS
             </p>
             <p :style="{ marginBottom: 'var(--sp-xl)' }">
-              Autorizo(amos) de manera expresa a la COOPERATIVA MULTIACTIVA LUIS AMIGÓ, en adelante
+              Autorizo(amos) de manera expresa a la COOPERATIVA MULTIACTIVA LUIS AMIGÓ - COOPERAMIGÓ, en adelante
               "Cooperamigó" o a quien represente sus derechos u ostente en el futuro sus calidades
               para utilizar los datos que he(mos) suministrado, que llegue(mos) a suministrar o que
               llegue(mos) a obtener lícitamente de centrales u operadores de información para:

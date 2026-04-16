@@ -23,7 +23,7 @@
           Portal de trámites digitales para asociados Cooperamigó
         </p>
         <!-- Mobile: dos líneas -->
-        <p class="footer-info-row footer-info--mobile">© 2026 Cooperativa Multiactiva Luis Amigó</p>
+        <p class="footer-info-row footer-info--mobile">© 2026 COOPERATIVA MULTIACTIVA LUIS AMIGÓ - COOPERAMIGÓ</p>
         <p class="footer-info-row footer-info--mobile footer-nit-mobile">
           NIT 800.191.482-7
           <span class="footer-sep">·</span>
@@ -32,6 +32,24 @@
         <p class="footer-info-row footer-info-tagline footer-info--mobile">
           Portal de trámites digitales para asociados Cooperamigó
         </p>
+
+        <div class="footer-info-row footer-links">
+          <a href="https://cooperamigo.coop/aviso-privacidad" target="_blank" rel="noopener noreferrer" class="footer-link">
+            <span class="text-desktop">Aviso de privacidad</span>
+            <span class="text-mobile">Privacidad</span>
+          </a>
+          <span class="footer-sep">·</span>
+          <a href="https://cooperamigo.coop/politica-tratamiento-datos" target="_blank" rel="noopener noreferrer" class="footer-link">
+            <span class="text-desktop">Política de tratamiento de datos</span>
+            <span class="text-mobile">Política Datos</span>
+          </a>
+          <span class="footer-sep">·</span>
+          <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer" class="footer-link">
+            <span class="text-desktop">Términos y condiciones</span>
+            <span class="text-mobile">Términos</span>
+          </a>
+        </div>
+
         <div class="footer-vigilada-mobile">
           <div class="fvm-block">
             <span class="fvm-line"></span>
@@ -82,6 +100,12 @@
   filter: brightness(0) invert(1);
 }
 
+@media (min-width: 961px) {
+  .footer-logo {
+    height: 38px;
+  }
+}
+
 .footer-col-copy {
   display: flex;
   flex-direction: column;
@@ -116,7 +140,33 @@
   color: rgba(255, 255, 255, 0.38);
 }
 
+.footer-links {
+  margin-top: 4px;
+}
+
+.footer-link {
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
+  font-weight: var(--fw-medium);
+  transition: color 0.15s ease;
+}
+
+.footer-link:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.text-mobile {
+  display: none;
+}
+
 @media (max-width: 960px) {
+  .text-desktop {
+    display: none;
+  }
+  .text-mobile {
+    display: inline;
+  }
+
   .footer-info-tagline {
     line-height: 1.3;
   }

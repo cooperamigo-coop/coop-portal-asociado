@@ -27,7 +27,7 @@ export function useSolicitudCredito() {
   // ── Paso previo: verificación ─────────────────────────────
   const verificacion = ref({
     correo:           '',
-    tipo_documento:   'cedula_ciudadania',
+    tipo_documento:   '',
     numero_documento: '',
   })
   const verificado             = ref(false)
