@@ -22,7 +22,6 @@ export function useSolicitudCredito() {
   const error         = ref(null)
   const solicitudId   = ref(null)
   const enviado       = ref(false)
-  const erroresCampos = ref({})
 
   // ── Paso previo: verificación ─────────────────────────────
   const verificacion = ref({
@@ -65,6 +64,7 @@ export function useSolicitudCredito() {
     nombres:                    '',
     apellidos:                  '',
     correo_electronico:         '',
+    celular:                    '',
     direccion_residencia:       '',
     ciudad:                     '',
     departamento:               '',
@@ -118,7 +118,6 @@ export function useSolicitudCredito() {
     institucion_educativa:  '',
     nivel_educativo:        '',
     tiene_dependientes:     false,
-    numero_dependientes:    '',
   })
 
   // ── Sección 5: Financiera solicitante ─────────────────────
@@ -130,6 +129,7 @@ export function useSolicitudCredito() {
     obligaciones_financieras: '',
     fuente_ingresos:          '',
     mesada_pensional:         '',
+    numero_dependientes:      '',
   })
 
   // ── Sección 6: Patrimonio solicitante ─────────────────────
@@ -162,9 +162,11 @@ export function useSolicitudCredito() {
     nombres_codeudor:                   '',
     apellidos_codeudor:                 '',
     correo_codeudor:                    '',
+    celular_codeudor:                   '',
     direccion_codeudor:                 '',
     fecha_nacimiento_codeudor:          '',
     fecha_expedicion_codeudor:          '',
+    nivel_educativo_codeudor:           '',
   })
   const laboralCod1 = ref({
     tipo_trabajador_codeudor:            '',
@@ -179,7 +181,6 @@ export function useSolicitudCredito() {
     institucion_educativa_codeudor:      '',
     nivel_educativo_codeudor:            '',
     tiene_dependientes_codeudor:         false,
-    numero_dependientes_codeudor:        '',
   })
   const financieraCod1 = ref({
     salario_codeudor:                  '',
@@ -189,6 +190,7 @@ export function useSolicitudCredito() {
     obligaciones_financieras_codeudor: '',
     fuente_ingresos_codeudor:          '',
     mesada_pensional_codeudor:         '',
+    numero_dependientes_codeudor:      '',
   })
   const patrimonioCod1 = ref({
     tiene_propiedad_raiz_codeudor: false,
@@ -205,9 +207,11 @@ export function useSolicitudCredito() {
     nombres_codeudor2:                   '',
     apellidos_codeudor2:                 '',
     correo_codeudor2:                    '',
+    celular_codeudor2:                   '',
     direccion_codeudor2:                 '',
     fecha_nacimiento_codeudor2:          '',
     fecha_expedicion_codeudor2:          '',
+    nivel_educativo_codeudor2:           '',
   })
   const laboralCod2 = ref({
     tipo_trabajador_codeudor2:            '',
@@ -222,7 +226,6 @@ export function useSolicitudCredito() {
     institucion_educativa_codeudor2:      '',
     nivel_educativo_codeudor2:            '',
     tiene_dependientes_codeudor2:         false,
-    numero_dependientes_codeudor2:        '',
   })
   const financieraCod2 = ref({
     salario_codeudor2:                  '',
@@ -232,6 +235,7 @@ export function useSolicitudCredito() {
     obligaciones_financieras_codeudor2: '',
     fuente_ingresos_codeudor2:          '',
     mesada_pensional_codeudor2:         '',
+    numero_dependientes_codeudor2:      '',
   })
   const patrimonioCod2 = ref({
     tiene_propiedad_raiz_codeudor2: false,
@@ -248,12 +252,21 @@ export function useSolicitudCredito() {
 
   // ── Documentos capturados ─────────────────────────────────
   const documentos = ref({
-    doc_cedula_frente_url:                 '',
-    doc_cedula_reverso_url:                '',
-    doc_soporte_laboral_url:               '',
+    doc_cedula_solicitante_url:            '',
+    doc_carta_laboral_solicitante_url:     '',
+    doc_colillas_pago_solicitante_url:     '',
+    doc_soporte_ingresos_solicitante_url:  '',
     doc_liquidacion_matricula_url:         '',
     doc_carta_autorizacion_tercero_url:    '',
     doc_certificacion_bancaria_tercero_url:'',
+
+    // Codeudor 1
+    doc_cedula_codeudor_url:               '',
+    doc_soporte_laboral_codeudor_url:      '',
+
+    // Codeudor 2
+    doc_cedula_codeudor2_url:              '',
+    doc_soporte_laboral_codeudor2_url:     '',
   })
 
   // ── Sección firma ─────────────────────────────────────────
@@ -316,34 +329,63 @@ export function useSolicitudCredito() {
   )
 
   // ── Validación paso 2: campos * ───────────────────────────
-  const pasoSolicitudValido = computed(() => {
+  const erroresCampos = computed(() => {
+    const list = []
     const d = general.value
-    const esOrdinario  = d.modalidad_credito === 'ordinario'
-    const esEducativo  = d.modalidad_credito === 'educativo'
-    const tipoOp       = d.tipo_operacion
+    const p = persona.value
+    const l = laboral.value
+    const f = financiera.value
+    const c = cuenta.value
 
-    if (esOrdinario && !tipoOp) return false
+    // 1. General
+    if (d.modalidad_credito === 'ordinario' && !d.tipo_operacion) list.push('Tipo de operación')
+    if ((d.modalidad_credito === 'educativo' || d.tipo_operacion === 'credito_nuevo') && !d.valor_credito) list.push('Valor del crédito')
+    if (d.tipo_operacion === 'reestructura' && !d.valor_reestructura) list.push('Valor reestructura')
+    if (d.tipo_operacion === 'reestructura_desembolso' && (!d.valor_reestructura || !d.valor_desembolso)) list.push('Valores de reestructura/desembolso')
+    if (d.modalidad_credito === 'educativo' && (!d.tipo_estudio || !d.denominacion_carrera)) list.push('Información académica')
+    if (d.modalidad_credito !== 'educativo' && !d.destino_credito) list.push('Destino del crédito')
+    if (!d.plazo_solicitado) list.push('Plazo solicitado')
 
-    const esReest      = ['reestructura', 'reestructura_desembolso'].includes(tipoOp)
-    const esReestDesem = tipoOp === 'reestructura_desembolso'
-    const esCreditoNew = tipoOp === 'credito_nuevo'
+    // 2. Persona
+    if (!p.nombres) list.push('Nombres')
+    if (!p.apellidos) list.push('Apellidos')
+    if (!p.celular) list.push('Teléfono de contacto')
+    if (!p.fecha_nacimiento) list.push('Fecha de nacimiento')
+    if (!p.nivel_educativo_solicitante) list.push('Nivel educativo (Titular)')
+    if (!p.direccion_residencia && !construirDireccion()) list.push('Dirección de residencia')
+    if (!ubicacionResidencia.value.municipio_codigo) list.push('Ciudad/Municipio')
 
-    const necesitaValorCredito = esEducativo || esCreditoNew || (esOrdinario && !tipoOp)
-    const necesitaReestructura = esReest
-    const necesitaDesembolso   = esReestDesem
-
-    if (necesitaValorCredito && !d.valor_credito) return false
-    if (necesitaReestructura  && !d.valor_reestructura) return false
-    if (necesitaDesembolso    && !d.valor_desembolso) return false
-    if (esEducativo) {
-      if (!d.tipo_estudio || !d.denominacion_carrera) return false
-    } else {
-      if (!d.destino_credito) return false
+    // 3. Laboral
+    if (!l.tipo_trabajador) list.push('Tipo de trabajador')
+    else {
+      if (l.tipo_trabajador === 'empleado' && (!l.nombre_empresa || !l.cargo_oficio || !l.tipo_contrato || !l.fecha_ingreso)) list.push('Información laboral (Empleado)')
+      if (l.tipo_trabajador === 'independiente' && (!l.actividad_comercial || !l.ocupacion || !l.fecha_inicio_actividad)) list.push('Información laboral (Independiente)')
+      if (l.tipo_trabajador === 'pensionado' && !l.entidad_pagadora) list.push('Entidad pagadora')
+      if (l.tipo_trabajador === 'estudiante' && (!l.institucion_educativa || !l.nivel_educativo)) list.push('Información académica laboral')
     }
-    if (!d.plazo_solicitado) return false
-    const maxPlazo = esEducativo ? 6 : esOrdinario ? 60 : 120
-    if (Number(d.plazo_solicitado) > maxPlazo) return false
-    return true
+
+    // 4. Financiera
+    if (l.tipo_trabajador === 'pensionado' && !f.mesada_pensional) list.push('Mesada pensional')
+    else if (l.tipo_trabajador !== 'pensionado' && !f.salario_ingresos_fijos) list.push('Salario / Ingresos fijos')
+    if (!f.gastos_familiares) list.push('Gastos familiares')
+    if (f.numero_dependientes === '') list.push('Personas a cargo')
+
+    // 5. Cuenta
+    if (d.tipo_operacion !== 'reestructura') {
+      if (!c.entidad_bancaria || !c.tipo_cuenta || !c.numero_cuenta) list.push('Información de cuenta bancaria')
+      if (c.cuenta_tercero) {
+        if (!c.nombre_tercero || !c.tipo_doc_tercero || !c.numero_doc_tercero) list.push('Información del titular de la cuenta (Tercero)')
+        // Validación de documentos obligatorios para cuenta de tercero
+        if (!documentos.value.doc_carta_autorizacion_tercero_url) list.push('Carta de autorización (Tercero)')
+        if (!documentos.value.doc_certificacion_bancaria_tercero_url) list.push('Certificación bancaria (Tercero)')
+      }
+    }
+
+    return list
+  })
+
+  const pasoSolicitudValido = computed(() => {
+    return erroresCampos.value.length === 0
   })
 
   // ── Dirección → texto ─────────────────────────────────────
@@ -498,6 +540,7 @@ export function useSolicitudCredito() {
       tiene_codeudor: numCodudores.value > 0,
       // Persona solicitante (excluir campos eliminados que puedan venir de borradores viejos)
       ...(({ ciudad_expedicion: _ce, ...p }) => p)(persona.value),
+      celular:              persona.value.celular,
       direccion_residencia: construirDireccion() || persona.value.direccion_residencia,
       departamento:         ubicacionResidencia.value.depto_nombre,
       ciudad:               ubicacionResidencia.value.municipio_nombre,
@@ -516,6 +559,7 @@ export function useSolicitudCredito() {
       }))(cuenta.value),
       // Codeudor 1
       ...(numCodudores.value >= 1 ? (({ ciudad_expedicion_codeudor: _ce, ...p }) => p)(personaCod1.value) : {}),
+      ...(numCodudores.value >= 1 ? { celular_codeudor: personaCod1.value.celular_codeudor } : {}),
       ...(numCodudores.value >= 1 ? laboralCod1.value   : {}),
       ...(numCodudores.value >= 1 ? financieraCod1.value : {}),
       ...(numCodudores.value >= 1 ? patrimonioCod1.value : {}),
@@ -525,6 +569,7 @@ export function useSolicitudCredito() {
       } : {}),
       // Codeudor 2
       ...(numCodudores.value >= 2 ? (({ ciudad_expedicion_codeudor2: _ce, ...p }) => p)(personaCod2.value) : {}),
+      ...(numCodudores.value >= 2 ? { celular_codeudor2: personaCod2.value.celular_codeudor2 } : {}),
       ...(numCodudores.value >= 2 ? laboralCod2.value   : {}),
       ...(numCodudores.value >= 2 ? financieraCod2.value : {}),
       ...(numCodudores.value >= 2 ? patrimonioCod2.value : {}),
@@ -629,7 +674,6 @@ export function useSolicitudCredito() {
     laboral.value.entidad_pagadora       = ''
     laboral.value.institucion_educativa  = ''
     laboral.value.nivel_educativo        = ''
-    laboral.value.numero_dependientes    = ''
     // Resetear también los campos financieros asociados al tipo
     financiera.value.salario_ingresos_fijos   = ''
     financiera.value.ingresos_independiente   = ''
@@ -638,10 +682,11 @@ export function useSolicitudCredito() {
     financiera.value.obligaciones_financieras = ''
     financiera.value.fuente_ingresos          = ''
     financiera.value.mesada_pensional         = ''
+    financiera.value.numero_dependientes      = ''
   })
 
-  // laboral — personas a cargo
-  watch(() => laboral.value.numero_dependientes, v => {
+  // financiera — personas a cargo
+  watch(() => financiera.value.numero_dependientes, v => {
     _sincronizarCampoAsociado('personas_a_cargo', v ? Number(v) : 0)
   })
 
@@ -821,7 +866,7 @@ export function useSolicitudCredito() {
 
   return {
     paso, loading, error, enviado,
-    solicitudId, erroresCampos,
+    solicitudId,
     porcentaje, pasosActivos, pasoActual, esUltimoPaso,
     // Verificación
     verificacion, verificado, loadingVerificacion, errorVerificacion,
@@ -847,5 +892,6 @@ export function useSolicitudCredito() {
     montoTotalOperacion, pasoSolicitudValido,
     // Acciones
     siguiente, anterior, irAPaso, enviar, guardarPaso, formatMonto,
+    erroresCampos,
   }
 }

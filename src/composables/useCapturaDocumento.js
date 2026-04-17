@@ -1,6 +1,8 @@
 import { ref, onUnmounted } from 'vue'
 import { supabase } from '@/services/supabase'
 import { crearSesionCaptura, subirFotoCaptura, vincularSolicitudCaptura } from '@/services/captura.service'
+import { generarPdfCedula } from '@/utils/pdfGenerator'
+import { subirDocumentoSolicitud } from '@/services/documentos.service'
 
 function generarUrlQR(texto) {
   const encoded = encodeURIComponent(texto)
@@ -225,11 +227,42 @@ export function useCapturaDocumento() {
     detenerPolling()
   })
 
+  // ── Generar PDF final y subirlo ──────────────────────────────────────────
+  async function finalizarConPdf(solicitudId, campo) {
+    if (!urlFrente.value || !urlReverso.value) return null
+    estado.value = 'subiendo'
+    try {
+      const pdfFile = await generarPdfCedula(urlFrente.value, urlReverso.value)
+      const url = await subirDocumentoSolicitud(solicitudId, campo, pdfFile)
+      estado.value = 'completado'
+      return url
+    } catch (e) {
+      estado.value = 'error'
+      error.value = 'Error al generar el PDF de la cédula.'
+      throw e
+    }
+  }
+
+  // ── Subir PDF directamente (opción 1) ─────────────────────────────────────
+  async function subirPdfDirecto(solicitudId, campo, archivo) {
+    estado.value = 'subiendo'
+    try {
+      const url = await subirDocumentoSolicitud(solicitudId, campo, archivo)
+      estado.value = 'completado'
+      return url
+    } catch (e) {
+      estado.value = 'error'
+      error.value = 'Error al subir el PDF.'
+      throw e
+    }
+  }
+
   return {
     esMovil,
     estado, urlFrente, urlReverso,
     qrDataUrl, urlCaptura, sesionId, token,
     error, progreso,
     crearSesionQR, subirFotoLocal, cancelar, vincularSolicitud,
+    finalizarConPdf, subirPdfDirecto,
   }
 }

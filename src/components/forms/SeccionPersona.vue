@@ -53,8 +53,10 @@ function actualizarDireccion(val) {
 function clave(base) {
   const sufijo2 = base + '_codeudor2'
   const sufijo1 = base + '_codeudor'
+  const sufijoS = base + '_solicitante'
   if (sufijo2 in props.modelValue) return sufijo2
   if (sufijo1 in props.modelValue) return sufijo1
+  if (sufijoS in props.modelValue) return sufijoS
   return base
 }
 
@@ -157,41 +159,54 @@ const nivelEducativoOpciones = [
         @update:model-value="actualizar(clave('apellidos'), $event ? $event.toUpperCase() : $event)"
         @blur="actualizarUpper(clave('apellidos'), modelValue[clave('apellidos')])"
       />
+    </div>
 
-      <!-- Con nivel educativo: [nivel_educativo | fecha_nacimiento] -->
-      <template v-if="showNivelEducativo">
-        <CampoSelectBuscable
-          :model-value="modelValue.nivel_educativo_solicitante"
-          label="Nivel educativo"
-          required
-          :opciones="nivelEducativoOpciones"
-          @update:model-value="actualizar('nivel_educativo_solicitante', $event)"
-        />
-        <SelectorFecha
-          :model-value="modelValue[clave('fecha_nacimiento')]"
-          label="Fecha de nacimiento"
-          required
-          :error="errores[clave('fecha_nacimiento')]"
-          :max-year="new Date().getFullYear() - 18"
-          :min-year="1930"
-          @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
-        />
-      </template>
+    <!-- Fila 3: Nivel educativo, Fecha nacimiento, Contacto (3 columnas) -->
+    <div :style="{
+      display:             'grid',
+      gridTemplateColumns: '1fr 1fr 1fr',
+      gap:                 'var(--sp-lg)',
+      marginTop:           'var(--sp-lg)',
+    }">
+      <CampoSelectBuscable
+        v-if="showNivelEducativo"
+        :model-value="modelValue[clave('nivel_educativo')]"
+        label="Nivel educativo"
+        required
+        :opciones="nivelEducativoOpciones"
+        :error="errores[clave('nivel_educativo')]"
+        @update:model-value="actualizar(clave('nivel_educativo'), $event)"
+      />
+      <div v-else />
 
-      <!-- Sin nivel educativo: [fecha_nacimiento | spacer] -->
-      <template v-else>
-        <SelectorFecha
-          :model-value="modelValue[clave('fecha_nacimiento')]"
-          label="Fecha de nacimiento"
-          required
-          :error="errores[clave('fecha_nacimiento')]"
-          :max-year="new Date().getFullYear() - 18"
-          :min-year="1930"
-          @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
-        />
-        <div />
-      </template>
+      <SelectorFecha
+        :model-value="modelValue[clave('fecha_nacimiento')]"
+        label="Fecha de nacimiento"
+        required
+        :error="errores[clave('fecha_nacimiento')]"
+        :max-year="new Date().getFullYear() - 18"
+        :min-year="1930"
+        @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
+      />
 
+      <CampoTexto
+        :model-value="modelValue[clave('celular')]"
+        label="Teléfono de contacto"
+        placeholder="Ej: 3101234567"
+        required
+        solo-numeros
+        :maxlength="10"
+        :error="errores[clave('celular')]"
+        @update:model-value="actualizar(clave('celular'), $event)"
+      />
+    </div>
+
+    <div :style="{
+      display:             'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap:                 'var(--sp-lg)',
+      marginTop:           'var(--sp-lg)',
+    }">
       <!-- Correo electrónico -->
       <CampoTexto
         :model-value="modelValue[clave('correo_electronico')]"

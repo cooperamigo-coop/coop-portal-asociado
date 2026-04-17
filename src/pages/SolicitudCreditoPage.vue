@@ -31,7 +31,7 @@ import SelectorDeptoMunicipio from '@/components/forms/SelectorDeptoMunicipio.vu
 import ModalAutorizaciones    from '@/components/forms/ModalAutorizaciones.vue'
 import {
   IconCircleCheck, IconShieldCheck,
-  IconUserX, IconMail, IconRotate, IconUsers, IconUserCheck, IconFileDescription,
+  IconUser, IconUserX, IconMail, IconRotate, IconUsers, IconUserCheck, IconFileDescription,
   IconCheck, IconUpload, IconCamera, IconX, IconLoader2,
   IconPencil, IconAlertTriangle, IconFileCheck, IconFile, IconRotateClockwise2,
 } from '@tabler/icons-vue'
@@ -67,7 +67,7 @@ const {
   solicitudId,
   mostrarTipoOperacion, mostrarValorCredito,
   mostrarValorReestructura, mostrarValorDesembolso, mostrarCuentaDesembolso,
-  salarioBloqueado, montoTotalOperacion, pasoSolicitudValido,
+  salarioBloqueado, montoTotalOperacion, pasoSolicitudValido, erroresCampos,
   siguiente, anterior, irAPaso, enviar, guardarPaso, formatMonto,
 } = useSolicitudCredito()
 
@@ -104,8 +104,9 @@ async function _subirDocTercero(archivo, tipo, estado, campo) {
     estado.url    = url
     estado.nombre = archivo.name
     documentos.value[campo] = url
-  } catch {
-    estado.error = 'Error al subir el archivo. Intente de nuevo.'
+  } catch (err) {
+    console.error(`[_subirDocTercero] Error subiendo ${tipo}:`, err)
+    estado.error = 'No se pudo subir el archivo. Verifique su conexión o el tamaño del archivo.'
   } finally {
     estado.cargando = false
   }
@@ -283,19 +284,46 @@ function sr(val) {
 // Documentos requeridos según el contexto
 const docResumen = computed(() => {
   const items = [
-    { label: 'Cédula (frente)',  url: documentos.value.doc_cedula_frente_url },
-    { label: 'Cédula (reverso)', url: documentos.value.doc_cedula_reverso_url },
+    { label: 'Cédula (Titular)', url: documentos.value.doc_cedula_solicitante_url },
   ]
-  if (laboral.value.tipo_trabajador && laboral.value.tipo_trabajador !== 'cuidado_hogar') {
-    items.push({ label: 'Soporte laboral', url: documentos.value.doc_soporte_laboral_url })
+
+  // 1. Solicitante
+  if (laboral.value.tipo_trabajador === 'empleado') {
+    items.push({ label: 'Carta laboral', url: documentos.value.doc_carta_laboral_solicitante_url })
+    items.push({ label: 'Colillas pago', url: documentos.value.doc_colillas_pago_solicitante_url })
+  } else if (laboral.value.tipo_trabajador === 'pensionado') {
+    items.push({ label: 'Desprendibles pensión', url: documentos.value.doc_soporte_ingresos_solicitante_url })
+  } else if (laboral.value.tipo_trabajador && laboral.value.tipo_trabajador !== 'cuidado_hogar') {
+    items.push({ label: 'Soporte ingresos', url: documentos.value.doc_soporte_ingresos_solicitante_url })
   }
+
+  // Educativo
   if (esEducativo.value) {
-    items.push({ label: 'Liquidación de matrícula', url: documentos.value.doc_liquidacion_matricula_url })
+    items.push({ label: 'Liquidación matrícula', url: documentos.value.doc_liquidacion_matricula_url })
   }
+
+  // Tercero
   if (cuenta.value.cuenta_tercero) {
-    items.push({ label: 'Carta de autorización (tercero)', url: documentos.value.doc_carta_autorizacion_tercero_url })
-    items.push({ label: 'Certificación bancaria (tercero)', url: documentos.value.doc_certificacion_bancaria_tercero_url })
+    items.push({ label: 'Carta autorización (Tercero)', url: documentos.value.doc_carta_autorizacion_tercero_url })
+    items.push({ label: 'Certificación bancaria (Tercero)', url: documentos.value.doc_certificacion_bancaria_tercero_url })
   }
+
+  // 2. Codeudores
+  if (numCodudores.value >= 1) {
+    items.push({ label: 'Cédula (Cod. 1)', url: documentos.value.doc_cedula_codeudor_url })
+    if (documentos.value.doc_soporte_laboral_codeudor_url) {
+      const labelDoc = laboralCod1.value.tipo_trabajador_codeudor === 'empleado' ? 'Carta/Colillas (Cod. 1)' : 'Soporte ingresos (Cod. 1)'
+      items.push({ label: labelDoc, url: documentos.value.doc_soporte_laboral_codeudor_url })
+    }
+  }
+  if (numCodudores.value >= 2) {
+    items.push({ label: 'Cédula (Cod. 2)', url: documentos.value.doc_cedula_codeudor2_url })
+    if (documentos.value.doc_soporte_laboral_codeudor2_url) {
+      const labelDoc = laboralCod2.value.tipo_trabajador_codeudor2 === 'empleado' ? 'Carta/Colillas (Cod. 2)' : 'Soporte ingresos (Cod. 2)'
+      items.push({ label: labelDoc, url: documentos.value.doc_soporte_laboral_codeudor2_url })
+    }
+  }
+
   return items
 })
 
@@ -788,7 +816,7 @@ function onOtpValidado() {
                     <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
                       <div :style="{ position: 'relative', display: 'flex', alignItems: 'center', padding: '12px 14px', border: errorPlazo ? '1px solid var(--color-error)' : '1px solid var(--color-border)', borderRadius: 'var(--r-lg)', background: 'var(--color-bg-card)' }">
                         <input :value="general.plazo_solicitado" type="text" inputmode="numeric" maxlength="2" :style="{ flex: '1', border: 'none', outline: 'none', background: 'transparent', fontSize: 'var(--text-base)', color: 'var(--color-text-1)' }" @keydown="e => { const ok = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab']; if (!ok.includes(e.key) && !/^\d$/.test(e.key)) e.preventDefault() }" @input="actualizarPlazo($event.target.value)" />
-                        <label :style="{ position: 'absolute', left: '12px', top: '0', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 'var(--fw-semibold)', color: errorPlazo ? 'var(--color-error-text)' : 'var(--color-text-3)', background: 'var(--color-bg-card)', padding: '0 3px' }">Plazo (meses) *</label>
+                        <label :style="{ position: 'absolute', left: '12px', top: '0', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 'var(--fw-semibold)', color: errorPlazo ? 'var(--color-error-text)' : 'var(--color-text-3)', background: 'var(--color-bg-card)', padding: '0 3px' }">Plazo (meses) <span :style="{ color: 'var(--color-error)' }">*</span></label>
                       </div>
                       <span v-if="errorPlazo" :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-error-text)', fontWeight: 'var(--fw-medium)' }">{{ errorPlazo }}</span>
                     </div>
@@ -801,7 +829,7 @@ function onOtpValidado() {
                   <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
                     <div :style="{ position: 'relative', display: 'flex', alignItems: 'center', padding: '12px 14px', border: errorPlazo ? '1px solid var(--color-error)' : '1px solid var(--color-border)', borderRadius: 'var(--r-lg)', background: 'var(--color-bg-card)' }">
                       <input :value="general.plazo_solicitado" type="text" inputmode="numeric" maxlength="2" :style="{ flex: '1', border: 'none', outline: 'none', background: 'transparent', fontSize: 'var(--text-base)', color: 'var(--color-text-1)' }" @keydown="e => { const ok = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab']; if (!ok.includes(e.key) && !/^\d$/.test(e.key)) e.preventDefault() }" @input="actualizarPlazo($event.target.value)" />
-                      <label :style="{ position: 'absolute', left: '12px', top: '0', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 'var(--fw-semibold)', color: errorPlazo ? 'var(--color-error-text)' : 'var(--color-text-3)', background: 'var(--color-bg-card)', padding: '0 3px' }">Plazo (meses) *</label>
+                      <label :style="{ position: 'absolute', left: '12px', top: '0', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 'var(--fw-semibold)', color: errorPlazo ? 'var(--color-error-text)' : 'var(--color-text-3)', background: 'var(--color-bg-card)', padding: '0 3px' }">Plazo (meses) <span :style="{ color: 'var(--color-error)' }">*</span></label>
                     </div>
                     <span v-if="errorPlazo" :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-error-text)', fontWeight: 'var(--fw-medium)' }">{{ errorPlazo }}</span>
                   </div>
@@ -844,47 +872,41 @@ function onOtpValidado() {
                     <CampoTexto :model-value="laboral.nombre_empresa" label="Nombre de la empresa" required @update:model-value="actualizarLaboral('nombre_empresa', $event ? $event.toUpperCase() : $event)" />
                     <CampoTexto :model-value="laboral.cargo_oficio" label="Cargo u oficio" required @update:model-value="actualizarLaboral('cargo_oficio', $event ? $event.toUpperCase() : $event)" />
                   </div>
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <CampoSelectBuscable :model-value="laboral.tipo_contrato" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboral('tipo_contrato', $event)" />
                     <SelectorFecha :model-value="laboral.fecha_ingreso" label="Fecha de ingreso" required @update:model-value="actualizarLaboral('fecha_ingreso', $event)" />
-                    <CampoTexto :model-value="laboral.numero_dependientes" label="Personas a cargo" type="number" @update:model-value="actualizarLaboral('numero_dependientes', $event)" />
                   </div>
                 </template>
 
                 <!-- Independiente -->
                 <template v-if="laboral.tipo_trabajador === 'independiente'">
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                  <div :style="{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--sp-lg)' }">
                     <CampoTexto :model-value="laboral.actividad_comercial" label="Actividad comercial" required :maxlength="50" @update:model-value="actualizarLaboral('actividad_comercial', $event ? $event.toUpperCase() : $event)" />
-                    <CampoTexto :model-value="laboral.ocupacion" label="Ocupación" required :maxlength="50" @update:model-value="actualizarLaboral('ocupacion', $event ? $event.toUpperCase() : $event)" />
                   </div>
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <SelectorFecha :model-value="laboral.fecha_inicio_actividad" label="Fecha de inicio" required @update:model-value="actualizarLaboral('fecha_inicio_actividad', $event)" />
-                    <CampoTexto :model-value="laboral.numero_dependientes" label="Personas a cargo" type="number" @update:model-value="actualizarLaboral('numero_dependientes', $event)" />
+                    <CampoTexto :model-value="laboral.ocupacion" label="Ocupación" required :maxlength="50" @update:model-value="actualizarLaboral('ocupacion', $event ? $event.toUpperCase() : $event)" />
                   </div>
                 </template>
 
                 <!-- Pensionado -->
                 <template v-if="laboral.tipo_trabajador === 'pensionado'">
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                  <div :style="{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--sp-lg)' }">
                     <CampoSelectBuscable :model-value="laboral.entidad_pagadora" label="Entidad pagadora" required :opciones="opsEntidadesPensiones" @update:model-value="actualizarLaboral('entidad_pagadora', $event)" />
-                    <CampoTexto :model-value="laboral.numero_dependientes" label="Personas a cargo" type="number" @update:model-value="actualizarLaboral('numero_dependientes', $event)" />
                   </div>
                 </template>
 
                 <!-- Estudiante -->
                 <template v-if="laboral.tipo_trabajador === 'estudiante'">
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <CampoTexto :model-value="laboral.institucion_educativa" label="Institución educativa" required @update:model-value="actualizarLaboral('institucion_educativa', $event ? $event.toUpperCase() : $event)" />
                     <CampoSelectBuscable :model-value="laboral.nivel_educativo" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboral('nivel_educativo', $event)" />
-                    <CampoTexto :model-value="laboral.numero_dependientes" label="Personas a cargo" type="number" @update:model-value="actualizarLaboral('numero_dependientes', $event)" />
                   </div>
                 </template>
 
                 <!-- Cuidado del hogar -->
                 <template v-if="laboral.tipo_trabajador === 'cuidado_hogar'">
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr', gap: 'var(--sp-lg)' }">
-                    <CampoTexto :model-value="laboral.numero_dependientes" label="Personas a cargo" type="number" @update:model-value="actualizarLaboral('numero_dependientes', $event)" />
-                  </div>
+                  <div />
                 </template>
 
               </div>
@@ -964,12 +986,8 @@ function onOtpValidado() {
                       <button :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'var(--color-bg-card)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-2)' }" @click="refCartaUpload?.click()">
                         <IconUpload :size="13" /> Subir archivo
                       </button>
-                      <button :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-primary)', background: 'var(--color-bg-card)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-primary)' }" @click="refCartaCamera?.click()">
-                        <IconCamera :size="13" /> Tomar foto
-                      </button>
                     </div>
                     <input ref="refCartaUpload" type="file" accept=".pdf,image/*" :style="{ display: 'none' }" @change="onFileCarta" />
-                    <input ref="refCartaCamera" type="file" accept="image/*" capture="environment" :style="{ display: 'none' }" @change="onFileCarta" />
                   </div>
                 </div>
 
@@ -1001,12 +1019,8 @@ function onOtpValidado() {
                       <button :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'var(--color-bg-card)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-2)' }" @click="refCertUpload?.click()">
                         <IconUpload :size="13" /> Subir archivo
                       </button>
-                      <button :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-primary)', background: 'var(--color-bg-card)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-primary)' }" @click="refCertCamera?.click()">
-                        <IconCamera :size="13" /> Tomar foto
-                      </button>
                     </div>
                     <input ref="refCertUpload" type="file" accept=".pdf,image/*" :style="{ display: 'none' }" @change="onFileCert" />
-                    <input ref="refCertCamera" type="file" accept="image/*" capture="environment" :style="{ display: 'none' }" @change="onFileCert" />
                   </div>
                 </div>
               </template>
@@ -1079,6 +1093,7 @@ function onOtpValidado() {
                 :model-value="personaCod1"
                 titulo=""
                 :es-codeudor="true"
+                :show-nivel-educativo="true"
                 :direccion-estructurada="direccionEstructuradaCod1"
                 :ubicacion="ubicacionCod1"
                 @update:model-value="personaCod1 = $event"
@@ -1101,41 +1116,37 @@ function onOtpValidado() {
                     <CampoTexto :model-value="laboralCod1.nombre_empresa_codeudor" label="Nombre de la empresa" required @update:model-value="actualizarLaboralCod1('nombre_empresa_codeudor', $event ? $event.toUpperCase() : $event)" />
                     <CampoTexto :model-value="laboralCod1.cargo_oficio_codeudor" label="Cargo u oficio" required @update:model-value="actualizarLaboralCod1('cargo_oficio_codeudor', $event ? $event.toUpperCase() : $event)" />
                   </div>
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <CampoSelectBuscable :model-value="laboralCod1.tipo_contrato_codeudor" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboralCod1('tipo_contrato_codeudor', $event)" />
                     <SelectorFecha :model-value="laboralCod1.fecha_ingreso_codeudor" label="Fecha de ingreso" required @update:model-value="actualizarLaboralCod1('fecha_ingreso_codeudor', $event)" />
-                    <CampoTexto :model-value="laboralCod1.numero_dependientes_codeudor" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod1('numero_dependientes_codeudor', $event)" />
                   </div>
                 </template>
                 <!-- Independiente -->
                 <template v-if="laboralCod1.tipo_trabajador_codeudor === 'independiente'">
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                  <div :style="{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--sp-lg)' }">
                     <CampoTexto :model-value="laboralCod1.actividad_comercial_codeudor" label="Actividad comercial" required :maxlength="50" @update:model-value="actualizarLaboralCod1('actividad_comercial_codeudor', $event ? $event.toUpperCase() : $event)" />
-                    <CampoTexto :model-value="laboralCod1.ocupacion_codeudor" label="Ocupación" required :maxlength="50" @update:model-value="actualizarLaboralCod1('ocupacion_codeudor', $event ? $event.toUpperCase() : $event)" />
                   </div>
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <SelectorFecha :model-value="laboralCod1.fecha_inicio_actividad_codeudor" label="Fecha de inicio" required @update:model-value="actualizarLaboralCod1('fecha_inicio_actividad_codeudor', $event)" />
-                    <CampoTexto :model-value="laboralCod1.numero_dependientes_codeudor" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod1('numero_dependientes_codeudor', $event)" />
+                    <CampoTexto :model-value="laboralCod1.ocupacion_codeudor" label="Ocupación" required :maxlength="50" @update:model-value="actualizarLaboralCod1('ocupacion_codeudor', $event ? $event.toUpperCase() : $event)" />
                   </div>
                 </template>
                 <!-- Pensionado -->
                 <template v-if="laboralCod1.tipo_trabajador_codeudor === 'pensionado'">
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                  <div :style="{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--sp-lg)' }">
                     <CampoSelectBuscable :model-value="laboralCod1.entidad_pagadora_codeudor" label="Entidad pagadora" required :opciones="opsEntidadesPensiones" @update:model-value="actualizarLaboralCod1('entidad_pagadora_codeudor', $event)" />
-                    <CampoTexto :model-value="laboralCod1.numero_dependientes_codeudor" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod1('numero_dependientes_codeudor', $event)" />
                   </div>
                 </template>
                 <!-- Estudiante -->
                 <template v-if="laboralCod1.tipo_trabajador_codeudor === 'estudiante'">
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <CampoTexto :model-value="laboralCod1.institucion_educativa_codeudor" label="Institución educativa" required @update:model-value="actualizarLaboralCod1('institucion_educativa_codeudor', $event ? $event.toUpperCase() : $event)" />
                     <CampoSelectBuscable :model-value="laboralCod1.nivel_educativo_codeudor" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboralCod1('nivel_educativo_codeudor', $event)" />
-                    <CampoTexto :model-value="laboralCod1.numero_dependientes_codeudor" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod1('numero_dependientes_codeudor', $event)" />
                   </div>
                 </template>
                 <!-- Cuidado del hogar -->
                 <template v-if="laboralCod1.tipo_trabajador_codeudor === 'cuidado_hogar'">
-                  <CampoTexto :model-value="laboralCod1.numero_dependientes_codeudor" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod1('numero_dependientes_codeudor', $event)" />
+                  <div />
                 </template>
               </div>
             </div>
@@ -1172,6 +1183,7 @@ function onOtpValidado() {
                 :model-value="personaCod2"
                 titulo=""
                 :es-codeudor="true"
+                :show-nivel-educativo="true"
                 :direccion-estructurada="direccionEstructuradaCod2"
                 :ubicacion="ubicacionCod2"
                 @update:model-value="personaCod2 = $event"
@@ -1194,41 +1206,37 @@ function onOtpValidado() {
                     <CampoTexto :model-value="laboralCod2.nombre_empresa_codeudor2" label="Nombre de la empresa" required @update:model-value="actualizarLaboralCod2('nombre_empresa_codeudor2', $event ? $event.toUpperCase() : $event)" />
                     <CampoTexto :model-value="laboralCod2.cargo_oficio_codeudor2" label="Cargo u oficio" required @update:model-value="actualizarLaboralCod2('cargo_oficio_codeudor2', $event ? $event.toUpperCase() : $event)" />
                   </div>
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <CampoSelectBuscable :model-value="laboralCod2.tipo_contrato_codeudor2" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboralCod2('tipo_contrato_codeudor2', $event)" />
                     <SelectorFecha :model-value="laboralCod2.fecha_ingreso_codeudor2" label="Fecha de ingreso" required @update:model-value="actualizarLaboralCod2('fecha_ingreso_codeudor2', $event)" />
-                    <CampoTexto :model-value="laboralCod2.numero_dependientes_codeudor2" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod2('numero_dependientes_codeudor2', $event)" />
                   </div>
                 </template>
                 <!-- Independiente -->
                 <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'independiente'">
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                  <div :style="{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--sp-lg)' }">
                     <CampoTexto :model-value="laboralCod2.actividad_comercial_codeudor2" label="Actividad comercial" required :maxlength="50" @update:model-value="actualizarLaboralCod2('actividad_comercial_codeudor2', $event ? $event.toUpperCase() : $event)" />
-                    <CampoTexto :model-value="laboralCod2.ocupacion_codeudor2" label="Ocupación" required :maxlength="50" @update:model-value="actualizarLaboralCod2('ocupacion_codeudor2', $event ? $event.toUpperCase() : $event)" />
                   </div>
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <SelectorFecha :model-value="laboralCod2.fecha_inicio_actividad_codeudor2" label="Fecha de inicio" required @update:model-value="actualizarLaboralCod2('fecha_inicio_actividad_codeudor2', $event)" />
-                    <CampoTexto :model-value="laboralCod2.numero_dependientes_codeudor2" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod2('numero_dependientes_codeudor2', $event)" />
+                    <CampoTexto :model-value="laboralCod2.ocupacion_codeudor2" label="Ocupación" required :maxlength="50" @update:model-value="actualizarLaboralCod2('ocupacion_codeudor2', $event ? $event.toUpperCase() : $event)" />
                   </div>
                 </template>
                 <!-- Pensionado -->
                 <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'pensionado'">
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                  <div :style="{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--sp-lg)' }">
                     <CampoSelectBuscable :model-value="laboralCod2.entidad_pagadora_codeudor2" label="Entidad pagadora" required :opciones="opsEntidadesPensiones" @update:model-value="actualizarLaboralCod2('entidad_pagadora_codeudor2', $event)" />
-                    <CampoTexto :model-value="laboralCod2.numero_dependientes_codeudor2" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod2('numero_dependientes_codeudor2', $event)" />
                   </div>
                 </template>
                 <!-- Estudiante -->
                 <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'estudiante'">
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <CampoTexto :model-value="laboralCod2.institucion_educativa_codeudor2" label="Institución educativa" required @update:model-value="actualizarLaboralCod2('institucion_educativa_codeudor2', $event ? $event.toUpperCase() : $event)" />
                     <CampoSelectBuscable :model-value="laboralCod2.nivel_educativo_codeudor2" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboralCod2('nivel_educativo_codeudor2', $event)" />
-                    <CampoTexto :model-value="laboralCod2.numero_dependientes_codeudor2" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod2('numero_dependientes_codeudor2', $event)" />
                   </div>
                 </template>
                 <!-- Cuidado del hogar -->
                 <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'cuidado_hogar'">
-                  <CampoTexto :model-value="laboralCod2.numero_dependientes_codeudor2" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod2('numero_dependientes_codeudor2', $event)" />
+                  <div />
                 </template>
               </div>
             </div>
@@ -1264,7 +1272,18 @@ function onOtpValidado() {
             <IconUpload :size="20" /> Cargue de documentos
           </div>
           <div :style="{ padding: 'var(--sp-xl)' }">
-            <SeccionDocumentos :tipo-trabajador="laboral.tipo_trabajador" :modalidad-credito="general.modalidad_credito" :solicitud-id="solicitudId" titulo="" @completado-cedula="urls => { documentos.doc_cedula_frente_url = urls.frente; documentos.doc_cedula_reverso_url = urls.reverso }" @sesion-creada="onSesionCapturaCreada" @url-soporte-laboral="url => { documentos.doc_soporte_laboral_url = url ?? '' }" @url-liquidacion-matricula="url => { documentos.doc_liquidacion_matricula_url = url ?? '' }" />
+            <SeccionDocumentos
+              :model-value="documentos"
+              :tipo-trabajador="laboral.tipo_trabajador"
+              :modalidad-credito="general.modalidad_credito"
+              :solicitud-id="solicitudId"
+              :num-codeudores="numCodudores"
+              :laboral-cod1="laboralCod1"
+              :laboral-cod2="laboralCod2"
+              titulo=""
+              @update:model-value="documentos = $event"
+              @sesion-creada="onSesionCapturaCreada"
+            />
           </div>
         </div>
 
@@ -1303,291 +1322,313 @@ function onOtpValidado() {
             color:        'var(--color-text-1)',
           }">Revise su solicitud antes de firmar</div>
 
-          <!-- ── Banner de campos vacíos ────────────────────────── -->
-          <div v-if="alertasVacias.length > 0" :style="{ borderRadius: 'var(--r-md)', padding: 'var(--sp-md) var(--sp-lg)', background: '#fff8f0', border: '1px solid var(--color-impulso)', display: 'flex', gap: 'var(--sp-md)' }">
+          <!-- ── Banner de campos faltantes ────────────────────────── -->
+          <div v-if="!pasoSolicitudValido" :style="{ borderRadius: 'var(--r-md)', padding: 'var(--sp-md) var(--sp-lg)', background: '#fff8f0', border: '1px solid var(--color-impulso)', display: 'flex', gap: 'var(--sp-md)' }">
             <IconAlertTriangle :size="20" style="color: var(--color-impulso); flex-shrink: 0; margin-top: 2px;" />
             <div>
               <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-impulso)', marginBottom: 'var(--sp-xs)' }">
-                Hay {{ alertasVacias.length }} campo{{ alertasVacias.length > 1 ? 's' : '' }} sin completar
+                Faltan {{ erroresCampos.length }} campo{{ erroresCampos.length > 1 ? 's' : '' }} obligatorios por completar:
               </div>
               <div :style="{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-xs)' }">
                 <span
-                  v-for="alerta in alertasVacias"
-                  :key="alerta"
+                  v-for="err in erroresCampos"
+                  :key="err"
                   :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-impulso)', background: 'rgba(254,153,50,0.12)', borderRadius: 'var(--r-sm)', padding: '2px 8px' }"
-                >{{ alerta }}</span>
+                >{{ err }}</span>
               </div>
             </div>
           </div>
 
-          <!-- ── Tarjeta resumen reutilizable ─────────────────────── -->
-          <!-- Solicitud -->
-          <div :style="{ borderRadius: 'var(--r-md)', border: '1px solid var(--color-border)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-              <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Solicitud</span>
-              <button @click="irASeccion('seccion-solicitud')" :style="{ background: 'rgba(255,255,255,0.25)', border: 'none', borderRadius: 'var(--r-sm)', padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: 'white', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)' }">
-                <IconPencil :size="14" /> Editar
-              </button>
-            </div>
-            <div :style="{ background: 'var(--color-bg-surface)' }">
-              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }">
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Modalidad</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ label(LABEL_MODALIDAD, general.modalidad_credito) }}</div>
+          <!-- ── SECCIONES DEL SUMARIO ─────────────────────────── -->
+          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+            
+            <!-- 1. Datos de la Solicitud -->
+            <div :style="{ borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
+              <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
+                <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
+                  <IconFileDescription :size="16" /> Datos de la solicitud
                 </div>
-                <div v-if="mostrarTipoOperacion" :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Tipo de operación</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ label(LABEL_TIPO_OP, general.tipo_operacion) }}</div>
+                <button @click="irAPaso(1)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
+              </div>
+              <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 'var(--sp-md)' }">
+                <div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Modalidad</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_MODALIDAD, general.modalidad_credito) }}</div>
                 </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', borderLeft: mostrarTipoOperacion ? '' : '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Monto solicitado</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-primary)', fontWeight: 'var(--fw-extrabold)', marginTop: 'var(--sp-2xs)' }">{{ formatMonto(general.valor_credito || general.valor_reestructura) || '—' }}</div>
+                <div v-if="mostrarTipoOperacion">
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Operación</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_OP, general.tipo_operacion) }}</div>
                 </div>
-                <div v-if="mostrarValorDesembolso" :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Valor desembolso</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--primary-color)', fontWeight: 'var(--fw-extrabold)', marginTop: 'var(--sp-2xs)' }">{{ formatMonto(general.valor_desembolso) || '—' }}</div>
+                <div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Monto</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '800', color: 'var(--color-primary)' }">{{ formatMonto(general.valor_credito || general.valor_reestructura) }}</div>
                 </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderLeft: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Plazo</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ general.plazo_solicitado ? general.plazo_solicitado + ' meses' : '—' }}</div>
+                <div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Plazo</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ general.plazo_solicitado }} meses</div>
                 </div>
-                <!-- Educativo: tipo estudio + carrera -->
-                <template v-if="esEducativo">
-                  <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderTop: '1px solid var(--color-border)' }">
-                    <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Tipo de estudio</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ label(LABEL_TIPO_ESTUDIO, general.tipo_estudio) }}</div>
-                  </div>
-                  <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderTop: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
-                    <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Carrera o denominación</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ general.denominacion_carrera || '—' }}</div>
-                  </div>
-                </template>
-                <!-- Ordinario: destino -->
-                <div v-else :style="{ padding: 'var(--sp-sm) var(--sp-lg)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Destino</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ general.destino_credito || '—' }}</div>
+                <div v-if="esEducativo" :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Carrera</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ general.denominacion_carrera }} ({{ label(LABEL_TIPO_ESTUDIO, general.tipo_estudio) }})</div>
+                </div>
+                <div v-else :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Destino</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ general.destino_credito }}</div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Datos personales -->
-          <div :style="{ borderRadius: 'var(--r-md)', border: '1px solid var(--color-border)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-              <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Datos personales</span>
-              <button @click="irASeccion('seccion-persona')" :style="{ background: 'rgba(255,255,255,0.25)', border: 'none', borderRadius: 'var(--r-sm)', padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: 'white', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)' }">
-                <IconPencil :size="14" /> Editar
-              </button>
-            </div>
-            <div :style="{ background: 'var(--color-bg-surface)' }">
-              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }">
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Nombre completo</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ [persona.nombres, persona.apellidos].filter(Boolean).join(' ') || '—' }}</div>
+            <!-- 2. Información del Titular (Compacto) -->
+            <div :style="{ borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
+              <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
+                <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
+                  <IconUser :size="16" /> Información del titular
                 </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Documento</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ label(LABEL_TIPO_DOC, persona.tipo_documento) }} {{ persona.numero_identificacion }}</div>
-                </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Correo electrónico</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ persona.correo_electronico || '—' }}</div>
-                </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Fecha de nacimiento</div>
-                  <div :style="sr(persona.fecha_nacimiento)">{{ formatFecha(persona.fecha_nacimiento) || '—' }}</div>
-                </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Fecha de expedición</div>
-                  <div :style="sr(persona.fecha_expedicion_documento)">{{ formatFecha(persona.fecha_expedicion_documento) || '—' }}</div>
-                </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Nivel educativo</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ label(LABEL_NIVEL_EDUCATIVO, persona.nivel_educativo_solicitante) }}</div>
-                </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Ciudad / Dpto.</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ [ubicacionResidencia.municipio_nombre, ubicacionResidencia.depto_nombre].filter(Boolean).join(', ') || '—' }}</div>
-                </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderLeft: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Dirección</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-2xs)' }">{{ persona.direccion_residencia?.split(', ').slice(0, -1).join(', ') || persona.direccion_residencia || '—' }}</div>
-                </div>
+                <button @click="irAPaso(2)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
               </div>
-            </div>
-          </div>
-
-          <!-- Información laboral -->
-          <div :style="{ borderRadius: 'var(--r-md)', border: '1px solid var(--color-border)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-              <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Información laboral</span>
-              <button @click="irASeccion('seccion-laboral')" :style="{ background: 'rgba(255,255,255,0.25)', border: 'none', borderRadius: 'var(--r-sm)', padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: 'white', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)' }">
-                <IconPencil :size="14" /> Editar
-              </button>
-            </div>
-            <div :style="{ background: 'var(--color-bg-surface)' }">
-              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }">
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', gridColumn: '1 / -1' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Tipo de trabajador</div>
-                  <div :style="sr(laboral.tipo_trabajador)">{{ label(LABEL_TIPO_TRABAJADOR, laboral.tipo_trabajador) }}</div>
-                </div>
-                <template v-if="laboral.tipo_trabajador === 'empleado'">
-                  <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
-                    <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Empresa</div>
-                    <div :style="sr(laboral.nombre_empresa)">{{ laboral.nombre_empresa || '—' }}</div>
+              <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+                
+                <!-- Personal y Residencia -->
+                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                  <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nombre</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.nombres }} {{ persona.apellidos }}</div>
                   </div>
-                  <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
-                    <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Cargo</div>
-                    <div :style="sr(laboral.cargo_oficio)">{{ laboral.cargo_oficio || '—' }}</div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Documento</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_DOC, persona.tipo_documento) }} {{ persona.numero_identificacion }}</div>
                   </div>
-                  <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)' }">
-                    <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Tipo contrato</div>
-                    <div :style="sr(laboral.tipo_contrato)">{{ label(LABEL_TIPO_CONTRATO, laboral.tipo_contrato) }}</div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Expedición</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(persona.fecha_expedicion_documento) }}</div>
                   </div>
-                  <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderLeft: '1px solid var(--color-border)' }">
-                    <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Fecha ingreso</div>
-                    <div :style="sr(laboral.fecha_ingreso)">{{ formatFecha(laboral.fecha_ingreso) || '—' }}</div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nacimiento</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(persona.fecha_nacimiento) }}</div>
                   </div>
-                </template>
-                <template v-if="laboral.tipo_trabajador === 'independiente'">
-                  <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
-                    <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Actividad</div>
-                    <div :style="sr(laboral.actividad_comercial)">{{ laboral.actividad_comercial || '—' }}</div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Celular</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.celular }}</div>
                   </div>
-                  <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
-                    <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Ocupación</div>
-                    <div :style="sr(laboral.ocupacion)">{{ laboral.ocupacion || '—' }}</div>
+                  <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Correo</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.correo_electronico }}</div>
                   </div>
-                </template>
-              </div>
-            </div>
-          </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nivel Educativo</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_NIVEL_EDUCATIVO, persona.nivel_educativo_solicitante) }}</div>
+                  </div>
+                  <div :style="{ gridColumn: isMobile ? 'auto' : 'span 3' }">
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Dirección</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.direccion_residencia }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ciudad</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ ubicacionResidencia.municipio_nombre }}, {{ ubicacionResidencia.depto_nombre }}</div>
+                  </div>
+                </div>
 
-          <!-- Información financiera -->
-          <div :style="{ borderRadius: 'var(--r-md)', border: '1px solid var(--color-border)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-              <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Información financiera</span>
-              <button @click="irASeccion('seccion-financiera')" :style="{ background: 'rgba(255,255,255,0.25)', border: 'none', borderRadius: 'var(--r-sm)', padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: 'white', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)' }">
-                <IconPencil :size="14" /> Editar
-              </button>
-            </div>
-            <div :style="{ background: 'var(--color-bg-surface)' }">
-              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }">
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Ingresos fijos</div>
-                  <div :style="sr(financiera.salario_ingresos_fijos)">{{ formatMonto(financiera.salario_ingresos_fijos) || '—' }}</div>
-                </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Otros ingresos</div>
-                  <div :style="sr(financiera.ingresos_independiente)">{{ formatMonto(financiera.ingresos_independiente) || '—' }}</div>
-                </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Gastos familiares</div>
-                  <div :style="sr(financiera.gastos_familiares)">{{ formatMonto(financiera.gastos_familiares) || '—' }}</div>
-                </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderLeft: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Obligaciones</div>
-                  <div :style="sr(financiera.obligaciones_financieras)">{{ formatMonto(financiera.obligaciones_financieras) || '—' }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
+                <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
 
-          <!-- Patrimonio -->
-          <div :style="{ borderRadius: 'var(--r-md)', border: '1px solid var(--color-border)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-              <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Patrimonio</span>
-              <button @click="irASeccion('seccion-patrimonio')" :style="{ background: 'rgba(255,255,255,0.25)', border: 'none', borderRadius: 'var(--r-sm)', padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: 'white', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)' }">
-                <IconPencil :size="14" /> Editar
-              </button>
-            </div>
-            <div :style="{ background: 'var(--color-bg-surface)' }">
-              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }">
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Propiedad raíz</div>
-                  <div :style="sr(patrimonio.tiene_propiedad_raiz)">{{ patrimonio.tiene_propiedad_raiz ? formatMonto(patrimonio.valor_propiedad_raiz) : 'No tiene' }}</div>
+                <!-- Laboral -->
+                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Tipo Trabajador</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_TRABAJADOR, laboral.tipo_trabajador) }}</div>
+                  </div>
+                  <template v-if="laboral.tipo_trabajador === 'empleado'">
+                    <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Empresa</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboral.nombre_empresa }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Cargo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboral.cargo_oficio }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Contrato</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_CONTRATO, laboral.tipo_contrato) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingreso</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(laboral.fecha_ingreso) }}</div>
+                    </div>
+                  </template>
+                  <template v-if="laboral.tipo_trabajador === 'independiente'">
+                    <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Actividad</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboral.actividad_comercial }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Inicio</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(laboral.fecha_inicio_actividad) }}</div>
+                    </div>
+                  </template>
+                  <template v-if="laboral.tipo_trabajador === 'pensionado'">
+                    <div :style="{ gridColumn: isMobile ? 'auto' : 'span 3' }">
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Entidad Pagadora</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboral.entidad_pagadora }}</div>
+                    </div>
+                  </template>
                 </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Vehículo</div>
-                  <div :style="sr(patrimonio.tiene_vehiculo)">{{ patrimonio.tiene_vehiculo ? formatMonto(patrimonio.valor_vehiculo) : 'No tiene' }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <!-- Cuenta de desembolso -->
-          <div v-if="mostrarCuentaDesembolso" :style="{ borderRadius: 'var(--r-md)', border: '1px solid var(--color-border)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-              <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Cuenta de desembolso</span>
-              <button @click="irASeccion('seccion-cuenta')" :style="{ background: 'rgba(255,255,255,0.25)', border: 'none', borderRadius: 'var(--r-sm)', padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: 'white', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)' }">
-                <IconPencil :size="14" /> Editar
-              </button>
-            </div>
-            <div :style="{ background: 'var(--color-bg-surface)' }">
-              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }">
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Banco</div>
-                  <div :style="sr(cuenta.entidad_bancaria)">{{ cuenta.entidad_bancaria === 'otro' ? cuenta.entidad_bancaria_otro : cuenta.entidad_bancaria || '—' }}</div>
-                </div>
-                <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: '1px solid var(--color-border)', borderLeft: '1px solid var(--color-border)' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Tipo / Número</div>
-                  <div :style="sr(cuenta.numero_cuenta)">{{ label(LABEL_TIPO_CUENTA, cuenta.tipo_cuenta) }} {{ cuenta.numero_cuenta }}</div>
-                </div>
-                <div v-if="cuenta.cuenta_tercero" :style="{ padding: 'var(--sp-sm) var(--sp-lg)', gridColumn: '1 / -1' }">
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Titular (Tercero)</div>
-                  <div :style="sr(cuenta.nombre_tercero)">{{ cuenta.nombre_tercero }} ({{ label(LABEL_TIPO_DOC, cuenta.tipo_doc_tercero) }} {{ cuenta.numero_doc_tercero }})</div>
-                </div>
-              </div>
-            </div>
-          </div>
+                <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
 
-          <!-- Codeudores -->
-          <div v-if="numCodudores > 0" :style="{ borderRadius: 'var(--r-md)', border: '1px solid var(--color-border)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-              <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Codeudores ({{ numCodudores }})</span>
-              <button @click="irAPaso(3)" :style="{ background: 'rgba(255,255,255,0.25)', border: 'none', borderRadius: 'var(--r-sm)', padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: 'white', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)' }">
-                <IconPencil :size="14" /> Editar
-              </button>
-            </div>
-            <div :style="{ background: 'var(--color-bg-surface)' }">
-              <div v-if="numCodudores >= 1" :style="{ padding: 'var(--sp-sm) var(--sp-lg)', borderBottom: numCodudores > 1 ? '1px solid var(--color-border)' : 'none' }">
-                <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Codeudor 1</div>
-                <div :style="sr(personaCod1.nombres_codeudor)">{{ [personaCod1.nombres_codeudor, personaCod1.apellidos_codeudor].filter(Boolean).join(' ') || '—' }}</div>
-              </div>
-              <div v-if="numCodudores >= 2" :style="{ padding: 'var(--sp-sm) var(--sp-lg)' }">
-                <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-bold)' }">Codeudor 2</div>
-                <div :style="sr(personaCod2.nombres_codeudor2)">{{ [personaCod2.nombres_codeudor2, personaCod2.apellidos_codeudor2].filter(Boolean).join(' ') || '—' }}</div>
-              </div>
-            </div>
-          </div>
+                <!-- Financiera y Patrimonio -->
+                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos Fijos</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financiera.salario_ingresos_fijos || financiera.mesada_pensional) }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Otros Ingresos</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financiera.ingresos_independiente) }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Gastos Fam.</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financiera.gastos_familiares) }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Obligaciones</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financiera.obligaciones_financieras) }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Pers. a cargo</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financiera.numero_dependientes }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Propiedad Raíz</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ patrimonio.tiene_propiedad_raiz ? 'SÍ (' + formatMonto(patrimonio.valor_propiedad_raiz) + ')' : 'NO' }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Vehículo</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ patrimonio.tiene_vehiculo ? 'SÍ (' + formatMonto(patrimonio.valor_vehiculo) + ')' : 'NO' }}</div>
+                  </div>
+                </div>
 
-          <!-- Documentos -->
-          <div :style="{ borderRadius: 'var(--r-md)', border: '1px solid var(--color-border)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-              <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Documentos</span>
-              <button @click="irAPaso(4)" :style="{ background: 'rgba(255,255,255,0.25)', border: 'none', borderRadius: 'var(--r-sm)', padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: 'white', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)' }">
-                <IconPencil :size="14" /> Editar
-              </button>
-            </div>
-            <div :style="{ background: 'var(--color-bg-surface)', padding: 'var(--sp-sm) var(--sp-lg)' }">
-              <div :style="{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-sm)' }">
-                <div v-for="doc in docResumen" :key="doc.label" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', background: 'var(--color-bg-card)', padding: '4px 10px', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)' }">
-                  <IconFile :size="14" :style="{ color: doc.url ? 'var(--color-success)' : 'var(--color-text-3)' }" />
-                  <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)', color: doc.url ? 'var(--color-text-1)' : 'var(--color-text-3)' }">{{ doc.label }}</span>
-                  <IconCheck v-if="doc.url" :size="12" style="color: var(--color-success)" />
+                <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
+
+                <!-- Bancaria -->
+                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 'var(--sp-md)' }">
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Banco para desembolso</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ cuenta.entidad_bancaria === 'otro' ? cuenta.entidad_bancaria_otro : cuenta.entidad_bancaria }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Cuenta</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_CUENTA, cuenta.tipo_cuenta) }} {{ cuenta.numero_cuenta }} {{ cuenta.cuenta_tercero ? '(Tercero: ' + cuenta.nombre_tercero + ')' : '' }}</div>
+                  </div>
                 </div>
               </div>
             </div>
+
+            <!-- 3. Codeudores (si existen) -->
+            <template v-if="numCodudores > 0">
+              <div v-for="i in numCodudores" :key="i" :style="{ borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
+                <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
+                  <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
+                    <IconUserCheck :size="16" /> Codeudor {{ i }}
+                  </div>
+                  <button @click="irAPaso(3)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
+                </div>
+                <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+                  <!-- Personal -->
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                    <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nombre</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ i === 1 ? (personaCod1.nombres_codeudor + ' ' + personaCod1.apellidos_codeudor) : (personaCod2.nombres_codeudor2 + ' ' + personaCod2.apellidos_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Documento</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_DOC, i === 1 ? personaCod1.tipo_documento_codeudor : personaCod2.tipo_documento_codeudor2) }} {{ i === 1 ? personaCod1.numero_identificacion_codeudor : personaCod2.numero_identificacion_codeudor2 }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Celular</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ i === 1 ? personaCod1.celular_codeudor : personaCod2.celular_codeudor2 }}</div>
+                    </div>
+                    <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Correo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ i === 1 ? personaCod1.correo_codeudor : personaCod2.correo_codeudor2 }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nivel Educativo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_NIVEL_EDUCATIVO, i === 1 ? personaCod1.nivel_educativo_codeudor : personaCod2.nivel_educativo_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ciudad</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ i === 1 ? (ubicacionCod1.municipio_nombre + ', ' + ubicacionCod1.depto_nombre) : (ubicacionCod2.municipio_nombre + ', ' + ubicacionCod2.depto_nombre) }}</div>
+                    </div>
+                  </div>
+
+                  <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
+
+                  <!-- Laboral / Financiera -->
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ocupación</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_TRABAJADOR, i === 1 ? laboralCod1.tipo_trabajador_codeudor : laboralCod2.tipo_trabajador_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ i === 1 ? formatMonto(financieraCod1.salario_codeudor || financieraCod1.mesada_pensional_codeudor) : formatMonto(financieraCod2.salario_codeudor2 || financieraCod2.mesada_pensional_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Obligaciones</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ i === 1 ? formatMonto(financieraCod1.obligaciones_financieras_codeudor) : formatMonto(financieraCod2.obligaciones_financieras_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Pers. a cargo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ i === 1 ? financieraCod1.numero_dependientes_codeudor : financieraCod2.numero_dependientes_codeudor2 }}</div>
+                    </div>
+                    <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Empresa/Actividad</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">
+                        {{ i === 1 ? (laboralCod1.nombre_empresa_codeudor || laboralCod1.actividad_comercial_codeudor || laboralCod1.entidad_pagadora_codeudor) : (laboralCod2.nombre_empresa_codeudor2 || laboralCod2.actividad_comercial_codeudor2 || laboralCod2.entidad_pagadora_codeudor2) }}
+                      </div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Propiedad Raíz</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ (i === 1 ? patrimonioCod1.tiene_propiedad_raiz_codeudor : patrimonioCod2.tiene_propiedad_raiz_codeudor2) ? 'SÍ' : 'NO' }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Vehículo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ (i === 1 ? patrimonioCod1.tiene_vehiculo_codeudor : patrimonioCod2.tiene_vehiculo_codeudor2) ? 'SÍ' : 'NO' }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <!-- 4. Documentos cargados -->
+            <div :style="{ borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
+              <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
+                <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
+                  <IconUpload :size="16" /> Documentos adjuntos
+                </div>
+                <button @click="irAPaso(4)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
+              </div>
+              <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-sm)' }">
+                <div v-for="doc in docResumen" :key="doc.label" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', background: doc.url ? 'var(--color-success-bg)' : 'var(--color-bg-surface)', padding: '4px 12px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (doc.url ? 'var(--color-success)' : 'var(--color-border)') }">
+                  <IconCheck v-if="doc.url" :size="12" :style="{ color: 'var(--color-success)' }" />
+                  <IconX v-else :size="12" :style="{ color: 'var(--color-error)' }" />
+                  <span :style="{ fontSize: '11px', fontWeight: 'bold', color: doc.url ? 'var(--color-success-text)' : 'var(--color-text-3)' }">{{ doc.label }}</span>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           <!-- Firma digital -->
-          <div :style="{ borderRadius: 'var(--r-md)', border: '2px solid var(--color-accent)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', background: 'var(--color-accent)', display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)' }">
-              <IconShieldCheck :size="16" style="color: var(--color-dark);" />
-              <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-dark)', textTransform: 'uppercase', letterSpacing: '0.07em' }">Firma digital</span>
+          <div :style="{ borderRadius: 'var(--r-xl)', border: '2px solid var(--color-accent)', overflow: 'hidden', marginTop: 'var(--sp-lg)' }">
+            <div :style="{ padding: '12px var(--sp-lg)', background: 'var(--color-accent)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconShieldCheck :size="18" style="color: var(--color-dark);" />
+              <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-dark)', textTransform: 'uppercase', letterSpacing: '0.07em' }">Firma electrónica de la solicitud</span>
             </div>
-            <div :style="{ padding: 'var(--sp-lg)', background: 'var(--color-bg-surface)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
-              <CampoTexto label="Nombre completo (firma)" placeholder="Escriba su nombre completo" :model-value="firma.nombre_firma" @update:model-value="firma.nombre_firma = $event" />
+            <div :style="{ padding: 'var(--sp-xl)', background: 'white', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', lineHeight: '1.6' }">
+                Al escribir su nombre a continuación, usted certifica que la información proporcionada es veraz y autoriza a <strong>Cooperamigo</strong> para realizar las validaciones correspondientes.
+              </div>
+              <CampoTexto label="Escriba su nombre completo para firmar" placeholder="TAL CUAL APARECE EN SU CÉDULA" :model-value="firma.nombre_firma" @update:model-value="firma.nombre_firma = $event" />
             </div>
           </div>
         </div>

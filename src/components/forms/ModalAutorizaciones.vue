@@ -250,6 +250,22 @@ function cerrar() {
               color:        'var(--color-text-1)',
               marginBottom: 'var(--sp-sm)',
               fontSize:     'var(--text-base)',
+            }">NOTIFICACIÓN A CODEUDORES</p>
+            <p :style="{ marginBottom: 'var(--sp-xl)' }">
+              Informo(amos) que conozco(cemos) y acepto(amos) que, en caso de ser aprobada la presente
+              solicitud de crédito, los codeudores aquí relacionados serán notificados a través de los
+              medios de contacto suministrados (correo electrónico y/o teléfono) para proceder con la
+              formalización y firma electrónica del plan de pagos, pagaré, carta de instrucciones y demás
+              documentos del crédito. Lo anterior, con la finalidad de que cada codeudor pueda validar
+              y dar su aprobación sobre la veracidad de la solicitud y la información aquí contenida.
+            </p>
+
+            <!-- Sección 5 -->
+            <p :style="{
+              fontWeight:   'var(--fw-bold)',
+              color:        'var(--color-text-1)',
+              marginBottom: 'var(--sp-sm)',
+              fontSize:     'var(--text-base)',
             }">DECLARACIÓN DE RECEPCIÓN DE INFORMACIÓN</p>
             <p :style="{ marginBottom: 'var(--sp-xl)' }">
               Declaro(amos) que he(mos) recibido oportunamente de Cooperamigó los documentos
@@ -258,7 +274,7 @@ function cerrar() {
               toda la información es veraz.
             </p>
 
-            <!-- Sección 5 -->
+            <!-- Sección 6 -->
             <p :style="{
               fontWeight:   'var(--fw-bold)',
               color:        'var(--color-text-1)',
