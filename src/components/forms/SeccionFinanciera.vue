@@ -5,7 +5,7 @@ import CampoTexto  from './CampoTexto.vue'
 const props = defineProps({
   modelValue:       { type: Object,  required: true },
   errores:          { type: Object,  default: () => ({}) },
-  titulo:           { type: String,  required: true },
+  titulo:           { type: String,  default: '' },
   salarioBloqueado: { type: Boolean, default: false },
   tipoTrabajador:   { type: String,  default: '' },
 })
@@ -35,7 +35,7 @@ function claveFuente() {
 
 <template>
   <div>
-    <div :style="{
+    <div v-if="titulo" :style="{
       fontFamily:   'var(--font-display)',
       fontSize:     'var(--text-lg)',
       fontWeight:   'var(--fw-extrabold)',
@@ -43,59 +43,160 @@ function claveFuente() {
       marginBottom: 'var(--sp-xl)',
     }">{{ titulo }}</div>
 
-    <div :style="{
-      display:             'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap:                 'var(--sp-lg)',
-    }">
-      <!-- Fuente de ingresos para cuidado del hogar -->
-      <CampoTexto
-        v-if="tipoTrabajador === 'cuidado_hogar'"
-        :model-value="modelValue[claveFuente()]"
-        label="Fuente de ingresos"
-        placeholder="Ej: Apoyo familiar, arrendamiento, pensión de esposo/a..."
-        required
-        :error="errores[claveFuente()]"
-        :style="{ gridColumn: '1 / -1' }"
-        @update:model-value="actualizar(claveFuente(), $event)"
-      />
+    <!-- ── Empleado: salario + otros ingresos / gastos x3 ── -->
+    <template v-if="!tipoTrabajador || tipoTrabajador === 'empleado'">
+      <div :style="{
+        display:             'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap:                 'var(--sp-lg)',
+        marginBottom:        'var(--sp-lg)',
+      }">
+        <CampoMoneda
+          :model-value="modelValue[claveSalario()]"
+          label="Salario / Ingresos fijos"
+          required
+          :error="errores[claveSalario()]"
+          @update:model-value="actualizar(claveSalario(), $event)"
+        />
+        <CampoMoneda
+          :model-value="modelValue[clave('ingresos_independiente')]"
+          label="Ingresos como independiente / otros ingresos"
+          :error="errores[clave('ingresos_independiente')]"
+          @update:model-value="actualizar(clave('ingresos_independiente'), $event)"
+        />
+      </div>
+      <div :style="{
+        display:             'grid',
+        gridTemplateColumns: '1fr 1fr 1fr',
+        gap:                 'var(--sp-lg)',
+      }">
+        <CampoMoneda
+          :model-value="modelValue[clave('gastos_familiares')]"
+          label="Gastos familiares"
+          required
+          :error="errores[clave('gastos_familiares')]"
+          @update:model-value="actualizar(clave('gastos_familiares'), $event)"
+        />
+        <CampoMoneda
+          :model-value="modelValue[clave('otros_gastos')]"
+          label="Otros gastos"
+          :error="errores[clave('otros_gastos')]"
+          @update:model-value="actualizar(clave('otros_gastos'), $event)"
+        />
+        <CampoMoneda
+          :model-value="modelValue[clave('obligaciones_financieras')]"
+          label="Obligaciones financieras"
+          tooltip="Cuánto pagas mensual en obligaciones con comercios, bancos, cooperativas u otras entidades."
+          :error="errores[clave('obligaciones_financieras')]"
+          @update:model-value="actualizar(clave('obligaciones_financieras'), $event)"
+        />
+      </div>
+    </template>
 
-      <!-- Salario — oculto para cuidado_hogar e independiente -->
-      <CampoMoneda
-        v-if="tipoTrabajador !== 'cuidado_hogar' && tipoTrabajador !== 'independiente'"
-        :model-value="modelValue[claveSalario()]"
-        label="Salario / Ingresos fijos"
-        required
-        :error="errores[claveSalario()]"
-        @update:model-value="actualizar(claveSalario(), $event)"
-      />
+    <!-- ── Independiente: ingresos + gastos / otros + obligaciones ── -->
+    <template v-else-if="tipoTrabajador === 'independiente'">
+      <div :style="{
+        display:             'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap:                 'var(--sp-lg)',
+        marginBottom:        'var(--sp-lg)',
+      }">
+        <CampoMoneda
+          :model-value="modelValue[clave('ingresos_independiente')]"
+          label="Ingresos como independiente"
+          required
+          :error="errores[clave('ingresos_independiente')]"
+          @update:model-value="actualizar(clave('ingresos_independiente'), $event)"
+        />
+        <CampoMoneda
+          :model-value="modelValue[clave('gastos_familiares')]"
+          label="Gastos familiares"
+          required
+          :error="errores[clave('gastos_familiares')]"
+          @update:model-value="actualizar(clave('gastos_familiares'), $event)"
+        />
+      </div>
+      <div :style="{
+        display:             'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap:                 'var(--sp-lg)',
+      }">
+        <CampoMoneda
+          :model-value="modelValue[clave('otros_gastos')]"
+          label="Otros gastos"
+          :error="errores[clave('otros_gastos')]"
+          @update:model-value="actualizar(clave('otros_gastos'), $event)"
+        />
+        <CampoMoneda
+          :model-value="modelValue[clave('obligaciones_financieras')]"
+          label="Obligaciones financieras"
+          tooltip="Cuánto pagas mensual en obligaciones con comercios, bancos, cooperativas u otras entidades."
+          :error="errores[clave('obligaciones_financieras')]"
+          @update:model-value="actualizar(clave('obligaciones_financieras'), $event)"
+        />
+      </div>
+    </template>
 
+    <!-- ── Pensionado: solo mesada pensional ── -->
+    <template v-else-if="tipoTrabajador === 'pensionado'">
       <CampoMoneda
-        :model-value="modelValue[clave('ingresos_independiente')]"
-        label="Ingresos como independiente / otros ingresos"
-        :error="errores[clave('ingresos_independiente')]"
-        @update:model-value="actualizar(clave('ingresos_independiente'), $event)"
-      />
-      <CampoMoneda
-        :model-value="modelValue[clave('gastos_familiares')]"
-        label="Gastos familiares"
+        :model-value="modelValue[clave('mesada_pensional')]"
+        label="Valor mesada pensional"
         required
-        :error="errores[clave('gastos_familiares')]"
-        @update:model-value="actualizar(clave('gastos_familiares'), $event)"
+        :error="errores[clave('mesada_pensional')]"
+        @update:model-value="actualizar(clave('mesada_pensional'), $event)"
       />
-      <CampoMoneda
-        :model-value="modelValue[clave('otros_gastos')]"
-        label="Otros gastos"
-        :error="errores[clave('otros_gastos')]"
-        @update:model-value="actualizar(clave('otros_gastos'), $event)"
-      />
-      <CampoMoneda
-        :model-value="modelValue[clave('obligaciones_financieras')]"
-        label="Obligaciones financieras"
-        tooltip="Cuánto pagas mensual en obligaciones con comercios, bancos, cooperativas u otras entidades."
-        :error="errores[clave('obligaciones_financieras')]"
-        @update:model-value="actualizar(clave('obligaciones_financieras'), $event)"
-      />
-    </div>
+    </template>
+
+    <!-- ── Estudiante: ingresos mensuales + fuente ── -->
+    <template v-else-if="tipoTrabajador === 'estudiante'">
+      <div :style="{
+        display:             'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap:                 'var(--sp-lg)',
+      }">
+        <CampoMoneda
+          :model-value="modelValue[claveSalario()]"
+          label="Ingresos mensuales"
+          required
+          :error="errores[claveSalario()]"
+          @update:model-value="actualizar(claveSalario(), $event)"
+        />
+        <CampoTexto
+          :model-value="modelValue[claveFuente()]"
+          label="Fuente de ingresos"
+          placeholder="Ej: Apoyo familiar, beca, trabajo parcial..."
+          required
+          :error="errores[claveFuente()]"
+          @update:model-value="actualizar(claveFuente(), $event ? $event.toUpperCase() : $event)"
+        />
+      </div>
+    </template>
+
+    <!-- ── Cuidado del hogar: ingresos mensuales + fuente ── -->
+    <template v-else-if="tipoTrabajador === 'cuidado_hogar'">
+      <div :style="{
+        display:             'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap:                 'var(--sp-lg)',
+      }">
+        <CampoMoneda
+          :model-value="modelValue[claveSalario()]"
+          label="Ingresos mensuales"
+          required
+          :error="errores[claveSalario()]"
+          @update:model-value="actualizar(claveSalario(), $event)"
+        />
+        <CampoTexto
+          :model-value="modelValue[claveFuente()]"
+          label="Fuente de ingresos"
+          placeholder="Ej: Apoyo familiar, arrendamiento, pensión de esposo/a..."
+          required
+          :error="errores[claveFuente()]"
+          @update:model-value="actualizar(claveFuente(), $event ? $event.toUpperCase() : $event)"
+        />
+      </div>
+    </template>
+
   </div>
 </template>

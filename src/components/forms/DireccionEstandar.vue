@@ -93,24 +93,6 @@ const estiloSelect = {
         @input="actualizar('letra_via', $event.target.value)"
       />
 
-      <!-- BIS -->
-      <label :style="{
-        display:    'flex',
-        alignItems: 'center',
-        gap:        'var(--sp-xs)',
-        fontSize:   'var(--text-sm)',
-        fontWeight: 'var(--fw-medium)',
-        color:      'var(--color-text-2)',
-        cursor:     'pointer',
-        flexShrink: '0',
-      }">
-        <input
-          type="checkbox"
-          :checked="modelValue.bis"
-          @change="actualizar('bis', $event.target.checked)"
-        />
-        BIS
-      </label>
 
       <select
         :value="modelValue.cuadrante_via"
@@ -194,7 +176,7 @@ const estiloSelect = {
     <div v-if="vistaPrevia" :style="{
       padding:      'var(--sp-sm) var(--sp-md)',
       borderRadius: 'var(--r-lg)',
-      background:   'var(--color-primary-light)',
+      background:   'var(--color-bg-card)',
       border:       '1px solid var(--color-border)',
       fontSize:     'var(--text-sm)',
       fontWeight:   'var(--fw-bold)',

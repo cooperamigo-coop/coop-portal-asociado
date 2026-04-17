@@ -412,7 +412,7 @@ const SERVICIOS_NO_ASOCIADO = [
 }
 
 .btn-volver:hover {
-  background: var(--color-primary-light);
+  background: var(--color-bg-card);
   border-color: var(--color-primary);
   color: var(--color-primary);
 }

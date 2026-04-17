@@ -5,7 +5,7 @@ import { IconHome, IconCar, IconCheck } from '@tabler/icons-vue'
 const props = defineProps({
   modelValue: { type: Object, required: true },
   errores:    { type: Object, default: () => ({}) },
-  titulo:     { type: String, required: true },
+  titulo:     { type: String, default: '' },
 })
 const emit = defineEmits(['update:modelValue'])
 
@@ -35,7 +35,7 @@ function toggleVehiculo() {
 
 <template>
   <div>
-    <div :style="{
+    <div v-if="titulo" :style="{
       fontFamily: 'var(--font-display)',
       fontSize: 'var(--text-lg)',
       fontWeight: 'var(--fw-extrabold)',
@@ -59,7 +59,7 @@ function toggleVehiculo() {
             ? '2px solid var(--color-primary)'
             : '1.5px solid var(--color-border)',
           background: modelValue[clave('tiene_propiedad_raiz')]
-            ? 'var(--color-primary-light)'
+            ? 'var(--color-bg-card)'
             : 'var(--color-bg-surface)',
           transition: 'all var(--transition-base)',
           overflow: 'hidden',
@@ -148,7 +148,7 @@ function toggleVehiculo() {
             ? '2px solid var(--color-primary)'
             : '1.5px solid var(--color-border)',
           background: modelValue[clave('tiene_vehiculo')]
-            ? 'var(--color-primary-light)'
+            ? 'var(--color-bg-card)'
             : 'var(--color-bg-surface)',
           transition: 'all var(--transition-base)',
           overflow: 'hidden',

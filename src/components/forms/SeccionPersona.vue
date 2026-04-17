@@ -14,19 +14,15 @@ const TIPOS_DOC_CODEUDOR = [
 const props = defineProps({
   modelValue:            { type: Object,  required: true },
   errores:               { type: Object,  default: () => ({}) },
-  titulo:                { type: String,  required: true },
+  titulo:                { type: String,  default: '' },
   bloquearDocumento:     { type: Boolean, default: false },
   bloquearCorreo:        { type: Boolean, default: false },
-  // Objeto de dirección estructurada (modal) — null = campo libre de texto
   direccionEstructurada: { type: Object,  default: null },
-  // Ubicación de residencia (depto/municipio) — viene del ModalDireccion
   ubicacion: {
     type: Object,
     default: () => ({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' }),
   },
-  // Mostrar selector de nivel educativo
   showNivelEducativo: { type: Boolean, default: false },
-  // true cuando el componente se usa para un codeudor (restringe tipos de doc)
   esCodeudor: { type: Boolean, default: false },
 })
 
@@ -54,23 +50,20 @@ function actualizarDireccion(val) {
   }
 }
 
-// Detecta si los campos son del codeudor (sufijo _codeudor o _codeudor2)
 function clave(base) {
-  const conSufijo = base + '_codeudor'
-  return conSufijo in props.modelValue ? conSufijo : base
+  const sufijo2 = base + '_codeudor2'
+  const sufijo1 = base + '_codeudor'
+  if (sufijo2 in props.modelValue) return sufijo2
+  if (sufijo1 in props.modelValue) return sufijo1
+  return base
 }
 
 function actualizarUpper(campo, valor) {
   actualizar(campo, valor ? valor.toUpperCase() : valor)
 }
 
-// ── Texto de dirección con ubicación ─────────────────────────────────────────
 const textoResidencia = computed(() => {
-  const dir   = props.modelValue[clave('direccion_residencia')] || ''
-  const depto = props.ubicacion?.depto_nombre     || ''
-  const muni  = props.ubicacion?.municipio_nombre || ''
-  const partes = [dir, depto && muni ? `${depto}, ${muni}` : (depto || muni)].filter(Boolean)
-  return partes.join(' · ')
+  return props.modelValue[clave('direccion_residencia')] || ''
 })
 
 const nivelEducativoOpciones = [
@@ -90,7 +83,7 @@ const nivelEducativoOpciones = [
 
 <template>
   <div>
-    <div :style="{
+    <div v-if="titulo" :style="{
       fontFamily:   'var(--font-display)',
       fontSize:     'var(--text-lg)',
       fontWeight:   'var(--fw-extrabold)',
@@ -98,12 +91,13 @@ const nivelEducativoOpciones = [
       marginBottom: 'var(--sp-xl)',
     }">{{ titulo }}</div>
 
+    <!-- Fila 1: tipo documento, número de documento y fecha expedición (3 columnas) -->
     <div :style="{
       display:             'grid',
-      gridTemplateColumns: '1fr 1fr',
+      gridTemplateColumns: '1fr 1fr 1fr',
       gap:                 'var(--sp-lg)',
+      marginBottom:        'var(--sp-lg)',
     }">
-      <!-- Tipo de documento -->
       <CampoSelectBuscable
         :model-value="modelValue[clave('tipo_documento')]"
         label="Tipo de documento"
@@ -114,7 +108,6 @@ const nivelEducativoOpciones = [
         @update:model-value="actualizar(clave('tipo_documento'), $event)"
       />
 
-      <!-- Número de identificación -->
       <CampoTexto
         :model-value="modelValue[clave('numero_identificacion')]"
         label="Número de documento"
@@ -126,6 +119,23 @@ const nivelEducativoOpciones = [
         @update:model-value="actualizar(clave('numero_identificacion'), $event)"
       />
 
+      <SelectorFecha
+        :model-value="modelValue[clave('fecha_expedicion_documento')]"
+        label="Fecha expedición"
+        required
+        :error="errores[clave('fecha_expedicion_documento')]"
+        :max-year="new Date().getFullYear()"
+        :min-year="1950"
+        @update:model-value="actualizar(clave('fecha_expedicion_documento'), $event)"
+      />
+    </div>
+
+    <!-- Resto de campos en grid 2 columnas -->
+    <div :style="{
+      display:             'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap:                 'var(--sp-lg)',
+    }">
       <!-- Nombres -->
       <CampoTexto
         :model-value="modelValue[clave('nombres')]"
@@ -148,7 +158,7 @@ const nivelEducativoOpciones = [
         @blur="actualizarUpper(clave('apellidos'), modelValue[clave('apellidos')])"
       />
 
-      <!-- Con nivel educativo: [nivel_educativo | fecha_nacimiento] luego [fecha_expedicion | vacío] -->
+      <!-- Con nivel educativo: [nivel_educativo | fecha_nacimiento] -->
       <template v-if="showNivelEducativo">
         <CampoSelectBuscable
           :model-value="modelValue.nivel_educativo_solicitante"
@@ -166,19 +176,9 @@ const nivelEducativoOpciones = [
           :min-year="1930"
           @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
         />
-        <SelectorFecha
-          :model-value="modelValue[clave('fecha_expedicion_documento')]"
-          label="Fecha de expedición del documento"
-          required
-          :error="errores[clave('fecha_expedicion_documento')]"
-          :max-year="new Date().getFullYear()"
-          :min-year="1950"
-          @update:model-value="actualizar(clave('fecha_expedicion_documento'), $event)"
-        />
-        <div />
       </template>
 
-      <!-- Sin nivel educativo: [fecha_nacimiento | fecha_expedicion] -->
+      <!-- Sin nivel educativo: [fecha_nacimiento | spacer] -->
       <template v-else>
         <SelectorFecha
           :model-value="modelValue[clave('fecha_nacimiento')]"
@@ -189,18 +189,10 @@ const nivelEducativoOpciones = [
           :min-year="1930"
           @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
         />
-        <SelectorFecha
-          :model-value="modelValue[clave('fecha_expedicion_documento')]"
-          label="Fecha de expedición del documento"
-          required
-          :error="errores[clave('fecha_expedicion_documento')]"
-          :max-year="new Date().getFullYear()"
-          :min-year="1950"
-          @update:model-value="actualizar(clave('fecha_expedicion_documento'), $event)"
-        />
+        <div />
       </template>
 
-      <!-- Correo electrónico — ancho completo -->
+      <!-- Correo electrónico -->
       <CampoTexto
         :model-value="modelValue[clave('correo_electronico')]"
         label="Correo electrónico"
@@ -210,46 +202,47 @@ const nivelEducativoOpciones = [
         :disabled="bloquearCorreo"
         :helper="null"
         :error="errores[clave('correo_electronico')]"
-        :style="{ gridColumn: '1 / -1' }"
         @update:model-value="actualizar(clave('correo_electronico'), $event)"
       />
-    </div>
 
-    <!-- Dirección de residencia -->
-    <div :style="{
-      marginTop:           'var(--sp-lg)',
-    }">
-      <div v-if="direccionEstructurada !== null">
-        <label :style="{
-          display: 'block', fontSize: 'var(--text-sm)',
-          fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)',
-          marginBottom: 'var(--sp-xs)',
-        }">Dirección de residencia <span :style="{ color: 'var(--color-error)' }">*</span></label>
-        <input
-          :value="textoResidencia || 'Sin ingresar'"
-          readonly
-          :style="{
-            width: '100%', padding: '0 14px',
-            height: '54px',
-            border: '1px solid var(--color-border)',
-            borderRadius: 'var(--r-md)',
-            fontSize: 'var(--text-base)', fontFamily: 'var(--font-body)',
-            background: 'var(--color-bg-surface-alt)',
-            color: textoResidencia ? 'var(--color-text-1)' : 'var(--color-text-3)',
-            cursor: 'pointer', outline: 'none', boxSizing: 'border-box',
-          }"
-          @click="modalDireccionVisible = true"
+      <!-- Dirección residencia (al lado del correo) -->
+      <div>
+        <div v-if="direccionEstructurada !== null" :style="{ position: 'relative' }" @click="modalDireccionVisible = true">
+          <input
+            :value="textoResidencia"
+            readonly
+            placeholder="Diligenciar dirección"
+            :style="{
+              width: '100%', padding: '0 14px',
+              height: '54px',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--r-md)',
+              fontSize: 'var(--text-base)', fontFamily: 'var(--font-body)',
+              background: 'var(--color-bg-card)',
+              color: 'var(--color-text-1)',
+              textAlign: 'left',
+              cursor: 'pointer', outline: 'none', boxSizing: 'border-box',
+            }"
+          />
+          <label :style="{
+            position: 'absolute', left: '12px', top: '0',
+            transform: 'translateY(-50%)',
+            fontSize: '10px', fontWeight: 'var(--fw-semibold)',
+            color: 'var(--color-text-3)',
+            background: 'var(--color-bg-card)', padding: '0 3px',
+            pointerEvents: 'none', whiteSpace: 'nowrap',
+          }">Dirección residencia <span :style="{ color: 'var(--color-error)' }">*</span></label>
+        </div>
+        <CampoTexto
+          v-else
+          :model-value="modelValue[clave('direccion_residencia')]"
+          label="Dirección residencia"
+          placeholder="Ej: Calle 45 # 23-18, Apto 301"
+          required
+          :error="errores[clave('direccion_residencia')]"
+          @update:model-value="actualizar(clave('direccion_residencia'), $event ? $event.toUpperCase() : $event)"
         />
       </div>
-      <CampoTexto
-        v-else
-        :model-value="modelValue[clave('direccion_residencia')]"
-        label="Dirección de residencia"
-        placeholder="Ej: Calle 45 # 23-18, Apto 301"
-        required
-        :error="errores[clave('direccion_residencia')]"
-        @update:model-value="actualizar(clave('direccion_residencia'), $event ? $event.toUpperCase() : $event)"
-      />
     </div>
 
     <!-- ModalDireccion -->

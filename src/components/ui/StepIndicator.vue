@@ -34,8 +34,10 @@ const { isMobile } = useBreakpoint()
         <span v-if="!isMobile" :style="{
           fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)',
           color: actual >= i + 1 ? 'var(--color-text-1)' : 'var(--color-text-3)',
-          whiteSpace: 'nowrap',
-        }">{{ p.label }}</span>
+          whiteSpace: p.label2 ? 'normal' : 'nowrap',
+          textAlign: 'left',
+          lineHeight: '1.3',
+        }">{{ p.label }}<template v-if="p.label2"><br>{{ p.label2 }}</template></span>
       </div>
       <div v-if="i < pasos.length - 1" :style="{
         flex: '1', height: '1px', margin: '0 var(--sp-md)',

@@ -129,6 +129,7 @@ export function useSolicitudCredito() {
     otros_gastos:             '',
     obligaciones_financieras: '',
     fuente_ingresos:          '',
+    mesada_pensional:         '',
   })
 
   // ── Sección 6: Patrimonio solicitante ─────────────────────
@@ -187,6 +188,7 @@ export function useSolicitudCredito() {
     otros_gastos_codeudor:             '',
     obligaciones_financieras_codeudor: '',
     fuente_ingresos_codeudor:          '',
+    mesada_pensional_codeudor:         '',
   })
   const patrimonioCod1 = ref({
     tiene_propiedad_raiz_codeudor: false,
@@ -229,6 +231,7 @@ export function useSolicitudCredito() {
     otros_gastos_codeudor2:             '',
     obligaciones_financieras_codeudor2: '',
     fuente_ingresos_codeudor2:          '',
+    mesada_pensional_codeudor2:         '',
   })
   const patrimonioCod2 = ref({
     tiene_propiedad_raiz_codeudor2: false,
@@ -293,9 +296,11 @@ export function useSolicitudCredito() {
 
   // Pasos activos según el nuevo diseño de "formulario completo"
   const pasosActivos = computed(() => [
-    { numero: 1, titulo: 'Modalidad de crédito', seccion: 'Solicitud' },
-    { numero: 2, titulo: 'Información de la solicitud', seccion: 'Formulario' },
-    { numero: 3, titulo: 'Revisión y firma', seccion: 'Legal' },
+    { numero: 1, titulo: 'Modalidad de crédito',        seccion: 'Solicitud'    },
+    { numero: 2, titulo: 'Información de la solicitud', seccion: 'Formulario'   },
+    { numero: 3, titulo: 'Codeudores',                  seccion: 'Codeudores'   },
+    { numero: 4, titulo: 'Documentos y autorización',   seccion: 'Documentos'   },
+    { numero: 5, titulo: 'Revisión y firma',             seccion: 'Legal'        },
   ])
 
   const totalPasosActivos = computed(() => pasosActivos.value.length)
@@ -610,12 +615,34 @@ export function useSolicitudCredito() {
   watch(() => laboral.value.tipo_contrato,               v => _sincronizarCampoAsociado('tipo_contrato', v))
   watch(() => laboral.value.fecha_ingreso,               v => _sincronizarCampoAsociado('fecha_ingreso_empresa', v))
 
+  // laboral — limpiar campos al cambiar tipo de trabajador
+  watch(() => laboral.value.tipo_trabajador, (nuevo, anterior) => {
+    if (!anterior || anterior === nuevo) return
+    // Resetear todos los campos específicos del tipo anterior
+    laboral.value.nombre_empresa         = ''
+    laboral.value.cargo_oficio           = ''
+    laboral.value.tipo_contrato          = ''
+    laboral.value.fecha_ingreso          = ''
+    laboral.value.actividad_comercial    = ''
+    laboral.value.ocupacion              = ''
+    laboral.value.fecha_inicio_actividad = ''
+    laboral.value.entidad_pagadora       = ''
+    laboral.value.institucion_educativa  = ''
+    laboral.value.nivel_educativo        = ''
+    laboral.value.numero_dependientes    = ''
+    // Resetear también los campos financieros asociados al tipo
+    financiera.value.salario_ingresos_fijos   = ''
+    financiera.value.ingresos_independiente   = ''
+    financiera.value.gastos_familiares        = ''
+    financiera.value.otros_gastos             = ''
+    financiera.value.obligaciones_financieras = ''
+    financiera.value.fuente_ingresos          = ''
+    financiera.value.mesada_pensional         = ''
+  })
+
   // laboral — personas a cargo
   watch(() => laboral.value.numero_dependientes, v => {
-    if (laboral.value.tiene_dependientes && v) _sincronizarCampoAsociado('personas_a_cargo', Number(v))
-  })
-  watch(() => laboral.value.tiene_dependientes, v => {
-    if (!v) _sincronizarCampoAsociado('personas_a_cargo', 0)
+    _sincronizarCampoAsociado('personas_a_cargo', v ? Number(v) : 0)
   })
 
   // laboral — actividad independiente (jsonb)
@@ -739,7 +766,7 @@ export function useSolicitudCredito() {
     }
   }
 
-  const esUltimoPaso = computed(() => paso.value === 3)
+  const esUltimoPaso = computed(() => paso.value === 5)
 
   // ── Token helper ──────────────────────────────────────────
   function generarToken() {

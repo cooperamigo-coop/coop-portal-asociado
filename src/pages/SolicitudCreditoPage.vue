@@ -77,6 +77,10 @@ const errorCorreo = ref(null)
 const errorPlazo   = ref(null)
 const plazoFocused = ref(false)
 
+// ── Tab activa en la sección de codeudores ─────────────────
+const tabCodudorActivo = ref(1)
+watch(numCodudores, (n) => { if (n < 2) tabCodudorActivo.value = 1 })
+
 // ── Documentos cuenta de tercero ──────────────────────────
 const refCartaUpload = ref(null)
 const refCartaCamera = ref(null)
@@ -160,15 +164,19 @@ const indexPasoActual = computed(() => {
 const totalPasosVisibles = computed(() => pasosActivos.value.length - 1)
 
 const secciones = [
-  { label: 'Solicitud'   },
-  { label: 'Formulario' },
-  { label: 'Revisión'  },
+  { label: 'Tipo de crédito'        },
+  { label: 'Diligenciar formulario' },
+  { label: 'Codeudores'             },
+  { label: 'Documentos y', label2: 'autorización' },
+  { label: 'Enviar solicitud'       },
 ]
 
 const seccionActual = computed(() => {
   if (paso.value === 1) return 1
   if (paso.value === 2) return 2
   if (paso.value === 3) return 3
+  if (paso.value === 4) return 4
+  if (paso.value === 5) return 5
   return 1
 })
 
@@ -469,7 +477,7 @@ function onOtpValidado() {
 
       <!-- Aviso codeudores -->
       <div v-if="numCodudores > 0" :style="{
-        background: 'var(--color-primary-light)',
+        background: 'var(--color-bg-card)',
         border: '1px solid var(--color-border)',
         borderRadius: 'var(--r-md)',
         padding: 'var(--sp-xl)',
@@ -623,7 +631,7 @@ function onOtpValidado() {
 
       <!-- Banner: borrador encontrado — Continuar o Empezar de nuevo -->
       <div v-if="mostrarOpcionBorrador" :style="{
-        background:   'var(--color-primary-light)',
+        background:   'var(--color-bg-card)',
         borderRadius: 'var(--r-md)',
         padding:      'var(--sp-lg) var(--sp-xl)',
         marginBottom: 'var(--sp-xl)',
@@ -687,10 +695,10 @@ function onOtpValidado() {
         </div>
       </div>
 
-      <StepIndicator :pasos="secciones" :actual="seccionActual" />
+      <StepIndicator v-if="paso !== 1" :pasos="secciones" :actual="seccionActual" />
 
-      <!-- Título del paso + barra de progreso -->
-      <div :style="{ marginBottom: 'var(--sp-xl)', marginTop: 'var(--sp-lg)' }">
+      <!-- Título del paso + barra de progreso — solo pasos 2 y 3 -->
+      <div v-if="paso !== 1" :style="{ marginBottom: 'var(--sp-xl)', marginTop: 'var(--sp-lg)' }">
         <div :style="{
           display: 'flex', justifyContent: 'space-between',
           alignItems: 'flex-end', marginBottom: 'var(--sp-sm)',
@@ -715,56 +723,24 @@ function onOtpValidado() {
         </div>
       </div>
 
-      <!-- Contenido del paso -->
-      <div :style="{
-        background:   'var(--color-bg-card)',
-        border:       '1px solid var(--color-border-card)',
-        borderRadius: 'var(--r-md)',
-        padding:      isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
-        boxShadow:    'var(--shadow-card)',
-        position:     'relative',
+      <!-- ── PASO 1: Modalidad de crédito ─────────────────── -->
+      <div v-if="paso === 1" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+        <SelectorModalidad
+          :model-value="general.modalidad_credito"
+          @update:model-value="seleccionarModalidad"
+        />
+      </div>
+
+      <!-- ── PASO 2: Formulario Completo (Estilo PDF) ───────── -->
+      <div v-if="paso === 2" :style="{
+        display: 'flex', flexDirection: 'column', gap: 'var(--sp-2xl)',
       }">
-
-        <!-- ── PASO 1: Modalidad de crédito ─────────────────── -->
-        <div v-if="paso === 1" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
-          <SelectorModalidad
-            :model-value="general.modalidad_credito"
-            @update:model-value="seleccionarModalidad"
-          />
-
-          <!-- Tipo de operación — solo para crédito ordinario -->
-          <div v-if="mostrarTipoOperacion" :style="{
-            marginTop: 'var(--sp-sm)',
-            animation: 'fadeIn 0.3s ease-out'
-          }">
-            <div :style="{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'var(--text-base)',
-              fontWeight: 'var(--fw-bold)',
-              color: 'var(--color-primary)',
-              marginBottom: 'var(--sp-md)',
-              textAlign: 'center'
-            }">¿Qué tipo de operación desea realizar?</div>
-            <CampoSelectBuscable
-              :model-value="general.tipo_operacion"
-              label="Tipo de operación"
-              required
-              :opciones="opsTipoOperacion"
-              @update:model-value="actualizarGeneral('tipo_operacion', $event)"
-            />
-          </div>
-        </div>
-
-        <!-- ── PASO 2: Formulario Completo (Estilo PDF) ───────── -->
-        <div v-if="paso === 2" :style="{
-          display: 'flex', flexDirection: 'column', gap: 'var(--sp-2xl)',
-        }">
 
           <!-- 1. Información de la Solicitud -->
           <div id="seccion-solicitud" :style="{
             background:   'var(--color-bg-card)',
             border:       '1px solid var(--color-border-card)',
-            borderRadius: 'var(--r-xl)',
+            borderRadius: 'var(--r-md)',
             overflow:     'hidden',
             boxShadow:    'var(--shadow-card)',
           }">
@@ -784,8 +760,17 @@ function onOtpValidado() {
             </div>
 
             <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+              <!-- Tipo de operación — solo para crédito ordinario -->
+              <CampoSelectBuscable
+                v-if="mostrarTipoOperacion"
+                :model-value="general.tipo_operacion"
+                label="Tipo de operación"
+                required
+                :opciones="opsTipoOperacion"
+                @update:model-value="actualizarGeneral('tipo_operacion', $event)"
+              />
               <CampoMoneda
-                v-if="mostrarValorCredito"
+                v-if="mostrarValorCredito && esEducativo"
                 :model-value="general.valor_credito"
                 label="Valor del crédito"
                 required
@@ -802,20 +787,23 @@ function onOtpValidado() {
                     <CampoSelectBuscable :model-value="general.tipo_estudio" label="Tipo de estudio" required :opciones="opsTipoEstudio" @update:model-value="actualizarGeneral('tipo_estudio', $event)" />
                     <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
                       <div :style="{ position: 'relative', display: 'flex', alignItems: 'center', padding: '12px 14px', border: errorPlazo ? '1px solid var(--color-error)' : '1px solid var(--color-border)', borderRadius: 'var(--r-lg)', background: 'var(--color-bg-card)' }">
-                        <input :value="general.plazo_solicitado" type="number" :style="{ flex: '1', border: 'none', outline: 'none', background: 'transparent', fontSize: 'var(--text-base)', color: 'var(--color-text-1)' }" @input="actualizarPlazo($event.target.value)" />
-                        <label :style="{ position: 'absolute', left: '12px', top: '0', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-3)', background: 'var(--color-bg-card)', padding: '0 3px' }">Plazo (meses) *</label>
+                        <input :value="general.plazo_solicitado" type="text" inputmode="numeric" maxlength="2" :style="{ flex: '1', border: 'none', outline: 'none', background: 'transparent', fontSize: 'var(--text-base)', color: 'var(--color-text-1)' }" @keydown="e => { const ok = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab']; if (!ok.includes(e.key) && !/^\d$/.test(e.key)) e.preventDefault() }" @input="actualizarPlazo($event.target.value)" />
+                        <label :style="{ position: 'absolute', left: '12px', top: '0', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 'var(--fw-semibold)', color: errorPlazo ? 'var(--color-error-text)' : 'var(--color-text-3)', background: 'var(--color-bg-card)', padding: '0 3px' }">Plazo (meses) *</label>
                       </div>
+                      <span v-if="errorPlazo" :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-error-text)', fontWeight: 'var(--fw-medium)' }">{{ errorPlazo }}</span>
                     </div>
                   </div>
                   <CampoTexto :model-value="general.denominacion_carrera" label="Carrera o denominación" required @update:model-value="actualizarGeneral('denominacion_carrera', $event)" />
                 </template>
-                <div v-else :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '7fr 3fr', gap: 'var(--sp-lg)' }">
-                  <CampoTexto :model-value="general.destino_credito" label="Destino del crédito" required @update:model-value="actualizarGeneral('destino_credito', $event)" />
+                <div v-else :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : mostrarValorCredito ? '1fr 2fr 1fr' : '3fr 1fr', gap: 'var(--sp-lg)' }">
+                  <CampoMoneda v-if="mostrarValorCredito" :model-value="general.valor_credito" label="Valor del crédito" required @update:model-value="actualizarGeneral('valor_credito', $event)" />
+                  <CampoTexto :model-value="general.destino_credito" label="Destino del crédito" required :maxlength="40" @update:model-value="actualizarGeneral('destino_credito', $event ? $event.toUpperCase() : $event)" />
                   <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
                     <div :style="{ position: 'relative', display: 'flex', alignItems: 'center', padding: '12px 14px', border: errorPlazo ? '1px solid var(--color-error)' : '1px solid var(--color-border)', borderRadius: 'var(--r-lg)', background: 'var(--color-bg-card)' }">
-                      <input :value="general.plazo_solicitado" type="number" :style="{ flex: '1', border: 'none', outline: 'none', background: 'transparent', fontSize: 'var(--text-base)', color: 'var(--color-text-1)' }" @input="actualizarPlazo($event.target.value)" />
-                      <label :style="{ position: 'absolute', left: '12px', top: '0', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-3)', background: 'var(--color-bg-card)', padding: '0 3px' }">Plazo (meses) *</label>
+                      <input :value="general.plazo_solicitado" type="text" inputmode="numeric" maxlength="2" :style="{ flex: '1', border: 'none', outline: 'none', background: 'transparent', fontSize: 'var(--text-base)', color: 'var(--color-text-1)' }" @keydown="e => { const ok = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab']; if (!ok.includes(e.key) && !/^\d$/.test(e.key)) e.preventDefault() }" @input="actualizarPlazo($event.target.value)" />
+                      <label :style="{ position: 'absolute', left: '12px', top: '0', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 'var(--fw-semibold)', color: errorPlazo ? 'var(--color-error-text)' : 'var(--color-text-3)', background: 'var(--color-bg-card)', padding: '0 3px' }">Plazo (meses) *</label>
                     </div>
+                    <span v-if="errorPlazo" :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-error-text)', fontWeight: 'var(--fw-medium)' }">{{ errorPlazo }}</span>
                   </div>
                 </div>
               </template>
@@ -823,7 +811,14 @@ function onOtpValidado() {
           </div>
 
           <!-- 2. Información del Solicitante -->
-          <SeccionPersona id="seccion-persona" :model-value="persona" titulo="Información del solicitante" :bloquear-documento="true" :bloquear-correo="true" :direccion-estructurada="direccionEstructurada" :ubicacion="ubicacionResidencia" :show-nivel-educativo="true" @update:model-value="persona = $event" @update:direccion-estructurada="direccionEstructurada = $event" @update:ubicacion="ubicacionResidencia = $event" />
+          <div id="seccion-persona" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconUserCheck :size="20" /> Información del solicitante
+            </div>
+            <div :style="{ padding: 'var(--sp-xl)' }">
+              <SeccionPersona :model-value="persona" titulo="" :bloquear-documento="true" :bloquear-correo="true" :direccion-estructurada="direccionEstructurada" :ubicacion="ubicacionResidencia" :show-nivel-educativo="true" @update:model-value="persona = $event" @update:direccion-estructurada="direccionEstructurada = $event" @update:ubicacion="ubicacionResidencia = $event" />
+            </div>
+          </div>
 
           <!-- Bloqueo por menor de edad -->
           <div v-if="esMenorDeEdad" :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-md)', padding: 'var(--sp-lg) var(--sp-xl)', borderRadius: 'var(--r-md)', background: 'var(--color-error-bg)', border: '1px solid var(--color-error)' }">
@@ -835,119 +830,470 @@ function onOtpValidado() {
           </div>
 
           <!-- 3. Información Laboral -->
-          <div id="seccion-laboral" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+          <div id="seccion-laboral" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
             <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconRotate :size="20" /> Información laboral
             </div>
             <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
               <SelectorTipoTrabajador :model-value="laboral.tipo_trabajador" @update:model-value="actualizarLaboral('tipo_trabajador', $event)" />
-              <div v-if="laboral.tipo_trabajador" :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+              <div v-if="laboral.tipo_trabajador" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+
+                <!-- Empleado -->
                 <template v-if="laboral.tipo_trabajador === 'empleado'">
-                  <CampoTexto :model-value="laboral.nombre_empresa" label="Nombre de la empresa" required @update:model-value="actualizarLaboral('nombre_empresa', $event)" />
-                  <CampoTexto :model-value="laboral.cargo_oficio" label="Cargo u oficio" required @update:model-value="actualizarLaboral('cargo_oficio', $event)" />
-                  <CampoSelectBuscable :model-value="laboral.tipo_contrato" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboral('tipo_contrato', $event)" />
-                  <SelectorFecha :model-value="laboral.fecha_ingreso" label="Fecha de ingreso" required @update:model-value="actualizarLaboral('fecha_ingreso', $event)" />
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoTexto :model-value="laboral.nombre_empresa" label="Nombre de la empresa" required @update:model-value="actualizarLaboral('nombre_empresa', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboral.cargo_oficio" label="Cargo u oficio" required @update:model-value="actualizarLaboral('cargo_oficio', $event ? $event.toUpperCase() : $event)" />
+                  </div>
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoSelectBuscable :model-value="laboral.tipo_contrato" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboral('tipo_contrato', $event)" />
+                    <SelectorFecha :model-value="laboral.fecha_ingreso" label="Fecha de ingreso" required @update:model-value="actualizarLaboral('fecha_ingreso', $event)" />
+                    <CampoTexto :model-value="laboral.numero_dependientes" label="Personas a cargo" type="number" @update:model-value="actualizarLaboral('numero_dependientes', $event)" />
+                  </div>
                 </template>
+
+                <!-- Independiente -->
                 <template v-if="laboral.tipo_trabajador === 'independiente'">
-                  <CampoTexto :model-value="laboral.actividad_comercial" label="Actividad comercial" required @update:model-value="actualizarLaboral('actividad_comercial', $event)" />
-                  <CampoTexto :model-value="laboral.ocupacion" label="Ocupación" required @update:model-value="actualizarLaboral('ocupacion', $event)" />
-                  <SelectorFecha :model-value="laboral.fecha_inicio_actividad" label="Fecha de inicio" required @update:model-value="actualizarLaboral('fecha_inicio_actividad', $event)" />
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoTexto :model-value="laboral.actividad_comercial" label="Actividad comercial" required :maxlength="50" @update:model-value="actualizarLaboral('actividad_comercial', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboral.ocupacion" label="Ocupación" required :maxlength="50" @update:model-value="actualizarLaboral('ocupacion', $event ? $event.toUpperCase() : $event)" />
+                  </div>
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <SelectorFecha :model-value="laboral.fecha_inicio_actividad" label="Fecha de inicio" required @update:model-value="actualizarLaboral('fecha_inicio_actividad', $event)" />
+                    <CampoTexto :model-value="laboral.numero_dependientes" label="Personas a cargo" type="number" @update:model-value="actualizarLaboral('numero_dependientes', $event)" />
+                  </div>
                 </template>
+
+                <!-- Pensionado -->
                 <template v-if="laboral.tipo_trabajador === 'pensionado'">
-                  <CampoSelectBuscable :model-value="laboral.entidad_pagadora" label="Entidad pagadora" required :opciones="opsEntidadesPensiones" :style="{ gridColumn: '1 / -1' }" @update:model-value="actualizarLaboral('entidad_pagadora', $event)" />
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoSelectBuscable :model-value="laboral.entidad_pagadora" label="Entidad pagadora" required :opciones="opsEntidadesPensiones" @update:model-value="actualizarLaboral('entidad_pagadora', $event)" />
+                    <CampoTexto :model-value="laboral.numero_dependientes" label="Personas a cargo" type="number" @update:model-value="actualizarLaboral('numero_dependientes', $event)" />
+                  </div>
                 </template>
+
+                <!-- Estudiante -->
                 <template v-if="laboral.tipo_trabajador === 'estudiante'">
-                  <CampoTexto :model-value="laboral.institucion_educativa" label="Institución educativa" required @update:model-value="actualizarLaboral('institucion_educativa', $event)" />
-                  <CampoSelectBuscable :model-value="laboral.nivel_educativo" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboral('nivel_educativo', $event)" />
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoTexto :model-value="laboral.institucion_educativa" label="Institución educativa" required @update:model-value="actualizarLaboral('institucion_educativa', $event ? $event.toUpperCase() : $event)" />
+                    <CampoSelectBuscable :model-value="laboral.nivel_educativo" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboral('nivel_educativo', $event)" />
+                    <CampoTexto :model-value="laboral.numero_dependientes" label="Personas a cargo" type="number" @update:model-value="actualizarLaboral('numero_dependientes', $event)" />
+                  </div>
                 </template>
-              </div>
-              <div v-if="laboral.tipo_trabajador && laboral.tipo_trabajador !== 'cuidado_hogar'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
-                <CampoCheck :model-value="laboral.tiene_dependientes" label="Tengo personas a cargo" @update:model-value="actualizarLaboral('tiene_dependientes', $event)" />
-                <CampoTexto v-if="laboral.tiene_dependientes" :model-value="laboral.numero_dependientes" label="Número de dependientes" type="number" :style="{ maxWidth: '200px' }" @update:model-value="actualizarLaboral('numero_dependientes', $event)" />
+
+                <!-- Cuidado del hogar -->
+                <template v-if="laboral.tipo_trabajador === 'cuidado_hogar'">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr', gap: 'var(--sp-lg)' }">
+                    <CampoTexto :model-value="laboral.numero_dependientes" label="Personas a cargo" type="number" @update:model-value="actualizarLaboral('numero_dependientes', $event)" />
+                  </div>
+                </template>
+
               </div>
             </div>
           </div>
 
           <!-- 4. Información Financiera -->
-          <SeccionFinanciera id="seccion-financiera" :model-value="financiera" titulo="Información financiera" :salario-bloqueado="salarioBloqueado" :tipo-trabajador="laboral.tipo_trabajador" @update:model-value="financiera = $event" />
+          <div id="seccion-financiera" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconFileDescription :size="20" /> Información financiera
+            </div>
+            <div :style="{ padding: 'var(--sp-xl)' }">
+              <SeccionFinanciera :model-value="financiera" titulo="" :salario-bloqueado="salarioBloqueado" :tipo-trabajador="laboral.tipo_trabajador" @update:model-value="financiera = $event" />
+            </div>
+          </div>
 
           <!-- 5. Patrimonio -->
-          <SeccionPatrimonio id="seccion-patrimonio" :model-value="patrimonio" titulo="Patrimonio" @update:model-value="patrimonio = $event" />
+          <div id="seccion-patrimonio" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconFile :size="20" /> Patrimonio
+            </div>
+            <div :style="{ padding: 'var(--sp-xl)' }">
+              <SeccionPatrimonio :model-value="patrimonio" titulo="" @update:model-value="patrimonio = $event" />
+            </div>
+          </div>
 
           <!-- 6. Cuenta de Desembolso -->
-          <div v-if="mostrarCuentaDesembolso" id="seccion-cuenta" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+          <div v-if="mostrarCuentaDesembolso" id="seccion-cuenta" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
             <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFileCheck :size="20" /> Cuenta de desembolso
             </div>
             <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-              <CampoSelectBuscable :model-value="cuenta.tipo_cuenta" label="Tipo de cuenta" required :opciones="opsTipoCuenta" @update:model-value="actualizarCuenta('tipo_cuenta', $event)" />
-              <CampoSelectBuscable :model-value="cuenta.entidad_bancaria" label="Entidad bancaria" required :disabled="!cuenta.tipo_cuenta" :limit="0" :opciones="[...ENTIDADES_BANCARIAS.map(e => ({ value: e, label: e })), { value: 'otro', label: 'Otra entidad' }]" @update:model-value="actualizarCuenta('entidad_bancaria', $event)" />
+              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                <CampoSelectBuscable :model-value="cuenta.tipo_cuenta" label="Tipo de cuenta" required :opciones="opsTipoCuenta" @update:model-value="actualizarCuenta('tipo_cuenta', $event)" />
+                <CampoSelectBuscable :model-value="cuenta.entidad_bancaria" label="Entidad bancaria" required :disabled="!cuenta.tipo_cuenta" :limit="0" :opciones="[...ENTIDADES_BANCARIAS.map(e => ({ value: e, label: e })), { value: 'otro', label: 'Otra entidad' }]" @update:model-value="actualizarCuenta('entidad_bancaria', $event)" />
+              </div>
               <CampoTexto v-if="cuenta.entidad_bancaria === 'otro'" :model-value="cuenta.entidad_bancaria_otro" label="Especifique entidad" required @update:model-value="actualizarCuenta('entidad_bancaria_otro', $event)" />
-              <CampoTexto :model-value="cuenta.numero_cuenta" label="Número de cuenta" required solo-numeros :maxlength="18" :disabled="!cuenta.entidad_bancaria" @update:model-value="actualizarCuenta('numero_cuenta', $event)" />
-              <CampoCheck :model-value="cuenta.cuenta_tercero" label="La cuenta pertenece a un tercero" @update:model-value="actualizarCuenta('cuenta_tercero', $event)" />
+              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)', alignItems: 'center' }">
+                <CampoTexto :model-value="cuenta.numero_cuenta" label="Número de cuenta" required solo-numeros :maxlength="18" :disabled="!cuenta.entidad_bancaria" @update:model-value="actualizarCuenta('numero_cuenta', $event)" />
+                <CampoCheck :model-value="cuenta.cuenta_tercero" label="La cuenta pertenece a un tercero" @update:model-value="actualizarCuenta('cuenta_tercero', $event)" />
+              </div>
               <template v-if="cuenta.cuenta_tercero">
                 <div :style="{ padding: 'var(--sp-xl)', borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', background: 'var(--color-bg-surface)', display: 'flex', flexDirection:'column', gap: 'var(--sp-lg)' }">
                   <div :style="{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)' }">Datos del titular</div>
-                  <CampoTexto :model-value="cuenta.nombre_tercero" label="Nombre completo" required @update:model-value="actualizarCuenta('nombre_tercero', $event)" />
+                  <CampoTexto :model-value="cuenta.nombre_tercero" label="Nombre completo" required @update:model-value="actualizarCuenta('nombre_tercero', $event ? $event.toUpperCase() : $event)" />
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <CampoSelect :model-value="cuenta.tipo_doc_tercero" label="Tipo documento" required :opciones="opsTipoDocTitular" @update:model-value="actualizarCuenta('tipo_doc_tercero', $event)" />
                     <CampoTexto :model-value="cuenta.numero_doc_tercero" label="Número documento" required solo-numeros @update:model-value="actualizarCuenta('numero_doc_tercero', $event)" />
+                  </div>
+                </div>
+
+                <!-- Carta de autorización -->
+                <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }">
+                  <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)', padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-bg-surface)' }">
+                    <div :style="{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--color-impulso)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
+                      <IconUpload :size="18" :style="{ color: '#fff' }" />
+                    </div>
+                    <div :style="{ flex: '1', minWidth: '0' }">
+                      <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
+                        Carta de autorización
+                        <span :style="{ marginLeft: 'var(--sp-sm)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 8px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Obligatorio</span>
+                      </div>
+                      <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">Carta firmada por el titular autorizando el desembolso.</div>
+                    </div>
+                    <div v-if="cartaAutorizacion.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', flexShrink: '0' }">
+                      <IconLoader2 :size="15" :style="{ animation: 'spin 1s linear infinite' }" /> Subiendo…
+                    </div>
+                    <div v-else-if="cartaAutorizacion.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-lg)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)', flexShrink: '0', maxWidth: '160px' }">
+                      <IconCheck :size="13" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
+                      <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-semibold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ cartaAutorizacion.nombre?.length > 16 ? cartaAutorizacion.nombre.substring(0, 13) + '...' : cartaAutorizacion.nombre }}</span>
+                      <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', borderRadius: 'var(--r-sm)', flexShrink: '0' }" @click="quitarCarta"><IconX :size="13" :style="{ color: 'var(--color-success-text)' }" /></button>
+                    </div>
+                    <button v-else-if="cartaAutorizacion.error" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-error)', background: 'var(--color-error-bg)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-error)', flexShrink: '0' }" @click="refCartaUpload?.click()">
+                      <IconUpload :size="13" /> Reintentar
+                    </button>
+                    <div v-else :style="{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: '0' }">
+                      <button :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'var(--color-bg-card)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-2)' }" @click="refCartaUpload?.click()">
+                        <IconUpload :size="13" /> Subir archivo
+                      </button>
+                      <button :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-primary)', background: 'var(--color-bg-card)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-primary)' }" @click="refCartaCamera?.click()">
+                        <IconCamera :size="13" /> Tomar foto
+                      </button>
+                    </div>
+                    <input ref="refCartaUpload" type="file" accept=".pdf,image/*" :style="{ display: 'none' }" @change="onFileCarta" />
+                    <input ref="refCartaCamera" type="file" accept="image/*" capture="environment" :style="{ display: 'none' }" @change="onFileCarta" />
+                  </div>
+                </div>
+
+                <!-- Certificación bancaria -->
+                <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }">
+                  <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)', padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-bg-surface)' }">
+                    <div :style="{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--color-impulso)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
+                      <IconUpload :size="18" :style="{ color: '#fff' }" />
+                    </div>
+                    <div :style="{ flex: '1', minWidth: '0' }">
+                      <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
+                        Certificación bancaria
+                        <span :style="{ marginLeft: 'var(--sp-sm)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 8px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Obligatorio</span>
+                      </div>
+                      <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">Certificación bancaria del titular que confirme la cuenta.</div>
+                    </div>
+                    <div v-if="certBancaria.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', flexShrink: '0' }">
+                      <IconLoader2 :size="15" :style="{ animation: 'spin 1s linear infinite' }" /> Subiendo…
+                    </div>
+                    <div v-else-if="certBancaria.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-lg)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)', flexShrink: '0', maxWidth: '160px' }">
+                      <IconCheck :size="13" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
+                      <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-semibold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ certBancaria.nombre?.length > 16 ? certBancaria.nombre.substring(0, 13) + '...' : certBancaria.nombre }}</span>
+                      <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', borderRadius: 'var(--r-sm)', flexShrink: '0' }" @click="quitarCert"><IconX :size="13" :style="{ color: 'var(--color-success-text)' }" /></button>
+                    </div>
+                    <button v-else-if="certBancaria.error" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-error)', background: 'var(--color-error-bg)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-error)', flexShrink: '0' }" @click="refCertUpload?.click()">
+                      <IconUpload :size="13" /> Reintentar
+                    </button>
+                    <div v-else :style="{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: '0' }">
+                      <button :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'var(--color-bg-card)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-2)' }" @click="refCertUpload?.click()">
+                        <IconUpload :size="13" /> Subir archivo
+                      </button>
+                      <button :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-primary)', background: 'var(--color-bg-card)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-primary)' }" @click="refCertCamera?.click()">
+                        <IconCamera :size="13" /> Tomar foto
+                      </button>
+                    </div>
+                    <input ref="refCertUpload" type="file" accept=".pdf,image/*" :style="{ display: 'none' }" @change="onFileCert" />
+                    <input ref="refCertCamera" type="file" accept="image/*" capture="environment" :style="{ display: 'none' }" @change="onFileCert" />
                   </div>
                 </div>
               </template>
             </div>
           </div>
 
-          <!-- 7. Codeudores -->
-          <div id="seccion-codeudores" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
-              <IconUsers :size="20" /> ¿Desea agregar codeudores?
-            </div>
-            <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
-              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-md)' }">
-                <div v-for="opcion in [{ num: 0, titulo: 'Sin codeudor' }, { num: 1, titulo: '1 Codeudor' }, { num: 2, titulo: '2 Codeudores' }]" :key="opcion.num" :style="{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--sp-sm)', padding: 'var(--sp-xl)', borderRadius: 'var(--r-md)', border: numCodudores === opcion.num ? '2px solid var(--color-primary)' : '1px solid var(--color-border)', background: numCodudores === opcion.num ? 'var(--color-primary-light)' : 'var(--color-bg-surface)', cursor: 'pointer' }" @click="numCodudores = opcion.num">
-                  <IconUsers :size="28" :style="{ color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
-                  <div :style="{ fontWeight: 'var(--fw-bold)', color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-1)' }">{{ opcion.titulo }}</div>
-                </div>
+      </div>
+
+      <!-- ── PASO 3: Codeudores ─────────────────────── -->
+      <div v-if="paso === 3" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2xl)' }">
+
+        <!-- Card selección -->
+        <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+          <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <IconUsers :size="20" /> ¿Desea agregar codeudores?
+          </div>
+          <div :style="{ padding: 'var(--sp-xl)' }">
+            <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-md)' }">
+              <div
+                v-for="opcion in [{ num: 0, titulo: 'Sin codeudor', desc: 'Continúa sin agregar codeudor' }, { num: 1, titulo: '1 Codeudor', desc: 'Agrega un codeudor a la solicitud' }, { num: 2, titulo: '2 Codeudores', desc: 'Agrega dos codeudores a la solicitud' }]"
+                :key="opcion.num"
+                :style="{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--sp-sm)',
+                  padding: 'var(--sp-xl)', borderRadius: 'var(--r-md)', textAlign: 'center',
+                  border: numCodudores === opcion.num ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                  background: numCodudores === opcion.num ? 'var(--color-bg-card)' : 'var(--color-bg-surface)',
+                  cursor: 'pointer', transition: 'all var(--transition-fast)',
+                }"
+                @click="numCodudores = opcion.num"
+              >
+                <IconUsers :size="28" :style="{ color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
+                <div :style="{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-base)', color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-1)' }">{{ opcion.titulo }}</div>
+                <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">{{ opcion.desc }}</div>
               </div>
-              <template v-if="numCodudores >= 1">
-                <SeccionPersona :model-value="personaCod1" titulo="Datos del codeudor 1" :es-codeudor="true" :direccion-estructurada="direccionEstructuradaCod1" :ubicacion="ubicacionCod1" @update:model-value="personaCod1 = $event" @update:direccion-estructurada="direccionEstructuradaCod1 = $event" @update:ubicacion="ubicacionCod1 = $event" />
-              </template>
-              <template v-if="numCodudores >= 2">
-                <SeccionPersona :model-value="personaCod2" titulo="Datos del codeudor 2" :es-codeudor="true" :direccion-estructurada="direccionEstructuradaCod2" :ubicacion="ubicacionCod2" @update:model-value="personaCod2 = $event" @update:direccion-estructurada="direccionEstructuradaCod2 = $event" @update:ubicacion="ubicacionCod2 = $event" />
-              </template>
             </div>
           </div>
-
-          <!-- 8. Documentos -->
-          <SeccionDocumentos id="seccion-documentos" :tipo-trabajador="laboral.tipo_trabajador" :modalidad-credito="general.modalidad_credito" :solicitud-id="solicitudId" @completado-cedula="urls => { documentos.doc_cedula_frente_url = urls.frente; documentos.doc_cedula_reverso_url = urls.reverso }" @sesion-creada="onSesionCapturaCreada" @url-soporte-laboral="url => { documentos.doc_soporte_laboral_url = url ?? '' }" @url-liquidacion-matricula="url => { documentos.doc_liquidacion_matricula_url = url ?? '' }" />
-
-          <!-- 9. Autorizaciones -->
-          <div id="seccion-autorizaciones" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
-              <IconShieldCheck :size="20" /> Autorizaciones legales
-            </div>
-            <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-              <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--sp-md)' }">
-                <div>
-                  <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">Autorizaciones y declaraciones</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)' }">Debe leer y aceptar para continuar.</div>
-                </div>
-                <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', padding: 'var(--sp-sm) var(--sp-lg)', borderRadius: 'var(--r-pill)', background: autorizaciones.autorizacion_aceptada ? 'var(--color-success-bg)' : 'var(--color-bg-surface)', border: autorizaciones.autorizacion_aceptada ? '1px solid var(--color-success)' : '1px solid var(--color-border)' }">
-                  <IconCircleCheck v-if="autorizaciones.autorizacion_aceptada" :size="16" :style="{ color: 'var(--color-success)' }" />
-                  <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: autorizaciones.autorizacion_aceptada ? 'var(--color-success-text)' : 'var(--color-text-3)' }">{{ autorizaciones.autorizacion_aceptada ? 'Aceptadas' : 'Pendiente' }}</span>
-                </div>
-              </div>
-              <PortalButton variant="primary" :full="true" @click="modalAutorizacionesVisible = true">Leer y aceptar autorizaciones</PortalButton>
-            </div>
-          </div>
-
-          <ModalAutorizaciones v-model:visible="modalAutorizacionesVisible" :aceptado="autorizaciones.autorizacion_aceptada" @aceptar="autorizaciones.autorizacion_aceptada = true" @rechazar="autorizaciones.autorizacion_aceptada = false" />
-
         </div>
 
-        <!-- ── PASO 3: Revisión y firma ─────────────────── -->
-        <div v-if="paso === 3" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+        <!-- Tabs codeudores (solo cuando hay 2) -->
+        <div v-if="numCodudores === 2" :style="{ display: 'flex', borderBottom: '2px solid var(--color-border)' }">
+          <button
+            v-for="tab in [1, 2]"
+            :key="tab"
+            :style="{
+              padding: 'var(--sp-sm) var(--sp-xl)',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-base)',
+              fontWeight: 'var(--fw-bold)',
+              color: tabCodudorActivo === tab ? 'var(--color-primary)' : 'var(--color-text-3)',
+              borderBottom: tabCodudorActivo === tab ? '2px solid var(--color-primary)' : '2px solid transparent',
+              marginBottom: '-2px',
+              transition: 'all var(--transition-fast)',
+            }"
+            @click="tabCodudorActivo = tab"
+          >Codeudor {{ tab }}</button>
+        </div>
+
+        <!-- Formulario codeudor 1 -->
+        <template v-if="numCodudores >= 1 && (numCodudores < 2 || tabCodudorActivo === 1)">
+          <!-- Información del codeudor 1 -->
+          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconUserCheck :size="20" /> Información del codeudor 1
+            </div>
+            <div :style="{ padding: 'var(--sp-xl)' }">
+              <SeccionPersona
+                :model-value="personaCod1"
+                titulo=""
+                :es-codeudor="true"
+                :direccion-estructurada="direccionEstructuradaCod1"
+                :ubicacion="ubicacionCod1"
+                @update:model-value="personaCod1 = $event"
+                @update:direccion-estructurada="direccionEstructuradaCod1 = $event"
+                @update:ubicacion="ubicacionCod1 = $event"
+              />
+            </div>
+          </div>
+          <!-- Laboral codeudor 1 -->
+          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconRotate :size="20" /> Información laboral — Codeudor 1
+            </div>
+            <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+              <SelectorTipoTrabajador :model-value="laboralCod1.tipo_trabajador_codeudor" @update:model-value="actualizarLaboralCod1('tipo_trabajador_codeudor', $event)" />
+              <div v-if="laboralCod1.tipo_trabajador_codeudor" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+                <!-- Empleado -->
+                <template v-if="laboralCod1.tipo_trabajador_codeudor === 'empleado'">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoTexto :model-value="laboralCod1.nombre_empresa_codeudor" label="Nombre de la empresa" required @update:model-value="actualizarLaboralCod1('nombre_empresa_codeudor', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboralCod1.cargo_oficio_codeudor" label="Cargo u oficio" required @update:model-value="actualizarLaboralCod1('cargo_oficio_codeudor', $event ? $event.toUpperCase() : $event)" />
+                  </div>
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoSelectBuscable :model-value="laboralCod1.tipo_contrato_codeudor" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboralCod1('tipo_contrato_codeudor', $event)" />
+                    <SelectorFecha :model-value="laboralCod1.fecha_ingreso_codeudor" label="Fecha de ingreso" required @update:model-value="actualizarLaboralCod1('fecha_ingreso_codeudor', $event)" />
+                    <CampoTexto :model-value="laboralCod1.numero_dependientes_codeudor" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod1('numero_dependientes_codeudor', $event)" />
+                  </div>
+                </template>
+                <!-- Independiente -->
+                <template v-if="laboralCod1.tipo_trabajador_codeudor === 'independiente'">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoTexto :model-value="laboralCod1.actividad_comercial_codeudor" label="Actividad comercial" required :maxlength="50" @update:model-value="actualizarLaboralCod1('actividad_comercial_codeudor', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboralCod1.ocupacion_codeudor" label="Ocupación" required :maxlength="50" @update:model-value="actualizarLaboralCod1('ocupacion_codeudor', $event ? $event.toUpperCase() : $event)" />
+                  </div>
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <SelectorFecha :model-value="laboralCod1.fecha_inicio_actividad_codeudor" label="Fecha de inicio" required @update:model-value="actualizarLaboralCod1('fecha_inicio_actividad_codeudor', $event)" />
+                    <CampoTexto :model-value="laboralCod1.numero_dependientes_codeudor" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod1('numero_dependientes_codeudor', $event)" />
+                  </div>
+                </template>
+                <!-- Pensionado -->
+                <template v-if="laboralCod1.tipo_trabajador_codeudor === 'pensionado'">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoSelectBuscable :model-value="laboralCod1.entidad_pagadora_codeudor" label="Entidad pagadora" required :opciones="opsEntidadesPensiones" @update:model-value="actualizarLaboralCod1('entidad_pagadora_codeudor', $event)" />
+                    <CampoTexto :model-value="laboralCod1.numero_dependientes_codeudor" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod1('numero_dependientes_codeudor', $event)" />
+                  </div>
+                </template>
+                <!-- Estudiante -->
+                <template v-if="laboralCod1.tipo_trabajador_codeudor === 'estudiante'">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoTexto :model-value="laboralCod1.institucion_educativa_codeudor" label="Institución educativa" required @update:model-value="actualizarLaboralCod1('institucion_educativa_codeudor', $event ? $event.toUpperCase() : $event)" />
+                    <CampoSelectBuscable :model-value="laboralCod1.nivel_educativo_codeudor" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboralCod1('nivel_educativo_codeudor', $event)" />
+                    <CampoTexto :model-value="laboralCod1.numero_dependientes_codeudor" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod1('numero_dependientes_codeudor', $event)" />
+                  </div>
+                </template>
+                <!-- Cuidado del hogar -->
+                <template v-if="laboralCod1.tipo_trabajador_codeudor === 'cuidado_hogar'">
+                  <CampoTexto :model-value="laboralCod1.numero_dependientes_codeudor" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod1('numero_dependientes_codeudor', $event)" />
+                </template>
+              </div>
+            </div>
+          </div>
+          <!-- Financiera codeudor 1 -->
+          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconFileDescription :size="20" /> Información financiera — Codeudor 1
+            </div>
+            <div :style="{ padding: 'var(--sp-xl)' }">
+              <SeccionFinanciera :model-value="financieraCod1" titulo="" :tipo-trabajador="laboralCod1.tipo_trabajador_codeudor" @update:model-value="financieraCod1 = $event" />
+            </div>
+          </div>
+          <!-- Patrimonio codeudor 1 -->
+          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconFile :size="20" /> Patrimonio — Codeudor 1
+            </div>
+            <div :style="{ padding: 'var(--sp-xl)' }">
+              <SeccionPatrimonio :model-value="patrimonioCod1" titulo="" @update:model-value="patrimonioCod1 = $event" />
+            </div>
+          </div>
+        </template>
+
+        <!-- Formulario codeudor 2 -->
+        <template v-if="numCodudores >= 2 && tabCodudorActivo === 2">
+          <!-- Información del codeudor 2 -->
+          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconUserCheck :size="20" /> Información del codeudor 2
+            </div>
+            <div :style="{ padding: 'var(--sp-xl)' }">
+              <SeccionPersona
+                :model-value="personaCod2"
+                titulo=""
+                :es-codeudor="true"
+                :direccion-estructurada="direccionEstructuradaCod2"
+                :ubicacion="ubicacionCod2"
+                @update:model-value="personaCod2 = $event"
+                @update:direccion-estructurada="direccionEstructuradaCod2 = $event"
+                @update:ubicacion="ubicacionCod2 = $event"
+              />
+            </div>
+          </div>
+          <!-- Laboral codeudor 2 -->
+          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconRotate :size="20" /> Información laboral — Codeudor 2
+            </div>
+            <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+              <SelectorTipoTrabajador :model-value="laboralCod2.tipo_trabajador_codeudor2" @update:model-value="actualizarLaboralCod2('tipo_trabajador_codeudor2', $event)" />
+              <div v-if="laboralCod2.tipo_trabajador_codeudor2" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+                <!-- Empleado -->
+                <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'empleado'">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoTexto :model-value="laboralCod2.nombre_empresa_codeudor2" label="Nombre de la empresa" required @update:model-value="actualizarLaboralCod2('nombre_empresa_codeudor2', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboralCod2.cargo_oficio_codeudor2" label="Cargo u oficio" required @update:model-value="actualizarLaboralCod2('cargo_oficio_codeudor2', $event ? $event.toUpperCase() : $event)" />
+                  </div>
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoSelectBuscable :model-value="laboralCod2.tipo_contrato_codeudor2" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboralCod2('tipo_contrato_codeudor2', $event)" />
+                    <SelectorFecha :model-value="laboralCod2.fecha_ingreso_codeudor2" label="Fecha de ingreso" required @update:model-value="actualizarLaboralCod2('fecha_ingreso_codeudor2', $event)" />
+                    <CampoTexto :model-value="laboralCod2.numero_dependientes_codeudor2" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod2('numero_dependientes_codeudor2', $event)" />
+                  </div>
+                </template>
+                <!-- Independiente -->
+                <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'independiente'">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoTexto :model-value="laboralCod2.actividad_comercial_codeudor2" label="Actividad comercial" required :maxlength="50" @update:model-value="actualizarLaboralCod2('actividad_comercial_codeudor2', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboralCod2.ocupacion_codeudor2" label="Ocupación" required :maxlength="50" @update:model-value="actualizarLaboralCod2('ocupacion_codeudor2', $event ? $event.toUpperCase() : $event)" />
+                  </div>
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <SelectorFecha :model-value="laboralCod2.fecha_inicio_actividad_codeudor2" label="Fecha de inicio" required @update:model-value="actualizarLaboralCod2('fecha_inicio_actividad_codeudor2', $event)" />
+                    <CampoTexto :model-value="laboralCod2.numero_dependientes_codeudor2" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod2('numero_dependientes_codeudor2', $event)" />
+                  </div>
+                </template>
+                <!-- Pensionado -->
+                <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'pensionado'">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoSelectBuscable :model-value="laboralCod2.entidad_pagadora_codeudor2" label="Entidad pagadora" required :opciones="opsEntidadesPensiones" @update:model-value="actualizarLaboralCod2('entidad_pagadora_codeudor2', $event)" />
+                    <CampoTexto :model-value="laboralCod2.numero_dependientes_codeudor2" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod2('numero_dependientes_codeudor2', $event)" />
+                  </div>
+                </template>
+                <!-- Estudiante -->
+                <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'estudiante'">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoTexto :model-value="laboralCod2.institucion_educativa_codeudor2" label="Institución educativa" required @update:model-value="actualizarLaboralCod2('institucion_educativa_codeudor2', $event ? $event.toUpperCase() : $event)" />
+                    <CampoSelectBuscable :model-value="laboralCod2.nivel_educativo_codeudor2" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboralCod2('nivel_educativo_codeudor2', $event)" />
+                    <CampoTexto :model-value="laboralCod2.numero_dependientes_codeudor2" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod2('numero_dependientes_codeudor2', $event)" />
+                  </div>
+                </template>
+                <!-- Cuidado del hogar -->
+                <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'cuidado_hogar'">
+                  <CampoTexto :model-value="laboralCod2.numero_dependientes_codeudor2" label="Personas a cargo" type="number" @update:model-value="actualizarLaboralCod2('numero_dependientes_codeudor2', $event)" />
+                </template>
+              </div>
+            </div>
+          </div>
+          <!-- Financiera codeudor 2 -->
+          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconFileDescription :size="20" /> Información financiera — Codeudor 2
+            </div>
+            <div :style="{ padding: 'var(--sp-xl)' }">
+              <SeccionFinanciera :model-value="financieraCod2" titulo="" :tipo-trabajador="laboralCod2.tipo_trabajador_codeudor2" @update:model-value="financieraCod2 = $event" />
+            </div>
+          </div>
+          <!-- Patrimonio codeudor 2 -->
+          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconFile :size="20" /> Patrimonio — Codeudor 2
+            </div>
+            <div :style="{ padding: 'var(--sp-xl)' }">
+              <SeccionPatrimonio :model-value="patrimonioCod2" titulo="" @update:model-value="patrimonioCod2 = $event" />
+            </div>
+          </div>
+        </template>
+
+      </div>
+
+      <!-- ── PASO 4: Documentos y autorización ────────── -->
+      <div v-if="paso === 4" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2xl)' }">
+
+        <!-- Cargue de documentos -->
+        <div id="seccion-documentos" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+          <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <IconUpload :size="20" /> Cargue de documentos
+          </div>
+          <div :style="{ padding: 'var(--sp-xl)' }">
+            <SeccionDocumentos :tipo-trabajador="laboral.tipo_trabajador" :modalidad-credito="general.modalidad_credito" :solicitud-id="solicitudId" titulo="" @completado-cedula="urls => { documentos.doc_cedula_frente_url = urls.frente; documentos.doc_cedula_reverso_url = urls.reverso }" @sesion-creada="onSesionCapturaCreada" @url-soporte-laboral="url => { documentos.doc_soporte_laboral_url = url ?? '' }" @url-liquidacion-matricula="url => { documentos.doc_liquidacion_matricula_url = url ?? '' }" />
+          </div>
+        </div>
+
+        <!-- Autorizaciones legales -->
+        <div id="seccion-autorizaciones" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+          <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <IconShieldCheck :size="20" /> Autorizaciones legales
+          </div>
+          <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+            <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--sp-md)' }">
+              <div>
+                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">Autorizaciones y declaraciones</div>
+                <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)' }">Debe leer y aceptar para continuar.</div>
+              </div>
+              <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', padding: 'var(--sp-sm) var(--sp-lg)', borderRadius: 'var(--r-pill)', background: autorizaciones.autorizacion_aceptada ? 'var(--color-success-bg)' : 'var(--color-bg-surface)', border: autorizaciones.autorizacion_aceptada ? '1px solid var(--color-success)' : '1px solid var(--color-border)' }">
+                <IconCircleCheck v-if="autorizaciones.autorizacion_aceptada" :size="16" :style="{ color: 'var(--color-success)' }" />
+                <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: autorizaciones.autorizacion_aceptada ? 'var(--color-success-text)' : 'var(--color-text-3)' }">{{ autorizaciones.autorizacion_aceptada ? 'Aceptadas' : 'Pendiente' }}</span>
+              </div>
+            </div>
+            <PortalButton variant="primary" :full="true" @click="modalAutorizacionesVisible = true">Leer y aceptar autorizaciones</PortalButton>
+          </div>
+        </div>
+
+        <ModalAutorizaciones v-model:visible="modalAutorizacionesVisible" :aceptado="autorizaciones.autorizacion_aceptada" @aceptar="autorizaciones.autorizacion_aceptada = true" @rechazar="autorizaciones.autorizacion_aceptada = false" />
+
+      </div>
+
+      <!-- ── PASO 5: Revisión y firma ─────────────────── -->
+      <div v-if="paso === 5" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
 
           <!-- Título -->
           <div :style="{
@@ -1199,7 +1545,7 @@ function onOtpValidado() {
           <div v-if="numCodudores > 0" :style="{ borderRadius: 'var(--r-md)', border: '1px solid var(--color-border)', overflow: 'hidden' }">
             <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
               <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Codeudores ({{ numCodudores }})</span>
-              <button @click="irASeccion('seccion-codeudores')" :style="{ background: 'rgba(255,255,255,0.25)', border: 'none', borderRadius: 'var(--r-sm)', padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: 'white', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)' }">
+              <button @click="irAPaso(3)" :style="{ background: 'rgba(255,255,255,0.25)', border: 'none', borderRadius: 'var(--r-sm)', padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: 'white', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)' }">
                 <IconPencil :size="14" /> Editar
               </button>
             </div>
@@ -1219,7 +1565,7 @@ function onOtpValidado() {
           <div :style="{ borderRadius: 'var(--r-md)', border: '1px solid var(--color-border)', overflow: 'hidden' }">
             <div :style="{ padding: 'var(--sp-sm) var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
               <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.07em' }">Documentos</span>
-              <button @click="irASeccion('seccion-documentos')" :style="{ background: 'rgba(255,255,255,0.25)', border: 'none', borderRadius: 'var(--r-sm)', padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: 'white', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)' }">
+              <button @click="irAPaso(4)" :style="{ background: 'rgba(255,255,255,0.25)', border: 'none', borderRadius: 'var(--r-sm)', padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: 'white', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)' }">
                 <IconPencil :size="14" /> Editar
               </button>
             </div>
@@ -1245,12 +1591,11 @@ function onOtpValidado() {
             </div>
           </div>
         </div>
-      </div>
 
       <!-- Navegación -->
       <div :style="{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--sp-2xl)', gap: 'var(--sp-md)' }">
         <PortalButton variant="secondary" @click="paso === 1 ? router.push('/') : anterior()">{{ paso === 1 ? 'Cancelar' : 'Anterior' }}</PortalButton>
-        <PortalButton v-if="!esUltimoPaso" variant="primary" :loading="loading" :disabled="(paso === 1 && !general.modalidad_credito) || (paso === 2 && !pasoSolicitudValido)" @click="siguiente()">Siguiente</PortalButton>
+        <PortalButton v-if="!esUltimoPaso" variant="primary" :loading="loading" :disabled="(paso === 1 && !general.modalidad_credito) || (paso === 2 && !pasoSolicitudValido)" @click="siguiente()">Continuar</PortalButton>
         <PortalButton v-if="esUltimoPaso" variant="primary" :loading="loading" :disabled="!firma.nombre_firma" @click="enviar()">Enviar solicitud</PortalButton>
       </div>
     </div>

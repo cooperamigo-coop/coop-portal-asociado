@@ -175,7 +175,7 @@ function cerrar() { emit('update:visible', false) }
 
             <!-- Estructura Dirección (Bloque visual) -->
             <div :style="{
-              background: 'var(--color-bg-surface)',
+              background: 'var(--color-bg-card)',
               padding: 'var(--sp-lg)',
               borderRadius: 'var(--r-md)',
               border: '1px solid var(--color-border-light)',
@@ -183,12 +183,12 @@ function cerrar() { emit('update:visible', false) }
               flexDirection: 'column',
               gap: 'var(--sp-lg)'
             }">
-              <!-- Fila 1: Vía principal, Número, Letra, Cuadrante, BIS -->
-              <div :style="{ 
-                display: 'grid', 
-                gridTemplateColumns: isMobile ? '1fr 1fr' : '2fr 1fr 1fr 1.5fr auto', 
-                gap: 'var(--sp-md)', 
-                alignItems: 'start' 
+              <!-- Fila 1: Vía principal, Número, Letra, Cuadrante -->
+              <div :style="{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr 1fr' : '2fr 1fr 1fr 1.5fr',
+                gap: 'var(--sp-md)',
+                alignItems: 'start'
               }">
                 <div :style="{ gridColumn: isMobile ? 'span 2' : 'auto' }">
                   <CampoSelectBuscable
@@ -201,23 +201,6 @@ function cerrar() { emit('update:visible', false) }
                 <CampoTexto v-model="local.numero_via" label="Número" required placeholder="45" />
                 <CampoTexto v-model="local.letra_via" label="Letra" placeholder="A" />
                 <CampoSelectBuscable v-model="local.cuadrante_via" label="Cuadrante" :opciones="opcionesCuadrante" />
-                
-                <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
-                  <span :style="{ fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-3)', textTransform: 'uppercase', paddingLeft: '4px' }">BIS</span>
-                  <div
-                    :style="{
-                      height: '54px', width: '48px',
-                      border: local.bis ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
-                      borderRadius: 'var(--r-md)',
-                      background: local.bis ? 'var(--color-primary)' : 'var(--color-bg-card)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'pointer', transition: 'all var(--transition-fast)',
-                    }"
-                    @click="local.bis = !local.bis"
-                  >
-                    <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: local.bis ? 'white' : 'var(--color-text-3)' }">BIS</span>
-                  </div>
-                </div>
               </div>
 
               <!-- Separador # -->
@@ -249,7 +232,7 @@ function cerrar() { emit('update:visible', false) }
 
             <!-- Preview -->
             <div v-if="preview" :style="{
-              background:   'var(--color-primary-light)',
+              background:   'var(--color-bg-card)',
               borderRadius: 'var(--r-md)',
               padding:      'var(--sp-lg)',
               border:       '1px dashed var(--color-primary)',

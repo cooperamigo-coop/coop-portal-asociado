@@ -39,7 +39,7 @@ const opciones = [
           ? '2px solid var(--color-primary)'
           : '1px solid var(--color-border)',
         background:   modelValue === op.value
-          ? 'var(--color-primary-light)'
+          ? 'var(--color-bg-card)'
           : 'var(--color-bg-surface)',
         cursor:     'pointer',
         transition: 'all var(--transition-fast)',
@@ -65,7 +65,7 @@ const opciones = [
         borderRadius:   'var(--r-md)',
         background:     modelValue === op.value
           ? 'var(--color-primary)'
-          : 'var(--color-primary-light)',
+          : 'var(--color-bg-card)',
         display:        'flex',
         alignItems:     'center',
         justifyContent: 'center',

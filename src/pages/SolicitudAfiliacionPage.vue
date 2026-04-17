@@ -1199,7 +1199,7 @@ function onOtpValidado() {
           <!-- ── Autorización tratamiento de datos ──────────────────── -->
           <div :style="{
             background: declaraciones.autoriza_tratamiento_datos
-              ? 'var(--color-primary-light)'
+              ? 'var(--color-bg-card)'
               : 'var(--color-bg-surface)',
             border: `1px solid ${declaraciones.autoriza_tratamiento_datos ? 'var(--color-primary)' : 'var(--color-border)'}`,
             borderRadius: 'var(--r-xl)',

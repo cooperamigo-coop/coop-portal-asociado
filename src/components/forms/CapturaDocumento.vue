@@ -228,7 +228,7 @@ const LADOS = [
             padding: 'var(--sp-lg)',
             border: '2px solid var(--color-primary)',
             borderRadius: 'var(--r-xl)',
-            background: 'var(--color-primary-light)',
+            background: 'var(--color-bg-card)',
             cursor: 'pointer',
             textAlign: 'left',
             width: '100%',

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 
 const props = defineProps({
   modelValue: { type: String, default: '' }, // formato YYYY-MM-DD
@@ -54,7 +54,7 @@ function calcularPosicion() {
   }
 }
 
-function abrir() {
+async function abrir() {
   // Al abrir, sincronizamos el estado temporal con el valor actual
   if (props.modelValue) {
     const [y, m, d] = props.modelValue.split('-').map(Number)
@@ -69,7 +69,9 @@ function abrir() {
 
   calcularPosicion()
   abierto.value = true
-  
+  await nextTick()
+  calcularPosicion()
+
   // Posicionar scrolls después de que el DOM se actualice
   setTimeout(sincronizarScrolls, 50)
 }
@@ -279,7 +281,7 @@ const valorFormateado = computed(() => {
               right:        'var(--sp-sm)',
               height:       `${ITEM_H}px`,
               transform:    'translateY(-50%)',
-              background:   'var(--color-primary-light)',
+              background:   'var(--color-bg-surface-alt)',
               borderRadius: 'var(--r-md)',
               pointerEvents:'none',
               zIndex:       '0',

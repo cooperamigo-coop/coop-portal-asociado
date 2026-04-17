@@ -277,7 +277,7 @@ onUnmounted(() => {
 }
 
 .campo-option--selected {
-  background: var(--color-primary-light);
+  background: var(--color-bg-card);
   color: var(--color-primary);
   font-weight: var(--fw-bold);
 }

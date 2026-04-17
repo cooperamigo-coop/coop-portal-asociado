@@ -8,6 +8,7 @@ const props = defineProps({
   tipoTrabajador:   { type: String, default: '' },
   modalidadCredito: { type: String, default: '' },
   solicitudId:      { type: String, default: null },
+  titulo:           { type: String, default: 'Cargue de documentos' },
 })
 
 const emit = defineEmits([
@@ -115,12 +116,12 @@ const infoAdicional = computed(() => {
   <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
 
     <!-- Título sección -->
-    <div :style="{
+    <div v-if="titulo" :style="{
       fontFamily: 'var(--font-display)',
       fontSize:   'var(--text-lg)',
       fontWeight: 'var(--fw-extrabold)',
       color:      'var(--color-text-1)',
-    }">Cargue de documentos</div>
+    }">{{ titulo }}</div>
 
     <!-- ── Cédula de ciudadanía (captura QR + cámara) ─────── -->
     <CapturaDocumento
@@ -252,7 +253,7 @@ const infoAdicional = computed(() => {
             :style="{
               display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)',
               padding: 'var(--sp-sm) var(--sp-xl)', borderRadius: 'var(--r-pill)',
-              border: '1px solid var(--color-primary)', background: 'var(--color-primary-light)',
+              border: '1px solid var(--color-primary)', background: 'var(--color-bg-card)',
               cursor: 'pointer', fontSize: 'var(--text-base)', fontFamily: 'var(--font-body)',
               fontWeight: 'var(--fw-semibold)', color: 'var(--color-primary)',
             }"
@@ -387,7 +388,7 @@ const infoAdicional = computed(() => {
             :style="{
               display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)',
               padding: 'var(--sp-sm) var(--sp-xl)', borderRadius: 'var(--r-pill)',
-              border: '1px solid var(--color-primary)', background: 'var(--color-primary-light)',
+              border: '1px solid var(--color-primary)', background: 'var(--color-bg-card)',
               cursor: 'pointer', fontSize: 'var(--text-base)', fontFamily: 'var(--font-body)',
               fontWeight: 'var(--fw-semibold)', color: 'var(--color-primary)',
             }"
@@ -406,7 +407,7 @@ const infoAdicional = computed(() => {
     <div v-if="tipoTrabajador === 'cuidado_hogar'" :style="{
       padding:      'var(--sp-lg)',
       borderRadius: 'var(--r-xl)',
-      background:   'var(--color-primary-light)',
+      background:   'var(--color-bg-card)',
       border:       '1px solid var(--color-border)',
       fontSize:     'var(--text-sm)',
       color:        'var(--color-primary)',

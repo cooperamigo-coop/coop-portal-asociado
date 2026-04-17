@@ -26,6 +26,12 @@ const valorFormateado = computed(() => {
   return isNaN(num) ? '' : num.toLocaleString('es-CO')
 })
 
+function onKeydown(e) {
+  const allowed = ['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End']
+  if (!allowed.includes(e.key) && !/^\d$/.test(e.key) && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault()
+  }
+}
 function onInput(e) {
   const limpio = e.target.value.replace(/\D/g, '')
   emit('update:modelValue', limpio ? Number(limpio) : '')
@@ -51,6 +57,7 @@ function onBlur()  { focused.value = false; emit('blur') }
           'campo-input--disabled': disabled,
           'campo-input--focused':  focused && !error,
         }"
+        @keydown="onKeydown"
         @input="onInput"
         @focus="onFocus"
         @blur="onBlur"
@@ -107,7 +114,8 @@ function onBlur()  { focused.value = false; emit('blur') }
   padding: 0 16px 0 32px;
   border: 1px solid var(--color-border);
   border-radius: var(--r-md);
-  font-size: var(--text-base);
+  font-size: var(--text-lg);
+  font-weight: var(--fw-bold);
   font-family: var(--font-body);
   background: var(--color-bg-card);
   color: var(--color-text-1);

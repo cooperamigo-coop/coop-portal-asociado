@@ -20,7 +20,7 @@ defineEmits(['update:modelValue'])
           ? 'var(--color-primary)'
           : 'var(--color-border)'}`,
       background: modelValue
-        ? 'var(--color-primary-light)'
+        ? 'var(--color-bg-card)'
         : 'var(--color-bg-surface)',
       transition: 'all var(--transition-fast)',
       cursor: 'pointer',

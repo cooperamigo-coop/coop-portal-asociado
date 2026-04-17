@@ -264,7 +264,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
           <!-- Ícono -->
           <div :style="{
             width: '48px', height: '48px', borderRadius: 'var(--r-xl)',
-            background: 'var(--color-primary-light)',
+            background: 'var(--color-bg-card)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             marginBottom: 'var(--sp-lg)',
           }">
@@ -426,7 +426,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
 
 .otp-input--filled {
   border-color: var(--color-primary);
-  background: var(--color-primary-light);
+  background: var(--color-bg-card);
   color: var(--color-primary);
 }
 

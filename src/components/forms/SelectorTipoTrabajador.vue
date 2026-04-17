@@ -29,7 +29,7 @@ const opciones = [
     <div :style="{
       display:  'flex',
       flexWrap: 'nowrap',
-      gap:      'var(--sp-xs)',
+      gap:      'var(--sp-sm)',
       marginTop:'var(--sp-xs)',
     }">
       <div
@@ -40,14 +40,14 @@ const opciones = [
           display:        'flex',
           flexDirection:  'column',
           alignItems:     'center',
-          gap:            'var(--sp-sm)',
-          padding:        'var(--sp-sm) var(--sp-xs)',
+          gap:            'var(--sp-xs)',
+          padding:        'var(--sp-lg) var(--sp-xs)',
           borderRadius:   'var(--r-md)',
           border:         modelValue === op.value
             ? '2px solid var(--color-primary)'
             : '1px solid var(--color-border)',
           background:     modelValue === op.value
-            ? 'var(--color-primary-light)'
+            ? 'var(--color-bg-card)'
             : 'var(--color-bg-surface)',
           cursor:         'pointer',
           transition:     'all var(--transition-fast)',

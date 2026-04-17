@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { IconChevronDown, IconSearch, IconX, IconCheck } from '@tabler/icons-vue'
 
 const props = defineProps({
@@ -81,11 +81,13 @@ function calcularPosicion() {
   }
 }
 
-function abrir() {
+async function abrir() {
   if (props.disabled) return
   calcularPosicion()
   abierto.value = true
   busqueda.value = ''
+  await nextTick()
+  calcularPosicion()
   setTimeout(() => inputRef.value?.focus(), 50)
 }
 
@@ -258,7 +260,7 @@ onUnmounted(() => {
                 fontSize:       'var(--text-base)',
                 fontWeight:     modelValue === opcion.value ? 'var(--fw-bold)' : 'var(--fw-medium)',
                 color:          modelValue === opcion.value ? 'var(--color-primary)' : 'var(--color-text-1)',
-                background:     modelValue === opcion.value ? 'var(--color-primary-light)' : 'transparent',
+                background:     modelValue === opcion.value ? 'var(--color-bg-card)' : 'transparent',
                 transition:     'background var(--transition-fast)',
                 borderBottom:   '1px solid var(--color-border-light)',
               }"
@@ -331,6 +333,7 @@ onUnmounted(() => {
 .csb-field--open     { border-color: var(--color-primary); outline: 3px solid var(--color-primary-light); }
 .csb-field--error    { border-color: var(--color-error) !important; outline: none; }
 .csb-field--disabled { background: var(--color-bg-card); cursor: not-allowed; }
+.csb-field--disabled .csb-value { color: var(--color-text-1); opacity: 1; }
 
 /* ── Valor ── */
 .csb-value {
