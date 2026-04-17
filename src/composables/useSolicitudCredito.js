@@ -291,15 +291,12 @@ export function useSolicitudCredito() {
     return r + d > 0 ? r + d : null
   })
 
-  // Pasos activos según condiciones
-  const pasosActivos = computed(() =>
-    PASOS_FORMULARIO.filter(p => {
-      if (p.numero === 7)                        return mostrarCuentaDesembolso.value
-      if ([9, 10, 11, 12].includes(p.numero))   return numCodudores.value >= 1
-      if ([13, 14, 15, 16].includes(p.numero))  return numCodudores.value >= 2
-      return true
-    })
-  )
+  // Pasos activos según el nuevo diseño de "formulario completo"
+  const pasosActivos = computed(() => [
+    { numero: 1, titulo: 'Modalidad de crédito', seccion: 'Solicitud' },
+    { numero: 2, titulo: 'Información de la solicitud', seccion: 'Formulario' },
+    { numero: 3, titulo: 'Revisión y firma', seccion: 'Legal' },
+  ])
 
   const totalPasosActivos = computed(() => pasosActivos.value.length)
 
@@ -309,9 +306,8 @@ export function useSolicitudCredito() {
     return Math.round((idx / (pasosActivos.value.length - 1)) * 100)
   })
 
-  // Paso actual dentro de los activos
   const pasoActual = computed(() =>
-    pasosActivos.value.find(p => p.numero === paso.value)
+    pasosActivos.value.find(p => p.numero === paso.value) || pasosActivos.value[0]
   )
 
   // ── Validación paso 2: campos * ───────────────────────────
@@ -743,10 +739,7 @@ export function useSolicitudCredito() {
     }
   }
 
-  const esUltimoPaso = computed(() => {
-    const activos = pasosActivos.value
-    return activos.length > 0 && activos[activos.length - 1].numero === paso.value
-  })
+  const esUltimoPaso = computed(() => paso.value === 3)
 
   // ── Token helper ──────────────────────────────────────────
   function generarToken() {
