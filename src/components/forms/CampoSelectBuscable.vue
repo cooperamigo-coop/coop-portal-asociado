@@ -27,7 +27,7 @@ const dropdownStyle = ref({
   top: '0',
   left: '0',
   width: '0',
-  zIndex: '9999',
+  zIndex: '10000',
 })
 
 const floated = computed(() => abierto.value || !!props.modelValue)
@@ -49,21 +49,35 @@ function calcularPosicion() {
   if (!containerRef.value) return
   const rect = containerRef.value.getBoundingClientRect()
   const viewportHeight = window.innerHeight
-  const dropdownHeight = 300 // Estimación max-height buscador + lista
+  const viewportWidth = window.innerWidth
+  const dropdownHeight = 300 
 
   let top = rect.bottom + 4
-  
-  // Si no cabe abajo, abrir arriba
   if (top + dropdownHeight > viewportHeight && rect.top > dropdownHeight) {
     top = rect.top - dropdownHeight - 4
   }
 
+  // Si el input es muy estrecho (como en el modal de dirección), 
+  // le damos un ancho mínimo al dropdown para que no se vea "mocho"
+  const minWidth = 220
+  const width = Math.max(rect.width, minWidth)
+  
+  // Calculamos el left intentando que quede alineado a la izquierda del input,
+  // pero si se sale por la derecha, lo empujamos hacia la izquierda.
+  let left = rect.left
+  if (left + width > viewportWidth - 20) {
+    left = viewportWidth - width - 20
+  }
+
+  // Si aún así se sale por la izquierda, lo pegamos al borde
+  if (left < 10) left = 10
+
   dropdownStyle.value = {
     position: 'fixed',
     top: `${top}px`,
-    left: `${rect.left}px`,
-    width: `${rect.width}px`,
-    zIndex: '9999',
+    left: `${left}px`,
+    width: `${width}px`,
+    zIndex: '10000',
   }
 }
 
@@ -372,7 +386,7 @@ onUnmounted(() => {
 .csb-label--focused { color: var(--color-primary); }
 .csb-label--error   { color: var(--color-error-text); }
 
-.csb-required { color: var(--color-primary); }
+.csb-required { color: var(--color-error); }
 
 /* ── Botón limpiar ── */
 .csb-clear {

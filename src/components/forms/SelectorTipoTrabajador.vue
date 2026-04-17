@@ -23,7 +23,7 @@ const opciones = [
       fontWeight: 'var(--fw-semibold)',
       color:      error ? 'var(--color-error-text)' : 'var(--color-text-1)',
     }">
-      Situación laboral actual <span :style="{ color: 'var(--color-error)' }"> *</span>
+      Situación laboral actual <span :style="{ color: 'var(--color-error)' }">*</span>
     </label>
 
     <div :style="{
@@ -42,7 +42,7 @@ const opciones = [
           alignItems:     'center',
           gap:            'var(--sp-sm)',
           padding:        'var(--sp-sm) var(--sp-xs)',
-          borderRadius:   'var(--r-lg)',
+          borderRadius:   'var(--r-md)',
           border:         modelValue === op.value
             ? '2px solid var(--color-primary)'
             : '1px solid var(--color-border)',

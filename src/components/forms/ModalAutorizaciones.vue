@@ -273,26 +273,6 @@ function cerrar() {
               y/o autorizados en este documento. Conozco(emos) que la huella corresponde a un dato
               sensible y que no estoy(amos) obligado(s) a autorizar su tratamiento.
             </p>
-
-            <!-- Mensaje final -->
-            <div :style="{
-              padding:      'var(--sp-lg)',
-              borderRadius: 'var(--r-xl)',
-              background:   scrollCompletado ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
-              border:       `1px solid ${scrollCompletado ? 'var(--color-success)' : 'var(--color-border)'}`,
-              textAlign:    'center',
-              transition:   'all var(--transition-base)',
-            }">
-              <div :style="{
-                fontSize:   'var(--text-base)',
-                fontWeight: 'var(--fw-semibold)',
-                color:      scrollCompletado ? 'var(--color-success-text)' : 'var(--color-text-3)',
-              }">
-                {{ scrollCompletado
-                  ? '✓ Ha leído el documento completo. Puede proceder al rechazo o aceptación de las autorizaciones.'
-                  : 'Continúe desplazando para leer el documento completo.' }}
-              </div>
-            </div>
           </div>
 
           <!-- Footer con botones — siempre visible, fuera del scroll -->

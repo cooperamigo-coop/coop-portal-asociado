@@ -16,7 +16,7 @@ const colores = {
     background: colores[tipo].bg,
     color: colores[tipo].text,
     padding: 'var(--sp-md) var(--sp-lg)',
-    borderRadius: 'var(--r-lg)',
+    borderRadius: 'var(--r-md)',
     fontSize: 'var(--text-base)',
     fontWeight: 'var(--fw-semibold)',
     lineHeight: '1.5',

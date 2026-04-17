@@ -248,7 +248,7 @@ onUnmounted(() => {
 
 .campo-label--focused { color: var(--color-primary); }
 .campo-label--error   { color: var(--color-error-text); }
-.campo-required       { color: var(--color-primary); }
+.campo-required       { color: var(--color-error); }
 
 /* ── Dropdown ── */
 .campo-dropdown {

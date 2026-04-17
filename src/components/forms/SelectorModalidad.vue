@@ -12,7 +12,7 @@ const opciones = [
   {
     value:       'ordinario',
     titulo:      'Crédito ordinario',
-    descripcion: 'Para necesidades personales, vivienda, vehículo u otros destinos. Permite reestructuración.',
+    descripcion: 'Para necesidades personales, vivienda, vehículo u otros destinos.',
     icono:       'CreditCard',
   },
   {
@@ -34,7 +34,7 @@ const opciones = [
         alignItems:   'flex-start',
         gap:          'var(--sp-lg)',
         padding:      'var(--sp-xl)',
-        borderRadius: 'var(--r-xl)',
+        borderRadius: 'var(--r-md)',
         border:       modelValue === op.value
           ? '2px solid var(--color-primary)'
           : '1px solid var(--color-border)',
@@ -62,7 +62,7 @@ const opciones = [
       <div :style="{
         width:          '52px',
         height:         '52px',
-        borderRadius:   'var(--r-xl)',
+        borderRadius:   'var(--r-md)',
         background:     modelValue === op.value
           ? 'var(--color-primary)'
           : 'var(--color-primary-light)',

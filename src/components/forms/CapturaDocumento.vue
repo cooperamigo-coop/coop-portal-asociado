@@ -85,7 +85,7 @@ const LADOS = [
       color: error ? 'var(--color-error-text)' : 'var(--color-text-1)',
     }">
       {{ label }}
-      <span v-if="required" :style="{ color: 'var(--color-error)' }"> *</span>
+      <span v-if="required" :style="{ color: 'var(--color-error)' }">*</span>
     </label>
 
     <!-- ══ COMPLETADO ══════════════════════════════════════════════ -->

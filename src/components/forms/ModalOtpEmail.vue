@@ -173,7 +173,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
       <!-- Card -->
       <div :style="{
         background:   'var(--color-bg-card)',
-        borderRadius: 'var(--r-2xl)',
+        borderRadius: 'var(--r-md)',
         boxShadow:    'var(--shadow-modal)',
         border:       '1px solid var(--color-border-card)',
         width:        '100%',
@@ -221,7 +221,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
               background:   'var(--color-primary)',
               color:        '#fff',
               border:       'none',
-              borderRadius: 'var(--r-lg)',
+              borderRadius: 'var(--r-md)',
               padding:      'var(--sp-md) var(--sp-xl)',
               fontSize:     'var(--text-base)',
               fontWeight:   'var(--fw-semibold)',
@@ -412,7 +412,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
   color: var(--color-text-1);
   background: var(--color-bg-surface);
   border: 2px solid var(--color-border);
-  border-radius: var(--r-xl);
+  border-radius: var(--r-md);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
   caret-color: transparent;

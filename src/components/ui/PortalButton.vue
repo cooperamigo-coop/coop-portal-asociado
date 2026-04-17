@@ -41,9 +41,9 @@ const estilos = {
     :style="{
       ...estilos[variant],
       width:          full ? '100%' : 'auto',
-      height:         small ? '32px' : '36px',
+      height:         small ? '32px' : '44px',
       padding:        small ? '0 var(--sp-md)' : '0 var(--sp-xl)',
-      borderRadius:   'var(--r-pill)',
+      borderRadius:   'var(--r-md)',
       fontSize:       'var(--text-base)',
       fontWeight:     'var(--fw-semibold)',
       fontFamily:     'var(--font-body)',

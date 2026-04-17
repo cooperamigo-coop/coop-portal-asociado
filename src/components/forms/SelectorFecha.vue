@@ -15,6 +15,11 @@ const diaActual  = ref(1)
 const mesActual  = ref(1)
 const anioActual = ref(new Date().getFullYear() - 30)
 
+// Estado temporal mientras el picker está abierto para evitar "peleas" con modelValue
+const tempDia  = ref(1)
+const tempMes  = ref(1)
+const tempAnio = ref(new Date().getFullYear() - 30)
+
 const containerRef = ref(null)
 const pickerRef    = ref(null)
 const abierto      = ref(false)
@@ -31,7 +36,7 @@ function calcularPosicion() {
   if (!containerRef.value) return
   const rect = containerRef.value.getBoundingClientRect()
   const viewportHeight = window.innerHeight
-  const pickerHeight = 280 // Estimación de la altura del picker (cabecera + tambores)
+  const pickerHeight = 320 // Altura total con cabecera y botón confirmar
 
   let top = rect.bottom + 4
   
@@ -50,8 +55,23 @@ function calcularPosicion() {
 }
 
 function abrir() {
+  // Al abrir, sincronizamos el estado temporal con el valor actual
+  if (props.modelValue) {
+    const [y, m, d] = props.modelValue.split('-').map(Number)
+    tempAnio.value = y
+    tempMes.value  = m
+    tempDia.value  = d
+  } else {
+    tempAnio.value = new Date().getFullYear() - 30
+    tempMes.value  = 1
+    tempDia.value  = 1
+  }
+
   calcularPosicion()
   abierto.value = true
+  
+  // Posicionar scrolls después de que el DOM se actualice
+  setTimeout(sincronizarScrolls, 50)
 }
 
 function cerrar() {
@@ -94,7 +114,7 @@ watch(() => props.modelValue, (val) => {
 }, { immediate: true })
 
 const diasDelMes = computed(() => {
-  const dias = new Date(anioActual.value, mesActual.value, 0).getDate()
+  const dias = new Date(tempAnio.value, tempMes.value, 0).getDate()
   return Array.from({ length: dias }, (_, i) => i + 1)
 })
 
@@ -109,19 +129,13 @@ const anios = computed(() => {
   return arr
 })
 
-watch([mesActual, anioActual], () => {
-  if (diaActual.value > diasDelMes.value.length) {
-    diaActual.value = diasDelMes.value.length
-  }
-  emitirValor()
-})
-watch(diaActual, emitirValor)
-
+// Solo emitimos el valor cuando el usuario pulsa "Confirmar"
 function emitirValor() {
-  const d = String(diaActual.value).padStart(2, '0')
-  const m = String(mesActual.value).padStart(2, '0')
-  const y = String(anioActual.value)
+  const d = String(tempDia.value).padStart(2, '0')
+  const m = String(tempMes.value).padStart(2, '0')
+  const y = String(tempAnio.value)
   emit('update:modelValue', `${y}-${m}-${d}`)
+  cerrar()
 }
 
 const refDias  = ref(null)
@@ -135,36 +149,52 @@ function scrollAIndex(el, index) {
   el.scrollTop = index * ITEM_H
 }
 
-function onScrollDias(e) {
-  const idx = Math.round(e.target.scrollTop / ITEM_H)
-  diaActual.value = diasDelMes.value[Math.min(idx, diasDelMes.value.length - 1)]
-}
-function onScrollMeses(e) {
-  const idx = Math.round(e.target.scrollTop / ITEM_H)
-  mesActual.value = idx + 1
-}
-function onScrollAnios(e) {
-  const idx = Math.round(e.target.scrollTop / ITEM_H)
-  anioActual.value = anios.value[idx] ?? anios.value[0]
+function sincronizarScrolls() {
+  const dIdx = diasDelMes.value.indexOf(tempDia.value)
+  const mIdx = tempMes.value - 1
+  const aIdx = anios.value.indexOf(tempAnio.value)
+  
+  scrollAIndex(refDias.value,  dIdx  >= 0 ? dIdx  : 0)
+  scrollAIndex(refMeses.value, mIdx  >= 0 ? mIdx  : 0)
+  scrollAIndex(refAnios.value, aIdx  >= 0 ? aIdx  : 0)
 }
 
-onMounted(() => {
-  const dIdx = diasDelMes.value.indexOf(diaActual.value)
-  const mIdx = mesActual.value - 1
-  const aIdx = anios.value.indexOf(anioActual.value)
-  setTimeout(() => {
-    scrollAIndex(refDias.value,  dIdx  >= 0 ? dIdx  : 0)
-    scrollAIndex(refMeses.value, mIdx  >= 0 ? mIdx  : 0)
-    scrollAIndex(refAnios.value, aIdx  >= 0 ? aIdx  : 0)
-  }, 50)
-})
+function onScrollDias(e) {
+  const idx = Math.round(e.target.scrollTop / ITEM_H)
+  const val = diasDelMes.value[Math.min(idx, diasDelMes.value.length - 1)]
+  if (val) tempDia.value = val
+}
+
+function onScrollMeses(e) {
+  const idx = Math.round(e.target.scrollTop / ITEM_H)
+  const val = Math.min(idx + 1, 12)
+  if (val !== tempMes.value) {
+    tempMes.value = val
+    // Si al cambiar de mes el día actual excede los días del nuevo mes, ajustamos
+    setTimeout(() => {
+      if (tempDia.value > diasDelMes.value.length) {
+        tempDia.value = diasDelMes.value.length
+        scrollAIndex(refDias.value, tempDia.value - 1)
+      }
+    }, 10)
+  }
+}
+
+function onScrollAnios(e) {
+  const idx = Math.round(e.target.scrollTop / ITEM_H)
+  const val = anios.value[idx] ?? anios.value[0]
+  if (val !== tempAnio.value) {
+    tempAnio.value = val
+  }
+}
 
 const floated = computed(() => abierto.value || !!props.modelValue)
 
 const valorFormateado = computed(() => {
-  const d = String(diaActual.value).padStart(2, '0')
-  const m = String(mesActual.value).padStart(2, '0')
-  const y = String(anioActual.value)
+  // Mientras está abierto, mostramos lo que se está seleccionando en el picker
+  const d = String(abierto.value ? tempDia.value : diaActual.value).padStart(2, '0')
+  const m = String(abierto.value ? tempMes.value : mesActual.value).padStart(2, '0')
+  const y = String(abierto.value ? tempAnio.value : anioActual.value)
   return `${d}/${m}/${y}`
 })
 </script>
@@ -182,8 +212,8 @@ const valorFormateado = computed(() => {
       @click="abierto ? cerrar() : abrir()"
     >
       <!-- Valor seleccionado -->
-      <span class="fecha-value" :class="{ 'fecha-value--empty': !modelValue }">
-        {{ modelValue ? valorFormateado : '' }}
+      <span class="fecha-value" :class="{ 'fecha-value--empty': !modelValue && !abierto }">
+        {{ (modelValue || abierto) ? valorFormateado : '' }}
       </span>
 
       <!-- Label flotante -->
@@ -211,7 +241,7 @@ const valorFormateado = computed(() => {
           ...dropdownStyle,
           background:   'var(--color-bg-card)',
           border:       '1px solid var(--color-border)',
-          borderRadius: 'var(--r-xl)',
+          borderRadius: 'var(--r-md)',
           boxShadow:    'var(--shadow-modal)',
           overflow:     'hidden',
         }">
@@ -239,8 +269,9 @@ const valorFormateado = computed(() => {
             gridTemplateColumns: '1fr 2fr 2fr',
             height:              '200px',
             position:            'relative',
+            background:          'var(--color-bg-card)',
           }">
-            <!-- Franja de selección central -->
+            <!-- Franja de selección central (Detrás de los números) -->
             <div :style="{
               position:     'absolute',
               top:          '50%',
@@ -251,18 +282,22 @@ const valorFormateado = computed(() => {
               background:   'var(--color-primary-light)',
               borderRadius: 'var(--r-md)',
               pointerEvents:'none',
-              zIndex:       '1',
+              zIndex:       '0',
             }" />
 
             <!-- Columna Días -->
             <div
               ref="refDias"
+              class="drum-column"
               :style="{
-                overflowY:     'scroll',
-                height:        '100%',
-                padding:       '80px 0',
-                scrollbarWidth:'none',
+                overflowY:      'scroll',
+                height:         '100%',
+                padding:        '80px 0',
+                scrollbarWidth: 'none',
                 msOverflowStyle:'none',
+                position:       'relative',
+                zIndex:         '1',
+                scrollSnapType: 'y mandatory',
               }"
               @scroll="onScrollDias"
             >
@@ -275,9 +310,10 @@ const valorFormateado = computed(() => {
                   alignItems:     'center',
                   justifyContent: 'center',
                   fontSize:       'var(--text-base)',
-                  fontWeight:     diaActual === d ? 'var(--fw-bold)' : 'var(--fw-medium)',
-                  color:          diaActual === d ? 'var(--color-primary)' : 'var(--color-text-2)',
+                  fontWeight:     tempDia === d ? 'var(--fw-bold)' : 'var(--fw-medium)',
+                  color:          tempDia === d ? 'var(--color-primary)' : 'var(--color-text-2)',
                   transition:     'color 0.2s',
+                  scrollSnapAlign:'center',
                 }"
               >{{ String(d).padStart(2, '0') }}</div>
             </div>
@@ -285,12 +321,16 @@ const valorFormateado = computed(() => {
             <!-- Columna Meses -->
             <div
               ref="refMeses"
+              class="drum-column"
               :style="{
-                overflowY:     'scroll',
-                height:        '100%',
-                padding:       '80px 0',
-                scrollbarWidth:'none',
+                overflowY:      'scroll',
+                height:         '100%',
+                padding:        '80px 0',
+                scrollbarWidth: 'none',
                 msOverflowStyle:'none',
+                position:       'relative',
+                zIndex:         '1',
+                scrollSnapType: 'y mandatory',
               }"
               @scroll="onScrollMeses"
             >
@@ -303,9 +343,10 @@ const valorFormateado = computed(() => {
                   alignItems:     'center', 
                   justifyContent: 'center',
                   fontSize:       'var(--text-base)',
-                  fontWeight:     mesActual === (idx + 1) ? 'var(--fw-bold)' : 'var(--fw-medium)',
-                  color:          mesActual === (idx + 1) ? 'var(--color-primary)' : 'var(--color-text-2)',
+                  fontWeight:     tempMes === (idx + 1) ? 'var(--fw-bold)' : 'var(--fw-medium)',
+                  color:          tempMes === (idx + 1) ? 'var(--color-primary)' : 'var(--color-text-2)',
                   transition:     'color 0.2s',
+                  scrollSnapAlign:'center',
                 }"
               >{{ m }}</div>
             </div>
@@ -313,12 +354,16 @@ const valorFormateado = computed(() => {
             <!-- Columna Años -->
             <div
               ref="refAnios"
+              class="drum-column"
               :style="{
-                overflowY:     'scroll',
-                height:        '100%',
-                padding:       '80px 0',
-                scrollbarWidth:'none',
+                overflowY:      'scroll',
+                height:         '100%',
+                padding:        '80px 0',
+                scrollbarWidth: 'none',
                 msOverflowStyle:'none',
+                position:       'relative',
+                zIndex:         '1',
+                scrollSnapType: 'y mandatory',
               }"
               @scroll="onScrollAnios"
             >
@@ -331,9 +376,10 @@ const valorFormateado = computed(() => {
                   alignItems:     'center',
                   justifyContent: 'center',
                   fontSize:       'var(--text-base)',
-                  fontWeight:     anioActual === a ? 'var(--fw-bold)' : 'var(--fw-medium)',
-                  color:          anioActual === a ? 'var(--color-primary)' : 'var(--color-text-2)',
+                  fontWeight:     tempAnio === a ? 'var(--fw-bold)' : 'var(--fw-medium)',
+                  color:          tempAnio === a ? 'var(--color-primary)' : 'var(--color-text-2)',
                   transition:     'color 0.2s',
+                  scrollSnapAlign:'center',
                 }"
               >{{ a }}</div>
             </div>
@@ -357,7 +403,7 @@ const valorFormateado = computed(() => {
                 fontWeight:   'var(--fw-bold)',
                 cursor:       'pointer',
               }"
-              @click="emitirValor(); cerrar()"
+              @click="emitirValor()"
             >Confirmar</button>
           </div>
         </div>
@@ -446,10 +492,19 @@ const valorFormateado = computed(() => {
 
 .fecha-label--focused { color: var(--color-primary); }
 .fecha-label--error   { color: var(--color-error-text); }
-.fecha-required       { color: var(--color-primary); }
+.fecha-required       { color: var(--color-error); }
 
 .fecha-msg { font-size: var(--text-xs); font-weight: var(--fw-medium); }
 .fecha-msg--error { color: var(--color-error-text); }
+
+/* Ocultar scrollbars en los tambores */
+.drum-column::-webkit-scrollbar {
+  display: none;
+}
+.drum-column {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
 /* Transition */
 .dropdown-fade-enter-active,

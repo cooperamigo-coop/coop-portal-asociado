@@ -169,7 +169,7 @@ function onBlur()  { focused.value = false; emit('blur') }
 
 .campo-label--focused { color: var(--color-primary); }
 .campo-label--error   { color: var(--color-error-text); }
-.campo-required       { color: var(--color-primary); }
+.campo-required       { color: var(--color-error); }
 
 .campo-msg { font-size: var(--text-xs); font-weight: var(--fw-medium); }
 .campo-msg--error  { color: var(--color-error-text); }

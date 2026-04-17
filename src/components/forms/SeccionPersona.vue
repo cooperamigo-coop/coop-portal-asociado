@@ -1,13 +1,10 @@
 <script setup>
 import { ref, computed } from 'vue'
-import CampoTexto              from './CampoTexto.vue'
-import CampoSelectBuscable     from './CampoSelectBuscable.vue'
-import SelectorFecha           from './SelectorFecha.vue'
-import ModalDireccion          from './ModalDireccion.vue'
-import ModalExpedicion         from './ModalExpedicion.vue'
-import PortalButton            from '@/components/ui/PortalButton.vue'
-import { IconMapPin, IconCalendar } from '@tabler/icons-vue'
-import { TIPOS_DOCUMENTO }     from '@/data/formularioCredito'
+import CampoTexto          from './CampoTexto.vue'
+import CampoSelectBuscable from './CampoSelectBuscable.vue'
+import SelectorFecha       from './SelectorFecha.vue'
+import ModalDireccion      from './ModalDireccion.vue'
+import { TIPOS_DOCUMENTO } from '@/data/formularioCredito'
 
 const TIPOS_DOC_CODEUDOR = [
   { value: 'cedula_ciudadania',  label: 'Cédula de ciudadanía'  },
@@ -27,22 +24,19 @@ const props = defineProps({
     type: Object,
     default: () => ({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' }),
   },
-  // Ubicación de expedición del documento
-  ubicacionExpedicion: { type: Object, default: null },
   // Mostrar selector de nivel educativo
   showNivelEducativo: { type: Boolean, default: false },
   // true cuando el componente se usa para un codeudor (restringe tipos de doc)
   esCodeudor: { type: Boolean, default: false },
 })
+
 const emit = defineEmits([
   'update:modelValue',
   'update:direccionEstructurada',
   'update:ubicacion',
-  'update:ubicacionExpedicion',
 ])
 
-const modalDireccionVisible  = ref(false)
-const modalExpedicionVisible = ref(false)
+const modalDireccionVisible = ref(false)
 
 const tiposDocOpciones = computed(() =>
   props.esCodeudor ? TIPOS_DOC_CODEUDOR : TIPOS_DOCUMENTO
@@ -70,7 +64,7 @@ function actualizarUpper(campo, valor) {
   actualizar(campo, valor ? valor.toUpperCase() : valor)
 }
 
-// ── Texto de dirección con ubicación ────────────────────────────────────────
+// ── Texto de dirección con ubicación ─────────────────────────────────────────
 const textoResidencia = computed(() => {
   const dir   = props.modelValue[clave('direccion_residencia')] || ''
   const depto = props.ubicacion?.depto_nombre     || ''
@@ -78,26 +72,6 @@ const textoResidencia = computed(() => {
   const partes = [dir, depto && muni ? `${depto}, ${muni}` : (depto || muni)].filter(Boolean)
   return partes.join(' · ')
 })
-
-// ── Texto de expedición ──────────────────────────────────────────────────────
-const fechaExpedicionDisplay = computed(() => {
-  const fecha = props.modelValue[clave('fecha_expedicion_documento')] || ''
-  const depto = props.ubicacionExpedicion?.depto_nombre     || ''
-  const muni  = props.ubicacionExpedicion?.municipio_nombre || ''
-  if (!fecha && !depto) return ''
-  let fechaFmt = fecha
-  if (fecha && fecha.includes('-')) {
-    const [y, m, d] = fecha.split('-')
-    fechaFmt = `${d}/${m}/${y}`
-  }
-  const lugar = depto && muni ? `${depto}, ${muni}` : (depto || muni)
-  return [fechaFmt, lugar].filter(Boolean).join(' — ')
-})
-
-function onConfirmarExpedicion(nuevaFecha, nuevaUbicacion) {
-  actualizar(clave('fecha_expedicion_documento'), nuevaFecha)
-  emit('update:ubicacionExpedicion', nuevaUbicacion)
-}
 
 const nivelEducativoOpciones = [
   { value: 'ninguno',               label: 'Ninguno'                   },
@@ -174,7 +148,7 @@ const nivelEducativoOpciones = [
         @blur="actualizarUpper(clave('apellidos'), modelValue[clave('apellidos')])"
       />
 
-      <!-- Nivel educativo y Fecha de nacimiento en la misma fila -->
+      <!-- Con nivel educativo: [nivel_educativo | fecha_nacimiento] luego [fecha_expedicion | vacío] -->
       <template v-if="showNivelEducativo">
         <CampoSelectBuscable
           :model-value="modelValue.nivel_educativo_solicitante"
@@ -192,9 +166,19 @@ const nivelEducativoOpciones = [
           :min-year="1930"
           @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
         />
+        <SelectorFecha
+          :model-value="modelValue[clave('fecha_expedicion_documento')]"
+          label="Fecha de expedición del documento"
+          required
+          :error="errores[clave('fecha_expedicion_documento')]"
+          :max-year="new Date().getFullYear()"
+          :min-year="1950"
+          @update:model-value="actualizar(clave('fecha_expedicion_documento'), $event)"
+        />
+        <div />
       </template>
 
-      <!-- Si no se muestra nivel educativo, solo fecha de nacimiento y un espacio vacío -->
+      <!-- Sin nivel educativo: [fecha_nacimiento | fecha_expedicion] -->
       <template v-else>
         <SelectorFecha
           :model-value="modelValue[clave('fecha_nacimiento')]"
@@ -205,7 +189,15 @@ const nivelEducativoOpciones = [
           :min-year="1930"
           @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
         />
-        <div />
+        <SelectorFecha
+          :model-value="modelValue[clave('fecha_expedicion_documento')]"
+          label="Fecha de expedición del documento"
+          required
+          :error="errores[clave('fecha_expedicion_documento')]"
+          :max-year="new Date().getFullYear()"
+          :min-year="1950"
+          @update:model-value="actualizar(clave('fecha_expedicion_documento'), $event)"
+        />
       </template>
 
       <!-- Correo electrónico — ancho completo -->
@@ -223,108 +215,42 @@ const nivelEducativoOpciones = [
       />
     </div>
 
-    <!-- El resto de campos siguen abajo (Dirección, Expedición) -->
+    <!-- Dirección de residencia -->
     <div :style="{
-      display:             'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap:                 'var(--sp-lg)',
       marginTop:           'var(--sp-lg)',
     }">
-      <!-- Dirección de residencia (modal colombiano o campo libre) -->
-      <div :style="{ gridColumn: '1 / -1' }">
-        <div v-if="direccionEstructurada !== null">
-          <label :style="{
-            display: 'block', fontSize: 'var(--text-sm)',
-            fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)',
-            marginBottom: 'var(--sp-xs)',
-          }">Dirección de residencia *</label>
-          <input
-            :value="textoResidencia || 'Sin ingresar'"
-            readonly
-            :style="{
-              width: '100%', padding: '0 14px',
-              height: '54px',
-              border: '1px solid var(--color-border)',
-              borderRadius: 'var(--r-md)',
-              fontSize: 'var(--text-base)', fontFamily: 'var(--font-body)',
-              background: 'var(--color-bg-surface-alt)',
-              color: textoResidencia ? 'var(--color-text-1)' : 'var(--color-text-3)',
-              cursor: 'pointer', outline: 'none', boxSizing: 'border-box',
-            }"
-            @click="modalDireccionVisible = true"
-          />
-        </div>
-        <CampoTexto
-          v-else
-          :model-value="modelValue[clave('direccion_residencia')]"
-          label="Dirección de residencia"
-          placeholder="Ej: Calle 45 # 23-18, Apto 301"
-          required
-          :error="errores[clave('direccion_residencia')]"
-          @update:model-value="actualizar(clave('direccion_residencia'), $event ? $event.toUpperCase() : $event)"
+      <div v-if="direccionEstructurada !== null">
+        <label :style="{
+          display: 'block', fontSize: 'var(--text-sm)',
+          fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)',
+          marginBottom: 'var(--sp-xs)',
+        }">Dirección de residencia <span :style="{ color: 'var(--color-error)' }">*</span></label>
+        <input
+          :value="textoResidencia || 'Sin ingresar'"
+          readonly
+          :style="{
+            width: '100%', padding: '0 14px',
+            height: '54px',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--r-md)',
+            fontSize: 'var(--text-base)', fontFamily: 'var(--font-body)',
+            background: 'var(--color-bg-surface-alt)',
+            color: textoResidencia ? 'var(--color-text-1)' : 'var(--color-text-3)',
+            cursor: 'pointer', outline: 'none', boxSizing: 'border-box',
+          }"
+          @click="modalDireccionVisible = true"
         />
       </div>
-
-      <!-- Fecha + lugar de expedición — campo display + modal -->
-      <div :style="{ gridColumn: '1 / -1' }">
-        <div v-if="ubicacionExpedicion !== null">
-          <label :style="{
-            display: 'block', fontSize: 'var(--text-sm)',
-            fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)',
-            marginBottom: 'var(--sp-xs)',
-          }">Fecha y lugar de expedición *</label>
-          <input
-            :value="fechaExpedicionDisplay || 'Sin ingresar'"
-            readonly
-            :style="{
-              width: '100%', padding: '0 14px',
-              height: '54px',
-              border: '1px solid var(--color-border)',
-              borderRadius: 'var(--r-md)',
-              fontSize: 'var(--text-base)', fontFamily: 'var(--font-body)',
-              background: 'var(--color-bg-surface-alt)',
-              color: fechaExpedicionDisplay ? 'var(--color-text-1)' : 'var(--color-text-3)',
-              cursor: 'pointer', outline: 'none', boxSizing: 'border-box',
-            }"
-            @click="modalExpedicionVisible = true"
-          />
-        </div>
-
-        <!-- Fallback: campos separados si no hay ubicacionExpedicion -->
-        <template v-else>
-          <SelectorFecha
-            :model-value="modelValue[clave('fecha_expedicion_documento')]"
-            label="Fecha de expedición del documento"
-            required
-            :error="errores[clave('fecha_expedicion_documento')]"
-            :max-year="new Date().getFullYear()"
-            :min-year="1950"
-            @update:model-value="actualizar(clave('fecha_expedicion_documento'), $event)"
-          />
-          <div :style="{ marginTop: 'var(--sp-lg)' }">
-            <CampoTexto
-              :model-value="modelValue[clave('ciudad_expedicion')]"
-              label="Ciudad de expedición"
-              placeholder="BOGOTÁ"
-              required
-              :error="errores[clave('ciudad_expedicion')]"
-              @update:model-value="actualizar(clave('ciudad_expedicion'), $event ? $event.toUpperCase() : $event)"
-            />
-          </div>
-        </template>
-      </div>
+      <CampoTexto
+        v-else
+        :model-value="modelValue[clave('direccion_residencia')]"
+        label="Dirección de residencia"
+        placeholder="Ej: Calle 45 # 23-18, Apto 301"
+        required
+        :error="errores[clave('direccion_residencia')]"
+        @update:model-value="actualizar(clave('direccion_residencia'), $event ? $event.toUpperCase() : $event)"
+      />
     </div>
-
-    <!-- ModalExpedicion -->
-    <ModalExpedicion
-      v-if="ubicacionExpedicion !== null"
-      :visible="modalExpedicionVisible"
-      :fecha="modelValue[clave('fecha_expedicion_documento')]"
-      :ubicacion="ubicacionExpedicion"
-      @update:visible="modalExpedicionVisible = $event"
-      @update:fecha="actualizar(clave('fecha_expedicion_documento'), $event)"
-      @update:ubicacion="emit('update:ubicacionExpedicion', $event)"
-    />
 
     <!-- ModalDireccion -->
     <ModalDireccion

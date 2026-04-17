@@ -123,7 +123,7 @@ const router = useRouter()
 
 .portal-main__inner {
   width: 100%;
-  max-width: 720px;
+  max-width: 800px;
   margin: 0 auto;
   position: relative;
   z-index: 1;

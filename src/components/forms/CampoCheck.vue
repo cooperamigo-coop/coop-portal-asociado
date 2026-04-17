@@ -13,7 +13,7 @@ defineEmits(['update:modelValue'])
     :style="{
       display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-sm)',
       padding: 'var(--sp-md)',
-      borderRadius: 'var(--r-lg)',
+      borderRadius: 'var(--r-md)',
       border: `1px solid ${error
         ? 'var(--color-error)'
         : modelValue

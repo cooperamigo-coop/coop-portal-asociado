@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PortalLayout       from '@/components/layout/PortalLayout.vue'
 import StepIndicator      from '@/components/ui/StepIndicator.vue'
@@ -36,12 +36,12 @@ const {
 
 // ── Opciones ────────────────────────────────────────────────────────────────
 const opsTipoDocVerificacion = [
-  { value: 'cedula_ciudadania',  label: 'C.C.' },
-  { value: 'cedula_extranjeria', label: 'C.E.' },
+  { value: 'cedula_ciudadania',  label: 'Cédula de ciudadanía'  },
+  { value: 'cedula_extranjeria', label: 'Cédula de extranjería' },
 ]
 const opsTipoDocumento = [
-  { value: 'CC', label: 'C.C. — Cédula de Ciudadanía' },
-  { value: 'CE', label: 'C.E. — Cédula de Extranjería' },
+  { value: 'CC', label: 'Cédula de ciudadanía' },
+  { value: 'CE', label: 'Cédula de extranjería' },
 ]
 const opsEstadoCivil = [
   { value: 'Soltero',     label: 'Soltero/a'     },
@@ -120,8 +120,17 @@ const spanFull = { gridColumn: '1 / -1' }
 // ── OTP: validación de correo ────────────────────────────────────────────────
 const emailValidado    = ref(false)
 const mostrarModalOtp  = ref(false)
+const bannerRecuperadoVisible = ref(false)
 
 const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function onRestaurarBorrador() {
+  restaurarBorrador()
+  bannerRecuperadoVisible.value = true
+  setTimeout(() => {
+    bannerRecuperadoVisible.value = false
+  }, 5000)
+}
 
 function onDocumentoAreaClick() {
   if (emailValidado.value) return
@@ -165,7 +174,7 @@ function onOtpValidado() {
           :style="{ marginBottom: 'var(--sp-xl)' }"
         />
         <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
-          <PortalButton variant="primary" :full="true" @click="restaurarBorrador">
+          <PortalButton variant="primary" :full="true" @click="onRestaurarBorrador">
             Continuar donde lo dejé
           </PortalButton>
           <PortalButton variant="secondary" :full="true" @click="descartarBorrador">
@@ -188,81 +197,31 @@ function onOtpValidado() {
             @keyup.enter="verificarYContinuar"
           />
 
-          <div
-            :style="{ display: 'flex', gap: 'var(--sp-md)', alignItems: 'flex-start' }"
+          <!-- Selector de Tipo de Documento -->
+          <CampoSelect
+            v-model="tipoDocumentoInicial"
+            label="Tipo de documento"
+            required
+            :opciones="opsTipoDocVerificacion"
             @click="onDocumentoAreaClick"
-          >
-            <!-- Selector de Tipo Check Circle (Encuadrado) -->
-            <div :style="{
-              flex: '0 0 30%',
-              display: 'flex',
-              background: 'var(--color-bg-card)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 'var(--r-md)',
-              height: '54px',
-              boxSizing: 'border-box',
-              padding: '0 12px',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: 'var(--sp-md)'
-            }">
-              <label
-                v-for="op in opsTipoDocVerificacion"
-                :key="op.value"
-                :style="{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--sp-xs)',
-                  cursor: 'pointer',
-                  userSelect: 'none'
-                }"
-              >
-                <div :style="{
-                  width: '18px',
-                  height: '18px',
-                  borderRadius: '50%',
-                  border: '2px solid ' + (tipoDocumentoInicial === op.value ? 'var(--color-primary)' : 'var(--color-border)'),
-                  background: tipoDocumentoInicial === op.value ? 'var(--color-primary)' : 'transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all var(--transition-base)',
-                  color: 'white'
-                }">
-                  <IconCheck v-if="tipoDocumentoInicial === op.value" :size="12" stroke-width="4" />
-                </div>
-                <input
-                  type="radio"
-                  v-model="tipoDocumentoInicial"
-                  :value="op.value"
-                  style="display: none"
-                />
-                <span :style="{
-                  fontSize: 'var(--text-base)',
-                  fontWeight: tipoDocumentoInicial === op.value ? 'var(--fw-bold)' : 'var(--fw-medium)',
-                  color: tipoDocumentoInicial === op.value ? 'var(--color-text-1)' : 'var(--color-text-3)'
-                }">{{ op.label }}</span>
-              </label>
-            </div>
+          />
 
-            <!-- Número de Documento -->
-            <div :style="{ flex: '1' }">
-              <CampoTexto
-                v-model="numeroDocumentoInicial"
-                label="Número de documento"
-                placeholder="Sin puntos ni espacios"
-                required
-                solo-numeros
-                :error="errorNumeroDoc"
-              />
-            </div>
-          </div>
+          <!-- Número de Documento -->
+          <CampoTexto
+            v-model="numeroDocumentoInicial"
+            label="Número de documento"
+            placeholder="Sin puntos ni espacios"
+            required
+            solo-numeros
+            :error="errorNumeroDoc"
+            @click="onDocumentoAreaClick"
+          />
 
           <!-- Badge: correo verificado -->
           <div v-if="emailValidado" :style="{
             display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)',
             padding: 'var(--sp-sm) var(--sp-md)',
-            borderRadius: 'var(--r-lg)',
+            borderRadius: 'var(--r-md)',
             background: 'var(--color-success-bg)',
           }">
             <IconCircleCheck :size="15" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
@@ -293,7 +252,7 @@ function onOtpValidado() {
               Declaro que conozco mis derechos como titular de la información. Igualmente, manifiesto que he leído y acepto los
               <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">Términos y condiciones</a>
               y la
-              <a href="https://cooperamigo.coop/aviso-privacidad" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">Política de tratamiento de datos personales</a>.
+              <a href="https://cooperamigo.coop/politica-tratamiento-datos" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">Política de tratamiento de datos personales</a>.
             </span>
           </label>
 
@@ -321,7 +280,7 @@ function onOtpValidado() {
     <div v-else-if="paso === 7" :style="{
       background: 'var(--color-bg-card)',
       border: '1px solid var(--color-border-card)',
-      borderRadius: 'var(--r-2xl)',
+      borderRadius: 'var(--r-md)',
       padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
       boxShadow: 'var(--shadow-card)',
       textAlign: 'center',
@@ -347,13 +306,13 @@ function onOtpValidado() {
         Su solicitud está en proceso de revisión. Le notificaremos por correo electrónico.
       </div>
       <div v-if="solicitudCreada" :style="{
-        background: 'var(--color-bg-surface)',
-        border: '1px solid var(--color-border)',
-        borderRadius: 'var(--r-lg)',
-        padding: 'var(--sp-lg) var(--sp-xl)',
-        marginBottom: 'var(--sp-xl)',
-        display: 'inline-block',
-      }">
+          background: 'var(--color-bg-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--r-md)',
+          padding: 'var(--sp-lg) var(--sp-xl)',
+          marginBottom: 'var(--sp-xl)',
+          display: 'inline-block',
+        }">
         <div :style="{
           fontSize: 'var(--text-sm)', color: 'var(--color-text-3)',
           fontWeight: 'var(--fw-semibold)', marginBottom: 'var(--sp-xs)',
@@ -372,6 +331,24 @@ function onOtpValidado() {
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <template v-else>
       <div :style="{ width: '100%', margin: '0 auto' }">
+
+        <!-- Banner: datos recuperados -->
+        <div v-if="bannerRecuperadoVisible" :style="{
+          display:      'flex',
+          alignItems:   'center',
+          gap:          'var(--sp-sm)',
+          padding:      'var(--sp-md) var(--sp-lg)',
+          borderRadius: 'var(--r-md)',
+          background:   'var(--color-success-bg)',
+          marginBottom: 'var(--sp-lg)',
+        }">
+          <IconCircleCheck :size="16" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
+          <span :style="{
+            fontSize:   'var(--text-sm)',
+            color:      'var(--color-success-text)',
+            fontWeight: 'var(--fw-semibold)',
+          }">Sus datos anteriores fueron recuperados. Continúa desde donde lo dejó.</span>
+        </div>
 
         <!-- Encabezado -->
         <div :style="{ marginBottom: 'var(--sp-xl)' }">
@@ -398,15 +375,10 @@ function onOtpValidado() {
             fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-extrabold)',
             color: 'var(--color-text-1)',
           }">{{ pasos[paso - 1]?.label }}</div>
-          <div :style="{
-            fontSize: 'var(--text-sm)', color: 'var(--color-text-3)',
-            fontWeight: 'var(--fw-semibold)',
-          }">Paso {{ paso }} de 6</div>
         </div>
         <div :style="{
           height: '6px', background: 'var(--color-border)',
           borderRadius: 'var(--r-pill)', overflow: 'hidden',
-          maxWidth: '480px'
         }">
           <div :style="{
             height: '100%',
@@ -421,7 +393,7 @@ function onOtpValidado() {
       <div :style="{
         background: 'var(--color-bg-card)',
         border: '1px solid var(--color-border-card)',
-        borderRadius: 'var(--r-2xl)',
+        borderRadius: 'var(--r-md)',
         padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
         boxShadow: 'var(--shadow-card)',
         position: 'relative',
@@ -906,7 +878,7 @@ function onOtpValidado() {
             <div :style="{
               background: 'var(--color-bg-surface)',
               border: '1px solid var(--color-border)',
-              borderRadius: 'var(--r-xl)',
+              borderRadius: 'var(--r-md)',
               padding: 'var(--sp-xl)',
               textAlign: 'center',
               color: 'var(--color-text-2)',
@@ -1144,7 +1116,7 @@ function onOtpValidado() {
           <div :style="{
             background: 'var(--color-bg-surface)',
             border: '1px solid var(--color-border)',
-            borderRadius: 'var(--r-xl)',
+            borderRadius: 'var(--r-md)',
             padding: 'var(--sp-xl)',
             marginBottom: 'var(--sp-xl)',
             fontSize: 'var(--text-sm)',
@@ -1314,7 +1286,7 @@ function onOtpValidado() {
             width: '100%',
             maxWidth: isMobile ? '100%' : '440px',
             background: 'var(--color-bg-card)',
-            borderRadius: isMobile ? 'var(--r-2xl) var(--r-2xl) 0 0' : 'var(--r-2xl)',
+            borderRadius: isMobile ? 'var(--r-md) var(--r-md) 0 0' : 'var(--r-md)',
             boxShadow: 'var(--shadow-modal)',
             padding: isMobile ? 'var(--sp-md) var(--sp-lg) var(--sp-2xl)' : 'var(--sp-2xl)',
           }">

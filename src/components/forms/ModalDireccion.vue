@@ -1,9 +1,10 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { VIAS_PRINCIPALES, DEPARTAMENTOS, getMunicipios } from '@/data/colombiaData.js'
 import { IconMapPin, IconX, IconCheck } from '@tabler/icons-vue'
 import PortalButton        from '@/components/ui/PortalButton.vue'
 import CampoSelectBuscable from './CampoSelectBuscable.vue'
+import CampoTexto          from './CampoTexto.vue'
 
 const props = defineProps({
   modelValue: { type: Object, default: () => ({}) },
@@ -11,152 +12,150 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue', 'update:visible', 'confirmar'])
 
+const isMobile = ref(window.innerWidth < 640)
+const handleResize = () => { isMobile.value = window.innerWidth < 640 }
+
+onMounted(() => window.addEventListener('resize', handleResize))
+onUnmounted(() => window.removeEventListener('resize', handleResize))
+
 const local = ref({
   depto_codigo: '', depto_nombre: '',
   municipio_codigo: '', municipio_nombre: '',
-  via_principal: '', numero_via: '', letra_via: '', bis: false,
-  cuadrante_via: '', numero_cruce: '', letra_cruce: '', cuadrante_cruce: '',
-  numero_placa: '', complemento: '', barrio: '',
-  ...props.modelValue,
+  via_principal: '', numero_via: '', letra_via: '', bis: false, cuadrante_via: '',
+  numero_cruce: '', letra_cruce: '', numero_placa: '', cuadrante_cruce: '',
+  complemento: '', barrio: '',
 })
 
-watch(() => props.modelValue, v => { local.value = { ...local.value, ...v } }, { deep: true })
-watch(() => props.visible,    v => { if (v) local.value = { ...local.value, ...props.modelValue } })
+watch(() => props.visible, (v) => {
+  if (v) {
+    local.value = {
+      ...local.value,
+      ...props.modelValue,
+    }
+  }
+}, { immediate: true })
 
 const opcionesDeptos = computed(() =>
   DEPARTAMENTOS.map(d => ({ value: d.codigo, label: d.nombre }))
 )
 const opcionesMunicipios = computed(() =>
-  getMunicipios(local.value.depto_codigo || '')
-    .map(m => ({ value: m.codigo, label: m.nombre }))
+  getMunicipios(local.value.depto_codigo || '').map(m => ({ value: m.codigo, label: m.nombre }))
 )
 const opcionesCuadrante = [
-  { value: '',      label: 'Sin cuadrante' },
-  { value: 'Norte', label: 'Norte' },
-  { value: 'Sur',   label: 'Sur' },
-  { value: 'Este',  label: 'Este' },
-  { value: 'Oeste', label: 'Oeste' },
+  { value: 'NORTE', label: 'Norte' },
+  { value: 'SUR',   label: 'Sur'   },
+  { value: 'ESTE',  label: 'Este'  },
+  { value: 'OESTE', label: 'Oeste' },
 ]
 
 function onDeptoChange(codigo) {
-  local.value.depto_codigo   = codigo
+  local.value.depto_codigo     = codigo
   local.value.municipio_codigo = ''
   local.value.municipio_nombre = ''
-  const depto = DEPARTAMENTOS.find(d => d.codigo === codigo)
-  local.value.depto_nombre = depto?.nombre || ''
+  const d = DEPARTAMENTOS.find(dep => dep.codigo === codigo)
+  local.value.depto_nombre     = d?.nombre || ''
 }
+
 function onMunicipioChange(codigo) {
   local.value.municipio_codigo = codigo
-  const muni = getMunicipios(local.value.depto_codigo).find(m => m.codigo === codigo)
-  local.value.municipio_nombre = muni?.nombre || ''
+  const m = getMunicipios(local.value.depto_codigo).find(m => m.codigo === codigo)
+  local.value.municipio_nombre = m?.nombre || ''
 }
 
 const preview = computed(() => {
-  const d = local.value
-  if (!d.via_principal || !d.numero_via) return ''
-  let dir = `${d.via_principal} ${d.numero_via}`
-  if (d.letra_via)       dir += d.letra_via.toUpperCase()
-  if (d.bis)             dir += ' BIS'
-  if (d.cuadrante_via)   dir += ` ${d.cuadrante_via}`
-  dir += ' #'
-  if (d.numero_cruce)    dir += ` ${d.numero_cruce}`
-  if (d.letra_cruce)     dir += d.letra_cruce.toUpperCase()
-  dir += ` - ${d.numero_placa || '?'}`
-  if (d.cuadrante_cruce) dir += ` ${d.cuadrante_cruce}`
-  if (d.complemento)     dir += `, ${d.complemento}`
-  if (d.barrio)          dir += `, Barrio ${d.barrio}`
-  return dir.toUpperCase()
+  const {
+    via_principal, numero_via, letra_via, bis, cuadrante_via,
+    numero_cruce, letra_cruce, numero_placa, cuadrante_cruce,
+    complemento, barrio, municipio_nombre, depto_nombre
+  } = local.value
+
+  if (!via_principal || !numero_via || !numero_placa) return ''
+
+  let s = `${via_principal} ${numero_via}`
+  if (letra_via)     s += ` ${letra_via}`
+  if (bis)           s += ' BIS'
+  if (cuadrante_via) s += ` ${cuadrante_via}`
+  s += ` # ${numero_cruce || ''}`
+  if (letra_cruce)   s += ` ${letra_cruce}`
+  s += ` - ${numero_placa}`
+  if (cuadrante_cruce) s += ` ${cuadrante_cruce}`
+  if (complemento)   s += `, ${complemento}`
+  if (barrio)        s += `, ${barrio}`
+  if (municipio_nombre) s += `, ${municipio_nombre}`
+  if (depto_nombre)     s += ` (${depto_nombre})`
+
+  return s.toUpperCase()
 })
 
 function confirmar() {
-  emit('update:modelValue', { ...local.value, texto: preview.value })
+  emit('update:modelValue', { ...local.value })
   emit('confirmar', preview.value)
-  emit('update:visible', false)
+  cerrar()
 }
-function cerrar() { emit('update:visible', false) }
 
-const inputStyle = {
-  padding:      '9px 10px',
-  border:       '1px solid var(--color-border)',
-  borderRadius: 'var(--r-lg)',
-  fontSize:     'var(--text-base)',
-  fontFamily:   'var(--font-body)',
-  background:   'var(--color-bg-card)',
-  color:        'var(--color-text-1)',
-  outline:      'none',
-  width:        '100%',
-  boxSizing:    'border-box',
-}
-const labelStyle = {
-  display:      'block',
-  fontSize:     'var(--text-sm)',
-  fontWeight:   'var(--fw-semibold)',
-  color:        'var(--color-text-2)',
-  marginBottom: 'var(--sp-xs)',
-}
-const sectionLabel = {
-  fontSize:      'var(--text-xs)',
-  fontWeight:    'var(--fw-bold)',
-  color:         'var(--color-text-3)',
-  textTransform: 'uppercase',
-  letterSpacing: '0.07em',
-  marginBottom:  'var(--sp-md)',
-}
+function cerrar() { emit('update:visible', false) }
 </script>
 
 <template>
   <Teleport to="body">
     <Transition name="fade-modal">
       <div v-if="visible" :style="{
-        position: 'fixed', inset: '0', zIndex: '70',
+        position: 'fixed', inset: '0', zIndex: '75',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 'var(--sp-lg)',
       }">
-        <!-- Backdrop -->
         <div :style="{
           position: 'absolute', inset: '0',
           background: 'rgba(23,43,54,0.55)',
           backdropFilter: 'blur(3px)',
         }" @click="cerrar()" />
 
-        <!-- Modal -->
         <div :style="{
-          position: 'relative', width: '100%', maxWidth: '540px',
-          background: 'var(--color-bg-card)', borderRadius: 'var(--r-2xl)',
-          boxShadow: 'var(--shadow-modal)', overflow: 'hidden',
-          maxHeight: '92vh', display: 'flex', flexDirection: 'column',
+          position: 'relative', width: '100%', maxWidth: '640px',
+          background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)',
+          boxShadow: 'var(--shadow-modal)',
+          maxHeight: '95vh', display: 'flex', flexDirection: 'column',
         }">
-
-          <!-- Header -->
+          <!-- Header (Copiado de ModalExpedicion para homogeneidad) -->
           <div :style="{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: 'var(--sp-lg) var(--sp-xl)',
+            padding: 'var(--sp-xl) var(--sp-2xl)',
             borderBottom: '1px solid var(--color-border-card)',
             background: 'var(--color-bg-surface)',
+            borderRadius: 'var(--r-md) var(--r-md) 0 0',
             flexShrink: '0',
           }">
             <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)' }">
               <div :style="{
-                width: '32px', height: '32px', borderRadius: '50%',
+                width: '36px', height: '36px', borderRadius: '50%',
                 background: 'var(--color-primary)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }">
-                <IconMapPin :size="16" style="color:white" />
+                <IconMapPin :size="18" style="color: white;" />
               </div>
-              <div :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)', fontSize: 'var(--text-md)' }">
-                Ingresar dirección
+              <div>
+                <div :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)', fontSize: 'var(--text-lg)' }">
+                  Ingresar dirección
+                </div>
+                <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">
+                  Estructure su dirección de forma estándar
+                </div>
               </div>
             </div>
-            <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--sp-xs)', display: 'flex', borderRadius: 'var(--r-md)' }" @click="cerrar()">
-              <IconX :size="18" :style="{ color: 'var(--color-text-3)' }" />
+            <button :style="{
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: 'var(--sp-sm)', borderRadius: 'var(--r-md)',
+              display: 'flex', alignItems: 'center',
+            }" @click="cerrar()">
+              <IconX :size="20" :style="{ color: 'var(--color-text-3)' }" />
             </button>
           </div>
 
-          <!-- Contenido scrollable -->
-          <div :style="{ padding: 'var(--sp-xl)', overflowY: 'auto', flex: '1', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
-
-            <!-- Departamento y municipio -->
-            <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-md)' }">
+          <!-- Contenido -->
+          <div :style="{ padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)', overflowY: 'auto', flex: '1', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+            
+            <!-- Depto y Ciudad -->
+            <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-md)' }">
               <CampoSelectBuscable
                 :model-value="local.depto_codigo"
                 label="Departamento"
@@ -174,36 +173,42 @@ const sectionLabel = {
               />
             </div>
 
-            <!-- Dirección -->
-            <div>
-              <div :style="sectionLabel">Dirección</div>
-
-              <!-- Parte 1: Tipo vía Nº Letra BIS Cuadrante -->
-              <div :style="{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto 1.5fr', gap: 'var(--sp-sm)', alignItems: 'end', marginBottom: 'var(--sp-sm)' }">
-                <div>
-                  <label :style="labelStyle">Tipo de vía <span :style="{ color: 'var(--color-error)' }">*</span></label>
+            <!-- Estructura Dirección (Bloque visual) -->
+            <div :style="{
+              background: 'var(--color-bg-surface)',
+              padding: 'var(--sp-lg)',
+              borderRadius: 'var(--r-md)',
+              border: '1px solid var(--color-border-light)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--sp-lg)'
+            }">
+              <!-- Fila 1: Vía principal, Número, Letra, Cuadrante, BIS -->
+              <div :style="{ 
+                display: 'grid', 
+                gridTemplateColumns: isMobile ? '1fr 1fr' : '2fr 1fr 1fr 1.5fr auto', 
+                gap: 'var(--sp-md)', 
+                alignItems: 'start' 
+              }">
+                <div :style="{ gridColumn: isMobile ? 'span 2' : 'auto' }">
                   <CampoSelectBuscable
-                    :model-value="local.via_principal"
-                    label="Tipo de vía"
+                    v-model="local.via_principal"
+                    label="Vía principal"
+                    required
                     :opciones="VIAS_PRINCIPALES.map(v => ({ value: v, label: v }))"
-                    @update:model-value="local.via_principal = $event"
                   />
                 </div>
-                <div>
-                  <label :style="labelStyle">Número <span :style="{ color: 'var(--color-error)' }">*</span></label>
-                  <input v-model="local.numero_via" placeholder="45" :style="inputStyle" />
-                </div>
-                <div>
-                  <label :style="labelStyle">Letra</label>
-                  <input v-model="local.letra_via" placeholder="A" maxlength="2" :style="{ ...inputStyle, textTransform: 'uppercase', textAlign: 'center' }" />
-                </div>
-                <div :style="{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--sp-xs)' }">
-                  <label :style="labelStyle">BIS</label>
+                <CampoTexto v-model="local.numero_via" label="Número" required placeholder="45" />
+                <CampoTexto v-model="local.letra_via" label="Letra" placeholder="A" />
+                <CampoSelectBuscable v-model="local.cuadrante_via" label="Cuadrante" :opciones="opcionesCuadrante" />
+                
+                <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
+                  <span :style="{ fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-3)', textTransform: 'uppercase', paddingLeft: '4px' }">BIS</span>
                   <div
                     :style="{
-                      width: '44px', height: '38px',
+                      height: '54px', width: '48px',
                       border: local.bis ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
-                      borderRadius: 'var(--r-lg)',
+                      borderRadius: 'var(--r-md)',
                       background: local.bis ? 'var(--color-primary)' : 'var(--color-bg-card)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       cursor: 'pointer', transition: 'all var(--transition-fast)',
@@ -213,87 +218,76 @@ const sectionLabel = {
                     <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: local.bis ? 'white' : 'var(--color-text-3)' }">BIS</span>
                   </div>
                 </div>
-                <div>
-                  <label :style="labelStyle">Cuadrante</label>
-                  <CampoSelectBuscable
-                    :model-value="local.cuadrante_via"
-                    label="Cuadrante"
-                    :opciones="opcionesCuadrante"
-                    @update:model-value="local.cuadrante_via = $event"
-                  />
-                </div>
               </div>
 
               <!-- Separador # -->
-              <div :style="{ textAlign: 'center', fontSize: '20px', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-primary)', margin: 'var(--sp-xs) 0' }">#</div>
+              <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)' }">
+                <div :style="{ flex: '1', height: '1px', background: 'var(--color-border-light)' }" />
+                <div :style="{ fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-primary)' }">#</div>
+                <div :style="{ flex: '1', height: '1px', background: 'var(--color-border-light)' }" />
+              </div>
 
-              <!-- Parte 2: Cruce Letra - Placa Cuadrante -->
-              <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr auto 1fr 1.5fr', gap: 'var(--sp-sm)', alignItems: 'end' }">
-                <div>
-                  <label :style="labelStyle">Cruce</label>
-                  <input v-model="local.numero_cruce" placeholder="23" :style="inputStyle" />
-                </div>
-                <div>
-                  <label :style="labelStyle">Letra</label>
-                  <input v-model="local.letra_cruce" placeholder="B" maxlength="2" :style="{ ...inputStyle, textTransform: 'uppercase', textAlign: 'center' }" />
-                </div>
-                <div :style="{ fontSize: '18px', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-3)', paddingBottom: '10px' }">—</div>
-                <div>
-                  <label :style="labelStyle">Placa <span :style="{ color: 'var(--color-error)' }">*</span></label>
-                  <input v-model="local.numero_placa" placeholder="18" :style="inputStyle" />
-                </div>
-                <div>
-                  <label :style="labelStyle">Cuadrante</label>
-                  <CampoSelectBuscable
-                    :model-value="local.cuadrante_cruce"
-                    label="Cuadrante"
-                    :opciones="opcionesCuadrante"
-                    @update:model-value="local.cuadrante_cruce = $event"
-                  />
-                </div>
+              <!-- Fila 2: Cruce, Letra, Placa, Cuadrante -->
+              <div :style="{ 
+                display: 'grid', 
+                gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1.5fr', 
+                gap: 'var(--sp-md)', 
+                alignItems: 'start' 
+              }">
+                <CampoTexto v-model="local.numero_cruce" label="Cruce" placeholder="23" />
+                <CampoTexto v-model="local.letra_cruce" label="Letra" placeholder="B" />
+                <CampoTexto v-model="local.numero_placa" label="Placa" required placeholder="18" />
+                <CampoSelectBuscable v-model="local.cuadrante_cruce" label="Cuadrante" :opciones="opcionesCuadrante" />
               </div>
             </div>
 
-            <!-- Complemento y barrio -->
+            <!-- Complemento y Barrio -->
             <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-md)' }">
-              <div>
-                <label :style="labelStyle">Complemento</label>
-                <input v-model="local.complemento" placeholder="Apto 301, Casa 5…" :style="inputStyle" />
-              </div>
-              <div>
-                <label :style="labelStyle">Barrio</label>
-                <input v-model="local.barrio" placeholder="El Poblado" :style="{ ...inputStyle, textTransform: 'uppercase' }" />
-              </div>
+              <CampoTexto v-model="local.complemento" label="Complemento" placeholder="Ej: Apto 301" />
+              <CampoTexto v-model="local.barrio" label="Barrio" placeholder="Nombre del barrio" />
             </div>
 
-            <!-- Vista previa -->
+            <!-- Preview -->
             <div v-if="preview" :style="{
               background:   'var(--color-primary-light)',
-              borderRadius: 'var(--r-xl)',
-              padding:      'var(--sp-md) var(--sp-lg)',
+              borderRadius: 'var(--r-md)',
+              padding:      'var(--sp-lg)',
+              border:       '1px dashed var(--color-primary)',
+              display:      'flex',
+              alignItems:   'center',
+              gap:          'var(--sp-md)'
             }">
-              <div :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 'var(--sp-xs)' }">Vista previa</div>
-              <div :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', fontSize: 'var(--text-base)' }">{{ preview }}</div>
+              <IconCheck :size="20" :style="{ color: 'var(--color-primary)' }" />
+              <div :style="{ flex: '1' }">
+                <div :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Dirección generada</div>
+                <div :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">{{ preview }}</div>
+              </div>
             </div>
-
           </div>
 
-          <!-- Acciones -->
+          <!-- Footer (Copiado de ModalExpedicion para homogeneidad) -->
           <div :style="{
             display: 'flex', gap: 'var(--sp-md)', justifyContent: 'flex-end',
-            padding: 'var(--sp-md) var(--sp-xl)',
+            padding: 'var(--sp-lg) var(--sp-2xl)',
             borderTop: '1px solid var(--color-border-card)',
             background: 'var(--color-bg-surface)',
+            borderRadius: '0 0 var(--r-md) var(--r-md)',
             flexShrink: '0',
           }">
-            <PortalButton variant="secondary" small @click="cerrar()">Cancelar</PortalButton>
-            <PortalButton variant="primary" small :disabled="!preview" @click="confirmar()">
-              <IconCheck :size="14" /> Confirmar dirección
+            <PortalButton variant="secondary" @click="cerrar()">Cancelar</PortalButton>
+            <PortalButton variant="primary" :disabled="!preview" @click="confirmar()">
+              <IconCheck :size="15" /> Confirmar
             </PortalButton>
           </div>
-
         </div>
       </div>
     </Transition>
   </Teleport>
 </template>
+
+<style scoped>
+.fade-modal-enter-active { transition: opacity 0.2s ease; }
+.fade-modal-leave-active { transition: opacity 0.15s ease; }
+.fade-modal-enter-from,
+.fade-modal-leave-to     { opacity: 0; }
+</style>

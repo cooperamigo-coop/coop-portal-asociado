@@ -68,9 +68,8 @@ export function useSolicitudCredito() {
     direccion_residencia:       '',
     ciudad:                     '',
     departamento:               '',
-    fecha_nacimiento:           '',
-    fecha_expedicion_documento: '',
-    ciudad_expedicion:          '',
+    fecha_nacimiento:            '',
+    fecha_expedicion_documento:  '',
     nivel_educativo_solicitante: '',
   })
 
@@ -103,11 +102,6 @@ export function useSolicitudCredito() {
 
   // ── Ubicaciones (departamento/municipio) ──────────────────
   const ubicacionResidencia = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
-  const ubicacionExpedicion = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
-
-  // Ubicación de expedición para codeudores
-  const ubicacionExpedicionCod1 = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
-  const ubicacionExpedicionCod2 = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
 
   // ── Sección 4: Laboral solicitante ────────────────────────
   const laboral = ref({
@@ -151,6 +145,10 @@ export function useSolicitudCredito() {
     entidad_bancaria:      '',
     entidad_bancaria_otro: '',
     numero_cuenta:         '',
+    cuenta_tercero:        false,
+    nombre_tercero:        '',
+    tipo_doc_tercero:      '',
+    numero_doc_tercero:    '',
   })
 
   // ── Sección 8: Número de codeudores ──────────────────────
@@ -166,7 +164,6 @@ export function useSolicitudCredito() {
     direccion_codeudor:                 '',
     fecha_nacimiento_codeudor:          '',
     fecha_expedicion_codeudor:          '',
-    ciudad_expedicion_codeudor:         '',
   })
   const laboralCod1 = ref({
     tipo_trabajador_codeudor:            '',
@@ -209,7 +206,6 @@ export function useSolicitudCredito() {
     direccion_codeudor2:                 '',
     fecha_nacimiento_codeudor2:          '',
     fecha_expedicion_codeudor2:          '',
-    ciudad_expedicion_codeudor2:         '',
   })
   const laboralCod2 = ref({
     tipo_trabajador_codeudor2:            '',
@@ -249,8 +245,12 @@ export function useSolicitudCredito() {
 
   // ── Documentos capturados ─────────────────────────────────
   const documentos = ref({
-    doc_cedula_frente_url: '',
-    doc_cedula_reverso_url: '',
+    doc_cedula_frente_url:                 '',
+    doc_cedula_reverso_url:                '',
+    doc_soporte_laboral_url:               '',
+    doc_liquidacion_matricula_url:         '',
+    doc_carta_autorizacion_tercero_url:    '',
+    doc_certificacion_bancaria_tercero_url:'',
   })
 
   // ── Sección firma ─────────────────────────────────────────
@@ -389,13 +389,7 @@ export function useSolicitudCredito() {
     if (borrador.financieraCod2) financieraCod2.value = { ...financieraCod2.value, ...borrador.financieraCod2 }
     if (borrador.patrimonioCod2) patrimonioCod2.value = { ...patrimonioCod2.value, ...borrador.patrimonioCod2 }
     if (borrador.ubicacionResidencia)
-      ubicacionResidencia.value    = { ...ubicacionResidencia.value,    ...borrador.ubicacionResidencia    }
-    if (borrador.ubicacionExpedicion)
-      ubicacionExpedicion.value    = { ...ubicacionExpedicion.value,    ...borrador.ubicacionExpedicion    }
-    if (borrador.ubicacionExpedicionCod1)
-      ubicacionExpedicionCod1.value = { ...ubicacionExpedicionCod1.value, ...borrador.ubicacionExpedicionCod1 }
-    if (borrador.ubicacionExpedicionCod2)
-      ubicacionExpedicionCod2.value = { ...ubicacionExpedicionCod2.value, ...borrador.ubicacionExpedicionCod2 }
+      ubicacionResidencia.value = { ...ubicacionResidencia.value, ...borrador.ubicacionResidencia }
     if (borrador.ubicacionCod1) ubicacionCod1.value = { ...ubicacionCod1.value, ...borrador.ubicacionCod1 }
     if (borrador.ubicacionCod2) ubicacionCod2.value = { ...ubicacionCod2.value, ...borrador.ubicacionCod2 }
     if (borrador.autorizaciones) autorizaciones.value = { ...autorizaciones.value, ...borrador.autorizaciones }
@@ -419,6 +413,10 @@ export function useSolicitudCredito() {
     }
     mostrarOpcionBorrador.value = false
     borradorRecuperado.value    = true
+    // Ocultar mensaje de recuperación después de 5 segundos
+    setTimeout(() => {
+      borradorRecuperado.value = false
+    }, 5000)
   }
 
   function empezarDeNuevo() {
@@ -470,7 +468,7 @@ export function useSolicitudCredito() {
       persona.value.correo_electronico    = verificacion.value.correo
 
       const borrador = recuperarBorradorLocal(verificacion.value.correo)
-      if (borrador && borrador.paso > 1) {
+      if (borrador) {
         _borradorTemp = borrador
         fechaBorrador.value = obtenerFechaBorrador(verificacion.value.correo)
         mostrarOpcionBorrador.value = true
@@ -497,15 +495,13 @@ export function useSolicitudCredito() {
       ...general.value,
       num_codeudores: numCodudores.value,
       tiene_codeudor: numCodudores.value > 0,
-      // Persona solicitante
-      ...persona.value,
+      // Persona solicitante (excluir campos eliminados que puedan venir de borradores viejos)
+      ...(({ ciudad_expedicion: _ce, ...p }) => p)(persona.value),
       direccion_residencia: construirDireccion() || persona.value.direccion_residencia,
       departamento:         ubicacionResidencia.value.depto_nombre,
       ciudad:               ubicacionResidencia.value.municipio_nombre,
       departamento_codigo:  ubicacionResidencia.value.depto_codigo,
       municipio_codigo:     ubicacionResidencia.value.municipio_codigo,
-      ciudad_expedicion:    ubicacionExpedicion.value.municipio_nombre,
-      depto_expedicion:     ubicacionExpedicion.value.depto_nombre,
       // Laboral, financiera, patrimonio, cuenta
       ...laboral.value,
       ...financiera.value,
@@ -518,32 +514,22 @@ export function useSolicitudCredito() {
           : cuenta.value.entidad_bancaria,
       }))(cuenta.value),
       // Codeudor 1
-      ...(numCodudores.value >= 1 ? personaCod1.value   : {}),
+      ...(numCodudores.value >= 1 ? (({ ciudad_expedicion_codeudor: _ce, ...p }) => p)(personaCod1.value) : {}),
       ...(numCodudores.value >= 1 ? laboralCod1.value   : {}),
       ...(numCodudores.value >= 1 ? financieraCod1.value : {}),
       ...(numCodudores.value >= 1 ? patrimonioCod1.value : {}),
       ...(numCodudores.value >= 1 ? {
-        ciudad_codeudor:                  ubicacionCod1.value.municipio_nombre,
-        departamento_codeudor:            ubicacionCod1.value.depto_nombre,
-        ciudad_expedicion_codeudor:       ubicacionExpedicionCod1.value.municipio_nombre || personaCod1.value.ciudad_expedicion_codeudor,
-        depto_expedicion_codeudor:        ubicacionExpedicionCod1.value.depto_nombre,
-        municipio_expedicion_codeudor:    ubicacionExpedicionCod1.value.municipio_nombre,
-        depto_codigo_codeudor:            ubicacionExpedicionCod1.value.depto_codigo,
-        municipio_codigo_codeudor:        ubicacionExpedicionCod1.value.municipio_codigo,
+        ciudad_codeudor:       ubicacionCod1.value.municipio_nombre,
+        departamento_codeudor: ubicacionCod1.value.depto_nombre,
       } : {}),
       // Codeudor 2
-      ...(numCodudores.value >= 2 ? personaCod2.value   : {}),
+      ...(numCodudores.value >= 2 ? (({ ciudad_expedicion_codeudor2: _ce, ...p }) => p)(personaCod2.value) : {}),
       ...(numCodudores.value >= 2 ? laboralCod2.value   : {}),
       ...(numCodudores.value >= 2 ? financieraCod2.value : {}),
       ...(numCodudores.value >= 2 ? patrimonioCod2.value : {}),
       ...(numCodudores.value >= 2 ? {
-        ciudad_codeudor2:                 ubicacionCod2.value.municipio_nombre,
-        departamento_codeudor2:           ubicacionCod2.value.depto_nombre,
-        ciudad_expedicion_codeudor2:      ubicacionExpedicionCod2.value.municipio_nombre || personaCod2.value.ciudad_expedicion_codeudor2,
-        depto_expedicion_codeudor2:       ubicacionExpedicionCod2.value.depto_nombre,
-        municipio_expedicion_codeudor2:   ubicacionExpedicionCod2.value.municipio_nombre,
-        depto_codigo_codeudor2:           ubicacionExpedicionCod2.value.depto_codigo,
-        municipio_codigo_codeudor2:       ubicacionExpedicionCod2.value.municipio_codigo,
+        ciudad_codeudor2:       ubicacionCod2.value.municipio_nombre,
+        departamento_codeudor2: ubicacionCod2.value.depto_nombre,
       } : {}),
       // Documentos capturados
       ...documentos.value,
@@ -577,9 +563,6 @@ export function useSolicitudCredito() {
       financieraCod2:           toRaw(financieraCod2.value),
       patrimonioCod2:           toRaw(patrimonioCod2.value),
       ubicacionResidencia:      toRaw(ubicacionResidencia.value),
-      ubicacionExpedicion:      toRaw(ubicacionExpedicion.value),
-      ubicacionExpedicionCod1:  toRaw(ubicacionExpedicionCod1.value),
-      ubicacionExpedicionCod2:  toRaw(ubicacionExpedicionCod2.value),
       ubicacionCod1:            toRaw(ubicacionCod1.value),
       ubicacionCod2:            toRaw(ubicacionCod2.value),
       autorizaciones:           toRaw(autorizaciones.value),
@@ -617,7 +600,6 @@ export function useSolicitudCredito() {
   watch(() => persona.value.fecha_nacimiento,            v => _sincronizarCampoAsociado('fecha_nacimiento', v))
   watch(() => persona.value.fecha_expedicion_documento,  v => _sincronizarCampoAsociado('fecha_expedicion', v))
   watch(() => persona.value.direccion_residencia,        v => _syncDebounced('direccion', v))
-  watch(() => persona.value.ciudad_expedicion,           v => _syncDebounced('ciudad_expedicion', v))
 
   // ubicación de residencia — municipio → ciudad
   watch(() => ubicacionResidencia.value.municipio_nombre, v => _syncDebounced('ciudad', v))
@@ -685,9 +667,9 @@ export function useSolicitudCredito() {
   watch(
     [general, persona, laboral, financiera, patrimonio, cuenta,
      numCodudores, direccionEstructurada, direccionEstructuradaCod1, direccionEstructuradaCod2,
-     ubicacionResidencia, ubicacionExpedicion,
-     personaCod1, laboralCod1, financieraCod1, patrimonioCod1, ubicacionCod1, ubicacionExpedicionCod1,
-     personaCod2, laboralCod2, financieraCod2, patrimonioCod2, ubicacionCod2, ubicacionExpedicionCod2,
+     ubicacionResidencia,
+     personaCod1, laboralCod1, financieraCod1, patrimonioCod1, ubicacionCod1,
+     personaCod2, laboralCod2, financieraCod2, patrimonioCod2, ubicacionCod2,
      autorizaciones, firma, paso],
     () => {
       if (!verificado.value || !verificacion.value.correo) return
@@ -834,8 +816,7 @@ export function useSolicitudCredito() {
     numCodudores,
     personaCod1, laboralCod1, financieraCod1, patrimonioCod1,
     personaCod2, laboralCod2, financieraCod2, patrimonioCod2,
-    ubicacionResidencia, ubicacionExpedicion,
-    ubicacionExpedicionCod1, ubicacionExpedicionCod2,
+    ubicacionResidencia,
     ubicacionCod1, ubicacionCod2,
     autorizaciones, firma,
     documentos,
