@@ -84,10 +84,10 @@ export async function verificarRateLimit(supabase, cedula, accion) {
         p_limite: 3,
         p_ventana_horas: 24,
       })
-    if (error) return true // si la RPC no existe aún, dejar pasar
+    if (error) return false // si la RPC no existe aún, dejar pasar
     return data === true
   } catch {
-    return true // en caso de error de red, no bloquear
+    return false // en caso de error de red, no bloquear
   }
 }
 

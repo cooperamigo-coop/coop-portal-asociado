@@ -85,12 +85,17 @@ function cerrar() { emit('update:visible', false) }
           backdropFilter: 'blur(3px)',
         }" @click="cerrar()" />
 
-        <div :style="{
-          position: 'relative', width: '100%', maxWidth: '500px',
-          background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)',
-          boxShadow: 'var(--shadow-modal)',
-          maxHeight: '90vh', display: 'flex', flexDirection: 'column',
-        }">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-exp-title"
+          :style="{
+            position: 'relative', width: '100%', maxWidth: '500px',
+            background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)',
+            boxShadow: 'var(--shadow-modal)',
+            maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+          }"
+        >
           <!-- Header -->
           <div :style="{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -109,7 +114,7 @@ function cerrar() { emit('update:visible', false) }
                 <IconCalendar :size="18" style="color: white;" />
               </div>
               <div>
-                <div :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)', fontSize: 'var(--text-lg)' }">
+                <div id="modal-exp-title" :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)', fontSize: 'var(--text-lg)' }">
                   Expedición del documento
                 </div>
                 <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">

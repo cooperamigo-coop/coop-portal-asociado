@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, getCurrentInstance } from 'vue'
 
 const props = defineProps({
   modelValue:   { type: [String, Number], default: '' },
@@ -15,6 +15,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue', 'blur'])
 
+const uid     = `campo-${getCurrentInstance().uid}`
 const focused = ref(false)
 const hasValue = computed(() =>
   props.modelValue !== '' && props.modelValue !== null && props.modelValue !== undefined
@@ -37,6 +38,7 @@ function onBlur()  { focused.value = false; emit('blur') }
   <div class="campo-wrapper">
     <div class="campo-field" :class="{ 'campo-field--floated': floated, 'campo-field--disabled': disabled }">
       <input
+        :id="uid"
         :type="type"
         :value="modelValue"
         :disabled="disabled"
@@ -53,6 +55,7 @@ function onBlur()  { focused.value = false; emit('blur') }
         @blur="onBlur"
       />
       <label
+        :for="uid"
         class="campo-label"
         :class="{
           'campo-label--focused': focused && !error,

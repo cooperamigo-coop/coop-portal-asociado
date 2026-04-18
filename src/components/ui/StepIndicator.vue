@@ -8,12 +8,21 @@ defineProps({
 const { isMobile } = useBreakpoint()
 </script>
 <template>
-  <div :style="{
-    display: 'flex', alignItems: 'center',
-    marginBottom: 'var(--sp-xl)',
-  }">
+  <div
+    role="list"
+    aria-label="Progreso del formulario"
+    :style="{
+      display: 'flex', alignItems: 'center',
+      marginBottom: 'var(--sp-xl)',
+    }"
+  >
     <template v-for="(p, i) in pasos" :key="i">
-      <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+      <div
+        role="listitem"
+        :aria-label="`Paso ${i + 1}: ${p.label}${p.label2 ? ' ' + p.label2 : ''}`"
+        :aria-current="actual === i + 1 ? 'step' : undefined"
+        :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }"
+      >
         <div :style="{
           width: '32px', height: '32px', borderRadius: '50%',
           display: 'flex', alignItems: 'center', justifyContent: 'center',

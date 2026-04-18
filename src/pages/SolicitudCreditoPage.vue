@@ -2779,14 +2779,83 @@ function onOtpValidado() {
           <iframe :src="pdfFormalUrl" title="PDF formalizado" :style="{ width: '100%', height: '100%', border: 'none', background: '#f5f5f5' }" />
         </div>
       </div>
-      <div v-if="mostrarModalNoAsociado" :style="{ position: 'fixed', inset: '0', zIndex: '100', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--sp-lg)', background: 'rgba(0,0,0,0.5)' }">
-        <div :style="{ background: 'white', padding: 'var(--sp-2xl)', borderRadius: 'var(--r-xl)', maxWidth: '400px', textAlign: 'center' }">
-          <IconUserX :size="48" style="color: var(--color-error); margin-bottom: var(--sp-lg)" />
-          <div :style="{ fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-bold)', marginBottom: 'var(--sp-md)' }">No eres asociado aún</div>
-          <PortalButton variant="primary" @click="router.push('/solicitud-afiliacion')">Afiliarme ahora</PortalButton>
-          <PortalButton variant="secondary" @click="mostrarModalNoAsociado = false" :style="{ marginTop: 'var(--sp-sm)' }">Cerrar</PortalButton>
+      <Transition :name="isMobile ? 'sheet-modal' : 'fade-modal'">
+        <div
+          v-if="mostrarModalNoAsociado"
+          :style="{
+            position: 'fixed', inset: '0', zIndex: '100',
+            display: 'flex',
+            alignItems: isMobile ? 'flex-end' : 'center',
+            justifyContent: 'center',
+            padding: isMobile ? '0' : 'var(--sp-lg)',
+          }"
+        >
+          <div :style="{
+            position: 'absolute', inset: '0',
+            background: 'rgba(23,43,54,0.5)',
+            backdropFilter: 'blur(3px)',
+          }" @click="mostrarModalNoAsociado = false" />
+
+          <div :style="{
+            position: 'relative',
+            width: '100%',
+            maxWidth: isMobile ? '100%' : '520px',
+            background: 'var(--color-bg-card)',
+            borderRadius: isMobile ? 'var(--r-md) var(--r-md) 0 0' : 'var(--r-md)',
+            boxShadow: 'var(--shadow-modal)',
+            padding: isMobile ? 'var(--sp-md) var(--sp-lg) var(--sp-2xl)' : 'var(--sp-2xl)',
+          }">
+            <div v-if="isMobile" :style="{
+              width: '40px', height: '4px', borderRadius: 'var(--r-pill)',
+              background: 'var(--color-border)', margin: '0 auto var(--sp-lg)',
+            }" />
+
+            <div :style="{
+              width: '64px', height: '64px', borderRadius: '50%',
+              background: 'var(--color-bg-surface)',
+              border: '1px solid var(--color-border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto var(--sp-lg)',
+            }">
+              <IconUserX :size="30" :style="{ color: 'var(--color-primary)' }" />
+            </div>
+
+            <div :style="{ textAlign: 'center', marginBottom: 'var(--sp-xl)' }">
+              <div :style="{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--text-lg)',
+                fontWeight: 'var(--fw-extrabold)',
+                color: 'var(--color-text-1)',
+                marginBottom: 'var(--sp-sm)',
+              }">Aún no eres asociado</div>
+              <div :style="{
+                fontSize: 'var(--text-base)',
+                color: 'var(--color-text-2)',
+                fontWeight: 'var(--fw-medium)',
+                lineHeight: '1.6',
+              }">
+                El documento <strong :style="{ color: 'var(--color-text-1)' }">{{ verificacion.numero_documento || '—' }}</strong> no fue encontrado en nuestra base de datos.
+                <br><br>
+                Para iniciar trámites de crédito en el portal, debes estar afiliado como asociado activo.
+              </div>
+            </div>
+
+            <div :style="{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              justifyContent: isMobile ? 'stretch' : 'flex-end',
+              gap: 'var(--sp-sm)',
+            }">
+              <PortalButton variant="secondary" :full="isMobile" @click="mostrarModalNoAsociado = false">
+                Volver
+              </PortalButton>
+              <PortalButton variant="primary" :full="isMobile" @click="router.push('/solicitud-afiliacion')">
+                Iniciar afiliación
+              </PortalButton>
+            </div>
+          </div>
         </div>
-      </div>
+      </Transition>
     </Teleport>
 
   </PortalLayout>

@@ -41,7 +41,7 @@ const estilos = {
     :style="{
       ...estilos[variant],
       width:          full ? '100%' : 'auto',
-      height:         small ? '32px' : '44px',
+      height:         small ? '40px' : '44px',
       padding:        small ? '0 var(--sp-md)' : '0 var(--sp-xl)',
       borderRadius:   'var(--r-md)',
       fontSize:       'var(--text-base)',
@@ -120,7 +120,7 @@ const estilos = {
   to { transform: rotate(360deg); }
 }
 
-/* ─── Hover y active — solo cuando no está cargando ─── */
+/* ─── Hover, active y focus-visible ─── */
 button:not(:disabled):hover {
   filter:    brightness(1.07);
   transform: translateY(-1px);
@@ -128,5 +128,9 @@ button:not(:disabled):hover {
 button:not(:disabled):active {
   transform: translateY(0px);
   filter:    brightness(0.96);
+}
+button:not(:disabled):focus-visible {
+  outline:        2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 </style>

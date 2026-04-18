@@ -44,3 +44,10 @@ export async function enviarSolicitud(id) {
   if (error) throw error
   return data
 }
+
+export async function notificarCodudores(solicitudId) {
+  const { error } = await supabase.functions.invoke('notificar-codeudores', {
+    body: { solicitud_id: solicitudId },
+  })
+  if (error) throw error
+}

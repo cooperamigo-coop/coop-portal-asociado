@@ -1,12 +1,10 @@
 import { supabase } from './supabase'
 
 export async function buscarBorrador(email, tipo) {
-  const { data, error } = await supabase
-    .from('borradores')
-    .select('*')
-    .eq('email', email.toLowerCase().trim())
-    .eq('tipo', tipo)
-    .maybeSingle()
+  const { data, error } = await supabase.rpc('get_borrador_portal', {
+    p_email: email.toLowerCase().trim(),
+    p_tipo: tipo,
+  })
   if (error) throw error
   return data
 }

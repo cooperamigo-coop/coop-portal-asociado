@@ -234,7 +234,7 @@ const SERVICIOS_NO_ASOCIADO = [
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  background: #ffffff;
+  background: var(--color-bg-app);
   font-family: var(--font-body);
   position: relative;
 }

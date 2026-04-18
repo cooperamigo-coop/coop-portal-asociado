@@ -1,12 +1,14 @@
-import { ref, computed, watch, toRaw } from 'vue'
+import { ref, computed, watch, toRaw, onUnmounted } from 'vue'
 import {
   crearBorrador,
   actualizarBorrador,
   enviarSolicitud,
   verificarAsociado,
+  notificarCodudores,
 } from '@/services/solicitudCredito.service'
 import { actualizarCamposAsociado, buscarAsociadoPorCedula } from '@/services/afiliacion.service'
-import { sanitizarObjeto } from '@/utils/seguridad'
+import { supabase } from '@/services/supabase'
+import { sanitizarObjeto, verificarRateLimit, registrarIntento } from '@/utils/seguridad'
 import {
   guardarBorradorLocal,
   recuperarBorradorLocal,
@@ -499,6 +501,13 @@ export function useSolicitudCredito() {
       return
     }
 
+    // Rate limiting via RPC
+    const limitado = await verificarRateLimit(supabase, verificacion.value.numero_documento, 'verificacion_credito')
+    if (limitado) {
+      errorVerificacion.value = 'Demasiados intentos. Por favor espere unos minutos.'
+      return
+    }
+
     loadingVerificacion.value = true
     try {
       const tiposQueVerifican = ['cedula_ciudadania', 'cedula_extranjeria']
@@ -545,6 +554,7 @@ export function useSolicitudCredito() {
   function onCorreoCambia(correo) {
     verificacion.value.correo = correo
     tieneBorradorPrevio.value = tieneBorrador(correo)
+    errorVerificacion.value   = null
   }
 
   // ── Aplanar para BD ───────────────────────────────────────
@@ -819,6 +829,11 @@ export function useSolicitudCredito() {
     guardarPaso()
   })
 
+  onUnmounted(() => {
+    clearTimeout(_syncTimer)
+    clearTimeout(_debounceTimer)
+  })
+
   // ── Guardar: localStorage + Supabase ─────────────────────
   async function guardarPaso() {
     try {
@@ -900,21 +915,31 @@ export function useSolicitudCredito() {
     loading.value = true
     error.value = null
     try {
-      await guardarPaso()
       const datos = sanitizarObjeto(aplanarDatos())
-      // Tokens de firma para codeudores
+
+      // Generar y persistir tokens de firma para codeudores antes de enviar
       if (numCodudores.value >= 1) {
         datos.token_firma_codeudor1  = generarToken()
         datos.correo_envio_codeudor1 = personaCod1.value.correo_codeudor
-        // TODO: Enviar email al codeudor con el enlace:
-        // https://portal.cooperamigo.com/firma-codeudor?token={datos.token_firma_codeudor1}
       }
       if (numCodudores.value >= 2) {
         datos.token_firma_codeudor2  = generarToken()
         datos.correo_envio_codeudor2 = personaCod2.value.correo_codeudor2
-        // TODO: Enviar email al codeudor 2
       }
+
+      // Guardar tokens en la BD antes de marcar como enviado
+      await actualizarBorrador(solicitudId.value, datos)
+
       await enviarSolicitud(solicitudId.value)
+
+      // Notificar codeudores por email (fire-and-forget)
+      if (numCodudores.value >= 1) {
+        notificarCodudores(solicitudId.value).catch(e =>
+          console.warn('[SolicitudCredito] Error notificando codeudores:', e)
+        )
+      }
+
+      await registrarIntento(supabase, verificacion.value.numero_documento, 'envio_credito')
       limpiarBorradorLocal(verificacion.value.correo)
       enviado.value = true
     } catch (e) {

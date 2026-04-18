@@ -171,16 +171,21 @@ onUnmounted(() => { document.body.style.overflow = '' })
     }">
 
       <!-- Card -->
-      <div :style="{
-        background:   'var(--color-bg-card)',
-        borderRadius: 'var(--r-md)',
-        boxShadow:    'var(--shadow-modal)',
-        border:       '1px solid var(--color-border-card)',
-        width:        '100%',
-        maxWidth:     '400px',
-        padding:      'var(--sp-2xl)',
-        position:     'relative',
-      }">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Verificación de correo electrónico"
+        :style="{
+          background:   'var(--color-bg-card)',
+          borderRadius: 'var(--r-md)',
+          boxShadow:    'var(--shadow-modal)',
+          border:       '1px solid var(--color-border-card)',
+          width:        '100%',
+          maxWidth:     '400px',
+          padding:      'var(--sp-2xl)',
+          position:     'relative',
+        }"
+      >
 
         <!-- ── ESTADO: enviando ──────────────────────────────────────────── -->
         <div v-if="fase === 'enviando'" :style="{ textAlign: 'center', padding: 'var(--sp-xl) 0' }">

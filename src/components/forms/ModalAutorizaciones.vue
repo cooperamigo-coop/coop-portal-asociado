@@ -67,18 +67,23 @@ function cerrar() {
           backdropFilter: 'blur(3px)',
         }" @click="cerrar()" />
 
-        <div :style="{
-          position:      'relative',
-          width:         '100%',
-          maxWidth:      '640px',
-          maxHeight:     '92vh',
-          background:    'var(--color-bg-card)',
-          borderRadius:  'var(--r-2xl)',
-          boxShadow:     'var(--shadow-modal)',
-          display:       'flex',
-          flexDirection: 'column',
-          overflow:      'hidden',
-        }">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-auto-title"
+          :style="{
+            position:      'relative',
+            width:         '100%',
+            maxWidth:      '640px',
+            maxHeight:     '92vh',
+            background:    'var(--color-bg-card)',
+            borderRadius:  'var(--r-2xl)',
+            boxShadow:     'var(--shadow-modal)',
+            display:       'flex',
+            flexDirection: 'column',
+            overflow:      'hidden',
+          }"
+        >
 
           <!-- Header fijo -->
           <div :style="{
@@ -103,7 +108,7 @@ function cerrar() {
                 <IconFileDescription :size="20" :style="{ color: '#fff' }" />
               </div>
               <div>
-                <div :style="{
+                <div id="modal-auto-title" :style="{
                   fontFamily:  'var(--font-display)',
                   fontWeight:  'var(--fw-medium)',
                   color:       'var(--color-text-1)',

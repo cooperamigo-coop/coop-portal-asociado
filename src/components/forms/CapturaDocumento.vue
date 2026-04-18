@@ -202,7 +202,7 @@ const LADOS = [
       </div>
 
       <!-- Fotos directas en móvil -->
-      <div v-if="esMovil && estado === 'idle_movil' || (esMovil && !urlFinal)" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+      <div v-if="(esMovil && estado === 'idle_movil') || (esMovil && !urlFinal)" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
         <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-sm)' }">
           <label v-for="lado in LADOS" :key="lado.key" :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', border: '1px dashed var(--color-border)', borderRadius: 'var(--r-lg)', background: (lado.key === 'frente' ? urlFrente : urlReverso) ? 'var(--color-success-bg)' : 'white' }">
             <IconCamera :size="16" :style="{ color: 'var(--color-primary)' }" />
