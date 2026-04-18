@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { IconUpload, IconCheck, IconX, IconFileDescription, IconLoader2, IconRefresh } from '@tabler/icons-vue'
+import { IconUpload, IconCircleCheck, IconX, IconFileDescription, IconLoader2, IconRefresh, IconEye } from '@tabler/icons-vue'
 import CapturaDocumento from '@/components/forms/CapturaDocumento.vue'
-import { subirDocumentoSolicitud } from '@/services/documentos.service'
+import { subirDocumentoSolicitud, obtenerMensajeErrorSubidaDocumento } from '@/services/documentos.service'
 
 const props = defineProps({
   solicitudId:      { type: String, default: null },
@@ -30,6 +30,9 @@ function nombreCorto(nombre) {
 
 // ── Estado de subidas (para banners PDF) ────────────────────
 const estados = ref({}) // { campo: { cargando, url, nombre, error } }
+const modalPreviewVisible = ref(false)
+const modalPreviewUrl = ref('')
+const modalPreviewTitulo = ref('')
 
 function getEstado(campo) {
   if (!estados.value[campo]) {
@@ -57,7 +60,7 @@ async function onFilePdf(e, campo) {
     est.nombre = f.name
     emit('update:modelValue', { ...props.modelValue, [campo]: url })
   } catch (e) {
-    est.error = 'No se pudo subir el archivo.'
+    est.error = obtenerMensajeErrorSubidaDocumento(e)
     console.error(`[SeccionDocumentos] Error subiendo ${campo}:`, e)
   } finally {
     est.cargando = false
@@ -69,6 +72,19 @@ function quitarArchivo(campo) {
   est.url    = null
   est.nombre = null
   emit('update:modelValue', { ...props.modelValue, [campo]: '' })
+}
+
+function abrirPreview(url, titulo) {
+  if (!url) return
+  modalPreviewUrl.value = url
+  modalPreviewTitulo.value = titulo || 'Documento'
+  modalPreviewVisible.value = true
+}
+
+function cerrarPreview() {
+  modalPreviewVisible.value = false
+  modalPreviewUrl.value = ''
+  modalPreviewTitulo.value = ''
 }
 
 // ── Documentos adicionales por tipo de trabajador ──────────
@@ -84,8 +100,8 @@ const docsAdicionales = computed(() => {
     })
     items.push({
       campo: 'doc_colillas_pago_solicitante_url',
-      titulo: 'Colillas de pago (Titular)',
-      descripcion: 'Cargue las colillas de pago en un solo PDF.',
+      titulo: 'Últimas 3 colillas de pago (Titular)',
+      descripcion: 'Cargue las últimas 3 colillas de pago en un solo PDF.',
     })
   } else if (props.tipoTrabajador && props.tipoTrabajador !== 'cuidado_hogar') {
     const label = {
@@ -210,13 +226,13 @@ const docsAdicionales = computed(() => {
       }">
         <div :style="{
           width: '36px', height: '36px', borderRadius: '50%',
-          background:     getEstado(doc.campo).url ? 'var(--color-success)' : 'var(--color-impulso)',
+          background:     getEstado(doc.campo).url ? 'var(--color-success)' : 'var(--color-primary)',
           display:        'flex',
           alignItems:     'center',
           justifyContent: 'center',
           flexShrink:     '0',
         }">
-          <IconCheck v-if="getEstado(doc.campo).url" :size="18" :style="{ color: '#fff' }" />
+          <IconCircleCheck v-if="getEstado(doc.campo).url" :size="18" :style="{ color: '#fff' }" />
           <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
         </div>
         
@@ -235,7 +251,10 @@ const docsAdicionales = computed(() => {
           <IconLoader2 :size="16" class="spin" />
         </div>
 
-        <div v-else-if="getEstado(doc.campo).url" :style="{ flexShrink: '0' }">
+        <div v-else-if="getEstado(doc.campo).url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
+          <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview(getEstado(doc.campo).url, doc.titulo)">
+            <IconEye :size="13" /> Visualizar
+          </button>
           <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--sp-xs)', display: 'flex', color: 'var(--color-success-text)' }" @click="quitarArchivo(doc.campo)">
             <IconRefresh :size="16" />
           </button>
@@ -262,6 +281,20 @@ const docsAdicionales = computed(() => {
         {{ getEstado(doc.campo).error }}
       </div>
     </div>
+
+    <Teleport to="body">
+      <div v-if="modalPreviewVisible" :style="{ position: 'fixed', inset: '0', zIndex: '1000', background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--sp-lg)' }">
+        <div :style="{ width: 'min(980px, 96vw)', height: 'min(86vh, 920px)', background: 'white', borderRadius: 'var(--r-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }">
+          <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-sm) var(--sp-md)', borderBottom: '1px solid var(--color-border)' }">
+            <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ modalPreviewTitulo }}</div>
+            <button :style="{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-3)' }" @click="cerrarPreview">
+              <IconX :size="18" />
+            </button>
+          </div>
+          <iframe :src="modalPreviewUrl" title="Vista previa del documento" :style="{ width: '100%', height: '100%', border: 'none', background: '#f5f5f5' }" />
+        </div>
+      </div>
+    </Teleport>
 
   </div>
 </template>

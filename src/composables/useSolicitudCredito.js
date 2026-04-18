@@ -22,6 +22,7 @@ export function useSolicitudCredito() {
   const error         = ref(null)
   const solicitudId   = ref(null)
   const enviado       = ref(false)
+  const fechaSolicitud = ref(new Date().toISOString().split('T')[0])
 
   // ── Paso previo: verificación ─────────────────────────────
   const verificacion = ref({
@@ -365,10 +366,22 @@ export function useSolicitudCredito() {
     }
 
     // 4. Financiera
-    if (l.tipo_trabajador === 'pensionado' && !f.mesada_pensional) list.push('Mesada pensional')
-    else if (l.tipo_trabajador !== 'pensionado' && !f.salario_ingresos_fijos) list.push('Salario / Ingresos fijos')
-    if (!f.gastos_familiares) list.push('Gastos familiares')
-    if (f.numero_dependientes === '') list.push('Personas a cargo')
+    if (l.tipo_trabajador === 'pensionado') {
+      if (f.mesada_pensional === '' || f.mesada_pensional == null) list.push('Valor mesada pensional')
+      if (f.numero_dependientes === '') list.push('Personas a cargo')
+    } else if (l.tipo_trabajador === 'independiente') {
+      if (f.ingresos_independiente === '' || f.ingresos_independiente == null) list.push('Ingresos como independiente')
+      if (f.gastos_familiares === '' || f.gastos_familiares == null) list.push('Gastos familiares')
+      if (f.numero_dependientes === '') list.push('Personas a cargo')
+    } else if (l.tipo_trabajador === 'estudiante' || l.tipo_trabajador === 'cuidado_hogar') {
+      if (f.salario_ingresos_fijos === '' || f.salario_ingresos_fijos == null) list.push('Ingresos mensuales')
+      if (!f.fuente_ingresos) list.push('Fuente de ingresos')
+      if (f.numero_dependientes === '') list.push('Personas a cargo')
+    } else {
+      if (f.salario_ingresos_fijos === '' || f.salario_ingresos_fijos == null) list.push('Salario / Ingresos fijos')
+      if (f.gastos_familiares === '' || f.gastos_familiares == null) list.push('Gastos familiares')
+      if (f.numero_dependientes === '') list.push('Personas a cargo')
+    }
 
     // 5. Cuenta
     if (d.tipo_operacion !== 'reestructura') {
@@ -410,12 +423,15 @@ export function useSolicitudCredito() {
 
   // ── Restaurar borrador guardado ───────────────────────────
   function _aplicarBorrador(borrador) {
+    if (borrador.solicitudId)             solicitudId.value           = borrador.solicitudId
+    if (borrador.fechaSolicitud)          fechaSolicitud.value         = borrador.fechaSolicitud
     if (borrador.general)               general.value               = { ...general.value,    ...borrador.general }
     if (borrador.persona)               persona.value               = { ...persona.value,    ...borrador.persona }
     if (borrador.laboral)               laboral.value               = { ...laboral.value,    ...borrador.laboral }
     if (borrador.financiera)            financiera.value            = { ...financiera.value, ...borrador.financiera }
     if (borrador.patrimonio)            patrimonio.value            = { ...patrimonio.value, ...borrador.patrimonio }
     if (borrador.cuenta)                cuenta.value                = { ...cuenta.value,     ...borrador.cuenta }
+    if (borrador.documentos)            documentos.value            = { ...documentos.value, ...borrador.documentos }
     if (borrador.direccionEstructurada)
       direccionEstructurada.value     = { ...direccionEstructurada.value,     ...borrador.direccionEstructurada     }
     if (borrador.direccionEstructuradaCod1)
@@ -534,7 +550,7 @@ export function useSolicitudCredito() {
   // ── Aplanar para BD ───────────────────────────────────────
   function aplanarDatos() {
     return {
-      fecha_solicitud: new Date().toISOString().split('T')[0],
+      fecha_solicitud: fechaSolicitud.value,
       ...general.value,
       num_codeudores: numCodudores.value,
       tiene_codeudor: numCodudores.value > 0,
@@ -578,11 +594,11 @@ export function useSolicitudCredito() {
         departamento_codeudor2: ubicacionCod2.value.depto_nombre,
       } : {}),
       // Documentos capturados
-      ...documentos.value,
+      ...(({ value: _value, ...docs }) => docs)(documentos.value),
       // Autorizaciones
       ...autorizaciones.value,
       // Firma
-      ...firma.value,
+      ...(firma.value?.nombre_firma ? { nombre_firma: firma.value.nombre_firma } : {}),
       paso_actual: paso.value,
     }
   }
@@ -590,12 +606,15 @@ export function useSolicitudCredito() {
   // ── Helper: construir snapshot plano (sin Proxies Vue) ───────────────────
   function _snapshotBorrador() {
     return {
+      solicitudId:              solicitudId.value,
+      fechaSolicitud:           fechaSolicitud.value,
       general:                  toRaw(general.value),
       persona:                  toRaw(persona.value),
       laboral:                  toRaw(laboral.value),
       financiera:               toRaw(financiera.value),
       patrimonio:               toRaw(patrimonio.value),
       cuenta:                   toRaw(cuenta.value),
+      documentos:               toRaw(documentos.value),
       direccionEstructurada:    toRaw(direccionEstructurada.value),
       direccionEstructuradaCod1:toRaw(direccionEstructuradaCod1.value),
       direccionEstructuradaCod2:toRaw(direccionEstructuradaCod2.value),
@@ -685,6 +704,50 @@ export function useSolicitudCredito() {
     financiera.value.numero_dependientes      = ''
   })
 
+  watch(() => laboralCod1.value.tipo_trabajador_codeudor, (nuevo, anterior) => {
+    if (!anterior || anterior === nuevo) return
+    laboralCod1.value.nombre_empresa_codeudor         = ''
+    laboralCod1.value.cargo_oficio_codeudor           = ''
+    laboralCod1.value.tipo_contrato_codeudor          = ''
+    laboralCod1.value.fecha_ingreso_codeudor          = ''
+    laboralCod1.value.actividad_comercial_codeudor    = ''
+    laboralCod1.value.ocupacion_codeudor              = ''
+    laboralCod1.value.fecha_inicio_actividad_codeudor = ''
+    laboralCod1.value.entidad_pagadora_codeudor       = ''
+    laboralCod1.value.institucion_educativa_codeudor  = ''
+    laboralCod1.value.nivel_educativo_codeudor        = ''
+    financieraCod1.value.salario_codeudor                  = ''
+    financieraCod1.value.ingresos_independiente_codeudor   = ''
+    financieraCod1.value.gastos_familiares_codeudor        = ''
+    financieraCod1.value.otros_gastos_codeudor             = ''
+    financieraCod1.value.obligaciones_financieras_codeudor = ''
+    financieraCod1.value.fuente_ingresos_codeudor          = ''
+    financieraCod1.value.mesada_pensional_codeudor         = ''
+    financieraCod1.value.numero_dependientes_codeudor      = ''
+  })
+
+  watch(() => laboralCod2.value.tipo_trabajador_codeudor2, (nuevo, anterior) => {
+    if (!anterior || anterior === nuevo) return
+    laboralCod2.value.nombre_empresa_codeudor2         = ''
+    laboralCod2.value.cargo_oficio_codeudor2           = ''
+    laboralCod2.value.tipo_contrato_codeudor2          = ''
+    laboralCod2.value.fecha_ingreso_codeudor2          = ''
+    laboralCod2.value.actividad_comercial_codeudor2    = ''
+    laboralCod2.value.ocupacion_codeudor2              = ''
+    laboralCod2.value.fecha_inicio_actividad_codeudor2 = ''
+    laboralCod2.value.entidad_pagadora_codeudor2       = ''
+    laboralCod2.value.institucion_educativa_codeudor2  = ''
+    laboralCod2.value.nivel_educativo_codeudor2        = ''
+    financieraCod2.value.salario_codeudor2                  = ''
+    financieraCod2.value.ingresos_independiente_codeudor2   = ''
+    financieraCod2.value.gastos_familiares_codeudor2        = ''
+    financieraCod2.value.otros_gastos_codeudor2             = ''
+    financieraCod2.value.obligaciones_financieras_codeudor2 = ''
+    financieraCod2.value.fuente_ingresos_codeudor2          = ''
+    financieraCod2.value.mesada_pensional_codeudor2         = ''
+    financieraCod2.value.numero_dependientes_codeudor2      = ''
+  })
+
   // financiera — personas a cargo
   watch(() => financiera.value.numero_dependientes, v => {
     _sincronizarCampoAsociado('personas_a_cargo', v ? Number(v) : 0)
@@ -738,7 +801,7 @@ export function useSolicitudCredito() {
      ubicacionResidencia,
      personaCod1, laboralCod1, financieraCod1, patrimonioCod1, ubicacionCod1,
      personaCod2, laboralCod2, financieraCod2, patrimonioCod2, ubicacionCod2,
-     autorizaciones, firma, paso],
+     autorizaciones, firma, documentos, paso],
     () => {
       if (!verificado.value || !verificacion.value.correo) return
       clearTimeout(_debounceTimer)
@@ -749,6 +812,12 @@ export function useSolicitudCredito() {
     },
     { deep: true }
   )
+
+  watch(() => paso.value, (p) => {
+    if (![4, 5].includes(p)) return
+    if (solicitudId.value) return
+    guardarPaso()
+  })
 
   // ── Guardar: localStorage + Supabase ─────────────────────
   async function guardarPaso() {
@@ -867,6 +936,7 @@ export function useSolicitudCredito() {
   return {
     paso, loading, error, enviado,
     solicitudId,
+    fechaSolicitud,
     porcentaje, pasosActivos, pasoActual, esUltimoPaso,
     // Verificación
     verificacion, verificado, loadingVerificacion, errorVerificacion,

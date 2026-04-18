@@ -14,7 +14,30 @@ export function sanitizarObjeto(obj) {
   const resultado = {}
   for (const [clave, valor] of Object.entries(obj)) {
     if (typeof valor === 'string') {
-      resultado[clave] = sanitizarTexto(valor) || null
+      const limpio = sanitizarTexto(valor)
+      const k = clave.toLowerCase()
+      const esUrlDoc = k.startsWith('doc_') || k.endsWith('_url')
+      const esNumeroDocOCuenta = k.includes('numero_identificacion') || k.includes('numero_documento') || k.includes('numero_doc') || k.includes('numero_cuenta')
+      const esTelefono = k.includes('celular') || k.includes('telefono')
+      const pareceNumerico =
+        k.includes('valor_') ||
+        k.includes('salario') ||
+        k.includes('ingresos') ||
+        k.includes('gastos') ||
+        k.includes('obligaciones') ||
+        k.includes('mesada') ||
+        k.includes('dependientes') ||
+        k.includes('plazo') ||
+        k.includes('monto') ||
+        k.includes('cuota') ||
+        k.includes('total_') ||
+        k.includes('tasa')
+
+      if (limpio === '' && !esUrlDoc) {
+        resultado[clave] = null
+      } else {
+        resultado[clave] = limpio
+      }
     } else {
       resultado[clave] = valor
     }

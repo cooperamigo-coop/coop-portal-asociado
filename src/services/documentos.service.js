@@ -1,6 +1,13 @@
 import { supabase } from './supabase'
 
-const BUCKET = 'documentos-solicitudes'
+const DEFAULT_BUCKET = 'documentos'
+const BUCKETS_CANDIDATOS = [
+  import.meta.env.VITE_SUPABASE_STORAGE_BUCKET,
+  DEFAULT_BUCKET,
+  'documentos-solicitudes',
+  'documentos_solicitudes',
+  'documentos-solicitud',
+].filter(Boolean)
 
 /**
  * Sube un documento de soporte al bucket de Supabase Storage.
@@ -13,12 +20,40 @@ export async function subirDocumentoSolicitud(solicitudId, tipo, archivo) {
   const ext  = archivo.name.split('.').pop().toLowerCase()
   const ruta = `${solicitudId}/${tipo}_${Date.now()}.${ext}`
 
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(ruta, archivo, { upsert: true })
+  let ultimoError = null
+  let bucketUsado = null
 
-  if (error) throw error
+  for (const bucket of BUCKETS_CANDIDATOS) {
+    const { error } = await supabase.storage
+      .from(bucket)
+      .upload(ruta, archivo, { upsert: true })
+    if (!error) {
+      bucketUsado = bucket
+      break
+    }
+    const msg = String(error?.message || '')
+    if (msg.includes('Bucket not found')) {
+      ultimoError = error
+      continue
+    }
+    throw error
+  }
 
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(ruta)
+  if (!bucketUsado) {
+    throw ultimoError || new Error('Bucket de Storage no encontrado.')
+  }
+
+  const { data } = supabase.storage.from(bucketUsado).getPublicUrl(ruta)
   return data.publicUrl
+}
+
+export function obtenerMensajeErrorSubidaDocumento(error) {
+  const msg = String(error?.message || '')
+  if (msg.includes('row-level security policy')) {
+    return 'No hay permisos de Storage (RLS) para subir al bucket "documentos". Ajuste las policies en Supabase.'
+  }
+  if (msg.includes('Bucket not found')) {
+    return 'No se encontró el bucket de documentos en Supabase.'
+  }
+  return 'No se pudo subir el archivo. Verifique su conexión o el tamaño del archivo.'
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { IconX, IconCircleCheck, IconCircleX, IconFileDescription, IconChevronsDown } from '@tabler/icons-vue'
 
 const props = defineProps({
@@ -10,6 +10,15 @@ const emit = defineEmits(['update:visible', 'aceptar', 'rechazar'])
 
 const scrollCompletado  = ref(false)
 const porcentajeScroll  = ref(0)
+const contenedorTexto = ref(null)
+
+watch(() => props.visible, async (v) => {
+  if (!v) return
+  porcentajeScroll.value = 0
+  scrollCompletado.value = !!props.aceptado
+  await nextTick()
+  if (contenedorTexto.value) contenedorTexto.value.scrollTop = 0
+})
 
 function onScroll(e) {
   const el = e.target
@@ -96,7 +105,7 @@ function cerrar() {
               <div>
                 <div :style="{
                   fontFamily:  'var(--font-display)',
-                  fontWeight:  'var(--fw-extrabold)',
+                  fontWeight:  'var(--fw-medium)',
                   color:       'var(--color-text-1)',
                   fontSize:    'var(--text-lg)',
                 }">Autorizaciones y declaraciones</div>
@@ -104,7 +113,7 @@ function cerrar() {
                   fontSize:   'var(--text-sm)',
                   color:      'var(--color-text-3)',
                   fontWeight: 'var(--fw-medium)',
-                }">COOPERATIVA MULTIACTIVA LUIS AMIGÓ - COOPERAMIGÓ — Cooperamigó</div>
+                }">Solicitud de crédito - Cooperativa Multiactiva Luis Amigó</div>
               </div>
             </div>
             <button :style="{
@@ -155,139 +164,108 @@ function cerrar() {
               padding:    'var(--sp-2xl)',
               fontSize:   'var(--text-base)',
               color:      'var(--color-text-2)',
-              fontWeight: 'var(--fw-medium)',
-              lineHeight: '1.8',
+              fontWeight: 'var(--fw-regular)',
+              lineHeight: '1.65',
             }"
+            ref="contenedorTexto"
             @scroll="onScroll"
           >
             <!-- Sección 1 -->
             <p :style="{
-              fontWeight:   'var(--fw-bold)',
+              fontWeight:   'var(--fw-medium)',
               color:        'var(--color-text-1)',
               marginBottom: 'var(--sp-sm)',
               fontSize:     'var(--text-base)',
             }">
-              AUTORIZACIÓN PARA LA UTILIZACIÓN DE LOS DATOS PERSONALES
-              Y PARA COMPARTIR INFORMACIÓN CON ALIADOS COMERCIALES Y DE CONVENIOS
+              AUTORIZACIÓN PARA EL TRATAMIENTO DE DATOS PERSONALES
             </p>
             <p :style="{ marginBottom: 'var(--sp-xl)' }">
-              Autorizo(amos) de manera expresa a la COOPERATIVA MULTIACTIVA LUIS AMIGÓ - COOPERAMIGÓ, en adelante
-              "Cooperamigó" o a quien represente sus derechos u ostente en el futuro sus calidades
-              para utilizar los datos que he(mos) suministrado, que llegue(mos) a suministrar o que
-              llegue(mos) a obtener lícitamente de centrales u operadores de información para:
-              i) Evaluación y aprobación de producto(s) y/o servicio(s).
-              ii) Desarrollo de la relación contractual correspondiente a producto(s) y/o servicio(s).
-              iii) Envío de información de novedades o cambios en los producto(s) y/o servicio(s).
-              iv) Envío de información sobre eventos y realización de actos de promoción y publicidad.
-              v) Actualización de datos.
-              Asimismo, autorizo(amos) que dichos datos sean compartidos con sus aliados comerciales
-              de servicios y convenios, con el fin de que me(nos) puedan ser ofrecidos otros productos
-              y servicios. Para todos los fines anteriores, autorizo(amos) el uso de mi(nuestro) e-mail,
-              direcciones electrónicas, contactos, SMS, redes sociales o medios similares.
+              Autorizo(amos) de manera previa, expresa e informada a la COOPERATIVA MULTIACTIVA LUIS AMIGÓ – COOPERAMIGÓ (en adelante, “Cooperamigó”), o a quien represente sus derechos, para recolectar, almacenar, usar, circular, actualizar y suprimir los datos personales que he(mos) suministrado, que llegue(mos) a suministrar o que sean obtenidos lícitamente de terceros, para las siguientes finalidades:
+            </p>
+            <p :style="{ marginBottom: 'var(--sp-sm)' }">a) Evaluar y gestionar solicitudes de productos y/o servicios.</p>
+            <p :style="{ marginBottom: 'var(--sp-sm)' }">b) Celebrar, ejecutar y administrar la relación contractual.</p>
+            <p :style="{ marginBottom: 'var(--sp-sm)' }">c) Informar sobre novedades, cambios o aspectos relacionados con los productos y/o servicios.</p>
+            <p :style="{ marginBottom: 'var(--sp-sm)' }">d) Realizar actividades comerciales, de mercadeo, promoción y publicidad.</p>
+            <p :style="{ marginBottom: 'var(--sp-xl)' }">e) Actualizar y verificar la información.</p>
+
+            <p :style="{ marginBottom: 'var(--sp-xl)' }">
+              Igualmente, autorizo(amos) a Cooperamigó para compartir mis(nuestros) datos personales con aliados comerciales, proveedores y entidades vinculadas, para que me(nos) ofrezcan productos y servicios relacionados con su actividad.
+            </p>
+
+            <p :style="{ marginBottom: 'var(--sp-2xl)' }">
+              Para las finalidades descritas, autorizo(amos) el contacto a través de correo electrónico, mensajes de texto (SMS), llamadas telefónicas, aplicaciones de mensajería, redes sociales y demás medios electrónicos o digitales.
             </p>
 
             <!-- Sección 2 -->
             <p :style="{
-              fontWeight:   'var(--fw-bold)',
+              fontWeight:   'var(--fw-medium)',
               color:        'var(--color-text-1)',
               marginBottom: 'var(--sp-sm)',
               fontSize:     'var(--text-base)',
-            }">DECLARACIÓN DE INFORMACIÓN</p>
+            }">DECLARACIÓN SOBRE EL TRATAMIENTO DE LA INFORMACIÓN</p>
             <p :style="{ marginBottom: 'var(--sp-xl)' }">
-              En cumplimiento de las disposiciones legales, Ley 1581 de 2012 y Decreto 1377 de 2013,
-              declaro(amos) que he(mos) sido informado(s) de manera clara y expresa de las finalidades
-              con que se recopilan mis(nuestros) datos, del derecho a conocer, actualizar, corregir o
-              suprimir la información entregada, así como que la Política de Tratamiento de Datos
-              Personales de Cooperamigó se encuentra disponible en la página web www.cooperamigo.com.
-              Asimismo, he(mos) sido informado(s) que en el evento en que no desee(mos) recibir
-              información comercial o publicitaria proveniente de Cooperamigó o sus aliados comerciales,
-              podré(mos) manifestarlo a través de cualquiera de los siguientes canales:
-              datospersonales@cooperamigo.com, www.cooperamigo.com y oficina principal Cooperamigó
-              ubicada en la Calle 50 No. 67 – 129 en Medellín.
+              Declaro(amos) que he(mos) sido informado(s) de manera clara, suficiente y comprensible acerca de las finalidades del tratamiento de mis(nuestros) datos personales, así como de los derechos que me(nos) asisten para conocer, actualizar, rectificar y suprimir dicha información, y para revocar la presente autorización cuando sea procedente.
+            </p>
+            <p :style="{ marginBottom: 'var(--sp-2xl)' }">
+              Así mismo, conozco(emos) que puedo(emos) consultar la política de tratamiento de datos personales de Cooperamigó en su sitio web y que existen canales habilitados para la atención de consultas, solicitudes y reclamos.
             </p>
 
             <!-- Sección 3 -->
             <p :style="{
-              fontWeight:   'var(--fw-bold)',
+              fontWeight:   'var(--fw-medium)',
               color:        'var(--color-text-1)',
               marginBottom: 'var(--sp-sm)',
               fontSize:     'var(--text-base)',
             }">
-              AUTORIZACIÓN PARA CONSULTA Y REPORTE A CENTRALES Y/U OPERADORES DE INFORMACIÓN
-            </p>
-            <p :style="{
-              fontSize:   'var(--text-xs)',
-              color:      'var(--color-text-3)',
-              marginBottom: 'var(--sp-sm)',
-              fontStyle:  'italic',
-            }">
-              (Ley 1266 de 2008 y demás normas que la complementen, modifiquen, adicionen o sustituyan)
+              AUTORIZACIÓN PARA CONSULTA Y REPORTE A CENTRALES DE INFORMACIÓN
             </p>
             <p :style="{ marginBottom: 'var(--sp-xl)' }">
-              Autorizo(amos) a Cooperamigó y/o a quien en el futuro ostente la calidad de acreedor de
-              la(s) obligación(es) por mi(nosotros) contraída(s) con Cooperamigó para que con fines
-              estadísticos, de control, supervisión, desarrollo de herramientas que prevengan el fraude
-              y de conocimiento de mi comportamiento financiero y crediticio por parte de los usuarios
-              de la información y de información comercial, reporte a las centrales de información
-              financiera y crediticia que operan en Colombia el nacimiento, modificación, extinción y
-              cumplimiento o incumplimiento de la(s) obligación(es) contraída(s) con Cooperamigó.
-              La presente autorización incluye la posibilidad de ser consultado en las centrales de
-              información, así como de obtener las referencias comerciales necesarias que permitan a
-              Cooperamigó tener un conocimiento adecuado sobre mi comportamiento en el desarrollo de
-              las relaciones financieras, comerciales y/o de servicios. Adicionalmente,
-              autorizo(amos) a Cooperamigó para solicitar, consultar y obtener mi información
-              financiera, datos de seguridad social y parafiscales y/o datos personales que se
-              encuentren en centrales u operadores de información, con el fin de evaluar mi(nuestra)
-              solicitud y realizar mi(nuestro) perfilamiento. Lo anterior, sin perjuicio del
-              cumplimiento de la obligación que me asiste de actualizar anualmente mis(nuestros)
-              datos personales. La presente autorización estará vigente mientras no la revoque mediante
-              comunicación escrita dirigida a Cooperamigó.
+              Autorizo(amos) de manera expresa e irrevocable a Cooperamigó, o a quien en el futuro ostente la calidad de acreedor, para que consulte, solicite, obtenga, reporte, procese y divulgue información relacionada con mi(nuestro) comportamiento financiero, comercial y crediticio ante centrales de información y demás operadores de datos.
+            </p>
+            <p :style="{ marginBottom: 'var(--sp-xl)' }">
+              Esta autorización comprende el reporte del nacimiento, modificación, cumplimiento o incumplimiento de las obligaciones adquiridas, así como la consulta de información necesaria para la evaluación del riesgo, validación de datos, prevención del fraude y conocimiento del perfil financiero.
+            </p>
+            <p :style="{ marginBottom: 'var(--sp-2xl)' }">
+              La autorización se mantendrá vigente mientras subsista la relación contractual y durante el tiempo necesario para las finalidades aquí previstas, salvo revocatoria en los casos legalmente procedentes.
             </p>
 
             <!-- Sección 4 -->
             <p :style="{
-              fontWeight:   'var(--fw-bold)',
+              fontWeight:   'var(--fw-medium)',
               color:        'var(--color-text-1)',
               marginBottom: 'var(--sp-sm)',
               fontSize:     'var(--text-base)',
             }">NOTIFICACIÓN A CODEUDORES</p>
             <p :style="{ marginBottom: 'var(--sp-xl)' }">
-              Informo(amos) que conozco(cemos) y acepto(amos) que, en caso de ser aprobada la presente
-              solicitud de crédito, los codeudores aquí relacionados serán notificados a través de los
-              medios de contacto suministrados (correo electrónico y/o teléfono) para proceder con la
-              formalización y firma electrónica del plan de pagos, pagaré, carta de instrucciones y demás
-              documentos del crédito. Lo anterior, con la finalidad de que cada codeudor pueda validar
-              y dar su aprobación sobre la veracidad de la solicitud y la información aquí contenida.
+              Declaro(amos) que, en caso de aprobación de la solicitud de crédito, los codeudores relacionados serán contactados a través de los medios suministrados, con el fin de adelantar el proceso de validación, aceptación y firma de los documentos correspondientes, incluyendo el pagaré, plan de pagos y demás soportes contractuales.
             </p>
 
             <!-- Sección 5 -->
             <p :style="{
-              fontWeight:   'var(--fw-bold)',
+              fontWeight:   'var(--fw-medium)',
               color:        'var(--color-text-1)',
               marginBottom: 'var(--sp-sm)',
               fontSize:     'var(--text-base)',
-            }">DECLARACIÓN DE RECEPCIÓN DE INFORMACIÓN</p>
+            }">DECLARACIÓN DE VERACIDAD Y RECEPCIÓN DE INFORMACIÓN</p>
             <p :style="{ marginBottom: 'var(--sp-xl)' }">
-              Declaro(amos) que he(mos) recibido oportunamente de Cooperamigó los documentos
-              relacionados a esta solicitud y otros contratos y que tales documentos han estado a
-              mi(nuestra) disposición para consulta, correcciones y/o actualizaciones por lo que
-              toda la información es veraz.
+              Declaro(amos) bajo la gravedad de juramento que la información suministrada es veraz, completa y verificable, y que ha sido entregada de manera voluntaria.
+            </p>
+            <p :style="{ marginBottom: 'var(--sp-2xl)' }">
+              Así mismo, manifiesto(amos) haber recibido, leído y comprendido los documentos relacionados con la presente solicitud, los cuales han estado disponibles para su revisión, aclaración y/o modificación.
             </p>
 
             <!-- Sección 6 -->
             <p :style="{
-              fontWeight:   'var(--fw-bold)',
+              fontWeight:   'var(--fw-medium)',
               color:        'var(--color-text-1)',
               marginBottom: 'var(--sp-sm)',
               fontSize:     'var(--text-base)',
-            }">AUTORIZACIÓN USO DE DATOS SENSIBLES</p>
+            }">AUTORIZACIÓN PARA EL TRATAMIENTO DE DATOS SENSIBLES</p>
             <p :style="{ marginBottom: 'var(--sp-2xl)' }">
-              Autorizo(amos) a Cooperamigó para que utilice mi huella con el fin de dar trámite a
-              lo solicitado y/o autorizado en este documento. Así mismo, declaro(amos) que
-              conozco(emos) y acepto(amos) que por medio de mi(nuestra) huella estoy(amos) otorgando
-              mi(nuestro) consentimiento y aceptación para la realización de los procesos solicitados
-              y/o autorizados en este documento. Conozco(emos) que la huella corresponde a un dato
-              sensible y que no estoy(amos) obligado(s) a autorizar su tratamiento.
+              Autorizo(amos) de manera expresa el tratamiento de datos sensibles, en particular la captura y uso de la huella dactilar, con el propósito de validación de identidad, autenticación y gestión de los trámites relacionados con la presente solicitud.
+            </p>
+            <p :style="{ marginBottom: 'var(--sp-2xl)' }">
+              Declaro(amos) que he(mos) sido informado(s) de que el suministro de datos sensibles es facultativo y que no estoy(amos) obligado(s) a autorizar su tratamiento. No obstante, entiendo(emos) que su no autorización puede limitar la ejecución de algunos procesos asociados a la solicitud.
             </p>
           </div>
 
@@ -303,7 +281,7 @@ function cerrar() {
             alignItems:     'center',
           }">
             <span
-              v-if="!scrollCompletado"
+              v-if="!scrollCompletado && !aceptado"
               :style="{
                 fontSize:   'var(--text-sm)',
                 color:      'var(--color-text-3)',
@@ -314,9 +292,8 @@ function cerrar() {
               Desplace para leer ({{ porcentajeScroll }}%)
             </span>
 
-            <!-- Botón No acepto -->
             <button
-              :disabled="!scrollCompletado"
+              v-if="aceptado"
               :style="{
                 display:      'flex',
                 alignItems:   'center',
@@ -328,39 +305,40 @@ function cerrar() {
                 fontFamily:   'var(--font-body)',
                 fontSize:     'var(--text-base)',
                 fontWeight:   'var(--fw-semibold)',
-                color:        scrollCompletado ? 'var(--color-error-text)' : 'var(--color-text-3)',
-                cursor:       scrollCompletado ? 'pointer' : 'not-allowed',
-                opacity:      scrollCompletado ? '1' : '0.45',
+                color:        'var(--color-error-text)',
+                cursor:       'pointer',
                 transition:   'all var(--transition-base)',
               }"
               @click="rechazar()"
             >
-              <IconCircleX :size="15" /> No acepto
+              <IconCircleX :size="15" /> Retirar aceptación
             </button>
 
-            <!-- Botón Acepto -->
-            <button
-              :disabled="!scrollCompletado"
-              :style="{
-                display:      'flex',
-                alignItems:   'center',
-                gap:          'var(--sp-sm)',
-                padding:      'var(--sp-sm) var(--sp-xl)',
-                borderRadius: 'var(--r-pill)',
-                border:       'none',
-                background:   scrollCompletado ? 'var(--color-primary)' : 'var(--color-bg-surface-alt)',
-                fontFamily:   'var(--font-body)',
-                fontSize:     'var(--text-base)',
-                fontWeight:   'var(--fw-bold)',
-                color:        scrollCompletado ? 'var(--color-text-on-primary)' : 'var(--color-text-3)',
-                cursor:       scrollCompletado ? 'pointer' : 'not-allowed',
-                boxShadow:    scrollCompletado ? 'var(--shadow-btn)' : 'none',
-                transition:   'all var(--transition-base)',
-              }"
-              @click="aceptar()"
-            >
-              <IconCircleCheck :size="15" /> Acepto las autorizaciones
-            </button>
+            <template v-else>
+              <button
+                :disabled="!scrollCompletado"
+                :style="{
+                  display:      'flex',
+                  alignItems:   'center',
+                  gap:          'var(--sp-sm)',
+                  padding:      'var(--sp-sm) var(--sp-xl)',
+                  borderRadius: 'var(--r-pill)',
+                  border:       scrollCompletado ? 'none' : '1px solid var(--color-border)',
+                  background:   scrollCompletado ? 'var(--color-primary)' : 'transparent',
+                  fontFamily:   'var(--font-body)',
+                  fontSize:     'var(--text-base)',
+                  fontWeight:   'var(--fw-bold)',
+                  color:        scrollCompletado ? 'var(--color-text-on-primary)' : 'var(--color-text-3)',
+                  cursor:       scrollCompletado ? 'pointer' : 'not-allowed',
+                  boxShadow:    scrollCompletado ? 'var(--shadow-btn)' : 'none',
+                  opacity:      scrollCompletado ? '1' : '0.45',
+                  transition:   'all var(--transition-base)',
+                }"
+                @click="aceptar()"
+              >
+                <IconCircleCheck :size="15" /> Acepto las autorizaciones
+              </button>
+            </template>
           </div>
         </div>
       </div>

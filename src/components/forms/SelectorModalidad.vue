@@ -11,7 +11,7 @@ const iconos = { CreditCard, GraduationCap }
 const opciones = [
   {
     value:       'ordinario',
-    titulo:      'Crédito ordinario',
+    titulo:      'Crédito ordinario o de consumo',
     descripcion: 'Para necesidades personales, vivienda, vehículo u otros destinos.',
     icono:       'CreditCard',
   },
@@ -34,7 +34,7 @@ const opciones = [
         alignItems:   'flex-start',
         gap:          'var(--sp-lg)',
         padding:      'var(--sp-xl)',
-        borderRadius: 'var(--r-md)',
+        borderRadius: 'var(--r-xl)',
         border:       modelValue === op.value
           ? '2px solid var(--color-primary)'
           : '1px solid var(--color-border)',
@@ -62,7 +62,7 @@ const opciones = [
       <div :style="{
         width:          '52px',
         height:         '52px',
-        borderRadius:   'var(--r-md)',
+        borderRadius:   'var(--r-lg)',
         background:     modelValue === op.value
           ? 'var(--color-primary)'
           : 'var(--color-bg-card)',
@@ -95,7 +95,7 @@ const opciones = [
         <div :style="{
           fontSize:   'var(--text-base)',
           color:      'var(--color-text-2)',
-          fontWeight: 'var(--fw-medium)',
+          fontWeight: 'var(--fw-regular)',
           lineHeight: '1.6',
         }">{{ op.descripcion }}</div>
       </div>

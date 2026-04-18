@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 
 async function irASeccion(id) {
   irAPaso(2)
@@ -33,12 +33,13 @@ import {
   IconCircleCheck, IconShieldCheck,
   IconUser, IconUserX, IconMail, IconRotate, IconUsers, IconUserCheck, IconFileDescription,
   IconCheck, IconUpload, IconCamera, IconX, IconLoader2,
-  IconPencil, IconAlertTriangle, IconFileCheck, IconFile, IconRotateClockwise2,
+  IconPencil, IconAlertTriangle, IconFileCheck, IconFile, IconRotateClockwise2, IconChecklist,
 } from '@tabler/icons-vue'
 import { useSolicitudCredito } from '@/composables/useSolicitudCredito'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { vincularSolicitudCaptura } from '@/services/captura.service'
-import { subirDocumentoSolicitud }  from '@/services/documentos.service'
+import { subirDocumentoSolicitud, obtenerMensajeErrorSubidaDocumento }  from '@/services/documentos.service'
+import { jsPDF } from 'jspdf'
 
 const { isMobile } = useBreakpoint()
 import { TIPOS_CONTRATO, ENTIDADES_PENSIONES } from '@/data/formularioCredito'
@@ -65,6 +66,7 @@ const {
   autorizaciones, firma,
   documentos,
   solicitudId,
+  fechaSolicitud,
   mostrarTipoOperacion, mostrarValorCredito,
   mostrarValorReestructura, mostrarValorDesembolso, mostrarCuentaDesembolso,
   salarioBloqueado, montoTotalOperacion, pasoSolicitudValido, erroresCampos,
@@ -89,24 +91,49 @@ const cartaAutorizacion = ref({ cargando: false, url: null, nombre: null, error:
 const refCertUpload = ref(null)
 const refCertCamera = ref(null)
 const certBancaria  = ref({ cargando: false, url: null, nombre: null, error: null })
+const modalPreviewDocVisible = ref(false)
+const modalPreviewDocUrl = ref('')
+const modalPreviewDocTitulo = ref('')
+const modalPdfFormalVisible = ref(false)
+const pdfFormalUrl = ref('')
+const intentoContinuarPaso2 = ref(false)
 
 function _nombreCorto(nombre) {
   if (!nombre) return ''
   return nombre.length > 28 ? nombre.substring(0, 25) + '...' : nombre
 }
 
+function _nombreDesdeUrl(url) {
+  if (!url) return null
+  try {
+    const limpio = url.split('?')[0]
+    const archivo = limpio.substring(limpio.lastIndexOf('/') + 1)
+    return decodeURIComponent(archivo || '')
+  } catch {
+    return null
+  }
+}
+
 async function _subirDocTercero(archivo, tipo, estado, campo) {
-  if (!solicitudId.value) return
+  if (!solicitudId.value) {
+    await guardarPaso()
+  }
+  if (!solicitudId.value) {
+    estado.error = 'No se pudo crear la solicitud para cargar documentos. Intente nuevamente.'
+    return
+  }
   estado.cargando = true
   estado.error    = null
   try {
     const url = await subirDocumentoSolicitud(solicitudId.value, tipo, archivo)
     estado.url    = url
     estado.nombre = archivo.name
-    documentos.value[campo] = url
+    estado.cargando = false
+    documentos.value = { ...documentos.value, [campo]: url }
+    await guardarPaso()
   } catch (err) {
     console.error(`[_subirDocTercero] Error subiendo ${tipo}:`, err)
-    estado.error = 'No se pudo subir el archivo. Verifique su conexión o el tamaño del archivo.'
+    estado.error = obtenerMensajeErrorSubidaDocumento(err)
   } finally {
     estado.cargando = false
   }
@@ -120,6 +147,7 @@ async function onFileCarta(e) {
 function quitarCarta() {
   cartaAutorizacion.value = { cargando: false, url: null, nombre: null, error: null }
   documentos.value.doc_carta_autorizacion_tercero_url = ''
+  guardarPaso()
 }
 
 async function onFileCert(e) {
@@ -130,6 +158,64 @@ async function onFileCert(e) {
 function quitarCert() {
   certBancaria.value = { cargando: false, url: null, nombre: null, error: null }
   documentos.value.doc_certificacion_bancaria_tercero_url = ''
+  guardarPaso()
+}
+
+watch(() => documentos.value.doc_carta_autorizacion_tercero_url, (url) => {
+  if (url) {
+    cartaAutorizacion.value = {
+      ...cartaAutorizacion.value,
+      cargando: false,
+      url,
+      nombre: cartaAutorizacion.value.nombre || _nombreDesdeUrl(url),
+      error: null,
+    }
+  } else {
+    cartaAutorizacion.value = { ...cartaAutorizacion.value, url: null, nombre: null }
+  }
+}, { immediate: true })
+
+watch(() => documentos.value.doc_certificacion_bancaria_tercero_url, (url) => {
+  if (url) {
+    certBancaria.value = {
+      ...certBancaria.value,
+      cargando: false,
+      url,
+      nombre: certBancaria.value.nombre || _nombreDesdeUrl(url),
+      error: null,
+    }
+  } else {
+    certBancaria.value = { ...certBancaria.value, url: null, nombre: null }
+  }
+}, { immediate: true })
+
+watch(() => paso.value, (p) => {
+  if (p !== 2) intentoContinuarPaso2.value = false
+})
+
+function abrirPreviewDoc(url, titulo) {
+  if (!url) return
+  modalPreviewDocUrl.value = url
+  modalPreviewDocTitulo.value = titulo || 'Documento'
+  modalPreviewDocVisible.value = true
+}
+
+function cerrarPreviewDoc() {
+  modalPreviewDocVisible.value = false
+  modalPreviewDocUrl.value = ''
+  modalPreviewDocTitulo.value = ''
+}
+
+function continuar() {
+  if (paso.value === 2 && !pasoSolicitudValido.value) {
+    intentoContinuarPaso2.value = true
+    return
+  }
+  if (paso.value === 4 && !autorizaciones.value.autorizacion_aceptada) {
+    return
+  }
+  intentoContinuarPaso2.value = false
+  siguiente()
 }
 
 const esMenorDeEdad = computed(() => {
@@ -290,7 +376,7 @@ const docResumen = computed(() => {
   // 1. Solicitante
   if (laboral.value.tipo_trabajador === 'empleado') {
     items.push({ label: 'Carta laboral', url: documentos.value.doc_carta_laboral_solicitante_url })
-    items.push({ label: 'Colillas pago', url: documentos.value.doc_colillas_pago_solicitante_url })
+    items.push({ label: 'Últimas 3 colillas de pago', url: documentos.value.doc_colillas_pago_solicitante_url })
   } else if (laboral.value.tipo_trabajador === 'pensionado') {
     items.push({ label: 'Desprendibles pensión', url: documentos.value.doc_soporte_ingresos_solicitante_url })
   } else if (laboral.value.tipo_trabajador && laboral.value.tipo_trabajador !== 'cuidado_hogar') {
@@ -327,6 +413,857 @@ const docResumen = computed(() => {
   return items
 })
 
+function _esVacio(v) {
+  return v === null || v === undefined || v === ''
+}
+
+function _labelCampo(k) {
+  return String(k).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+function _upperBonito(v) {
+  return String(v).replace(/[_-]+/g, ' ').trim().toUpperCase()
+}
+
+function _valorVisible(k, v) {
+  if (_esVacio(v)) return null
+  if (typeof v === 'boolean') return v ? 'SI' : 'NO'
+  if (typeof v === 'string' && k.includes('fecha')) return formatFecha(v) || v
+  if (typeof v === 'number' && /(valor|monto|salario|ingresos|gastos|obligaciones|mesada|cuota|total)/i.test(k)) return formatMonto(v)
+  if (typeof v === 'string' && /_url$/.test(k)) return 'Documento cargado'
+  if (typeof v === 'string' && ['modalidad_credito', 'tipo_operacion', 'destino_credito', 'tipo_estudio'].includes(k)) return _upperBonito(v)
+  return String(v)
+}
+
+function _seccionResumen(titulo, obj, omit = [], orden = null) {
+  const items = Object.entries(obj)
+    .filter(([k, v]) => !omit.includes(k) && !_esVacio(v))
+    .map(([k, v]) => ({ key: k, label: _labelCampo(k), value: _valorVisible(k, v) }))
+    .filter(i => !_esVacio(i.value))
+    .sort((a, b) => {
+      if (!orden) return 0
+      const ai = orden.indexOf(a.key)
+      const bi = orden.indexOf(b.key)
+      if (ai === -1 && bi === -1) return 0
+      if (ai === -1) return 1
+      if (bi === -1) return -1
+      return ai - bi
+    })
+  return { titulo, items }
+}
+
+const seccionesRevisionCompleta = computed(() => {
+  const salida = []
+  salida.push(_seccionResumen(
+    'Datos de la Solicitud',
+    general.value,
+    [],
+    [
+      'modalidad_credito',
+      'tipo_operacion',
+      'valor_credito',
+      'valor_reestructura',
+      'valor_desembolso',
+      'plazo_solicitado',
+      'destino_credito',
+      'tipo_estudio',
+      'denominacion_carrera',
+    ]
+  ))
+  salida.push(_seccionResumen('Datos del Solicitante', persona.value))
+  salida.push(_seccionResumen('Ubicacion del Solicitante', ubicacionResidencia.value))
+  salida.push(_seccionResumen('Informacion Laboral', laboral.value))
+  salida.push(_seccionResumen('Informacion Financiera', financiera.value))
+  salida.push(_seccionResumen('Patrimonio', patrimonio.value))
+  salida.push(_seccionResumen('Cuenta de Desembolso', cuenta.value))
+  salida.push(_seccionResumen('Documentos', documentos.value))
+  if (numCodudores.value >= 1) {
+    salida.push(_seccionResumen('Codeudor 1 - Persona', personaCod1.value))
+    salida.push(_seccionResumen('Codeudor 1 - Laboral', laboralCod1.value))
+    salida.push(_seccionResumen('Codeudor 1 - Financiera', financieraCod1.value))
+    salida.push(_seccionResumen('Codeudor 1 - Patrimonio', patrimonioCod1.value))
+  }
+  if (numCodudores.value >= 2) {
+    salida.push(_seccionResumen('Codeudor 2 - Persona', personaCod2.value))
+    salida.push(_seccionResumen('Codeudor 2 - Laboral', laboralCod2.value))
+    salida.push(_seccionResumen('Codeudor 2 - Financiera', financieraCod2.value))
+    salida.push(_seccionResumen('Codeudor 2 - Patrimonio', patrimonioCod2.value))
+  }
+  return salida.filter(s => s.items.length > 0)
+})
+
+const usarNuevoResumenRevision = true
+
+const firmaSolicitanteAplicada = computed(() => !!firma.value.firma_hash)
+
+const firmaMetodo = computed({
+  get: () => firma.value.firma_metodo || 'dibujar',
+  set: (v) => {
+    const prev = firma.value.firma_metodo || 'dibujar'
+    const update = { ...firma.value, firma_metodo: v }
+    if (v !== prev) {
+      update.firma_imagen_dataurl = ''
+    }
+    firma.value = update
+  },
+})
+
+const firmaImagen = computed({
+  get: () => firma.value.firma_imagen_dataurl || '',
+  set: (v) => { firma.value = { ...firma.value, firma_imagen_dataurl: v } },
+})
+
+const firmaCanvasRef = ref(null)
+const firmaFileRef = ref(null)
+const firmaArchivoNombre = ref('')
+const _dibujandoFirma = ref(false)
+const _firmaTrazoPrev = ref(null)
+const _firmaCanvasCssHeight = 140
+
+function _invalidarFirma() {
+  if (!firma.value.firma_hash) return
+  firma.value = {
+    ...firma.value,
+    firma_hash: '',
+    firma_fecha_iso: '',
+    firma_nonce: '',
+    firma_user_agent: '',
+    firma_plataforma: '',
+    firma_idioma: '',
+    firma_timezone: '',
+    firma_resolucion: '',
+    firma_imagen_hash: '',
+    firma_transaccion_id: '',
+    firma_timestamp_servidor_iso: '',
+    firma_timestamp_servidor_unix: '',
+    firma_timestamp_fuente: '',
+    firma_ip_publica: '',
+    firma_dispositivo_tipo: '',
+    firma_sistema_operativo: '',
+    firma_navegador: '',
+    firma_geo_lat: '',
+    firma_geo_lon: '',
+    firma_geo_accuracy: '',
+    firma_doc_hash_sha256: '',
+    firma_doc_hash_firmado_b64: '',
+    firma_doc_firma_public_key_jwk: null,
+    firma_doc_firma_alg: '',
+  }
+}
+
+watch(
+  [
+    () => firma.value.nombre_firma,
+    () => firmaMetodo.value,
+    () => firmaImagen.value,
+  ],
+  () => {
+    _invalidarFirma()
+  }
+)
+
+function _canvasCtx() {
+  const c = firmaCanvasRef.value
+  if (!c) return null
+  const ctx = c.getContext('2d')
+  if (!ctx) return null
+  ctx.lineWidth = 2.2
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.strokeStyle = '#111827'
+  return ctx
+}
+
+function prepararCanvasFirma() {
+  const c = firmaCanvasRef.value
+  if (!c) return
+  const rect = c.getBoundingClientRect()
+  const cssW = Math.max(1, Math.round(rect.width))
+  const cssH = Math.max(1, Math.round(rect.height || _firmaCanvasCssHeight))
+  const dpr = window.devicePixelRatio || 1
+  c.width = Math.round(cssW * dpr)
+  c.height = Math.round(cssH * dpr)
+  const ctx = c.getContext('2d')
+  if (!ctx) return
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.clearRect(0, 0, cssW, cssH)
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, cssW, cssH)
+  ctx.strokeStyle = '#e5e7eb'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(12, cssH - 24)
+  ctx.lineTo(cssW - 12, cssH - 24)
+  ctx.stroke()
+}
+
+function _posEnCanvas(evt) {
+  const c = firmaCanvasRef.value
+  if (!c) return null
+  const rect = c.getBoundingClientRect()
+  const clientX = evt.touches?.[0]?.clientX ?? evt.clientX
+  const clientY = evt.touches?.[0]?.clientY ?? evt.clientY
+  const x = clientX - rect.left
+  const y = clientY - rect.top
+  return { x: Math.max(0, Math.min(rect.width, x)), y: Math.max(0, Math.min(rect.height, y)) }
+}
+
+function iniciarFirmaDibujo(evt) {
+  if (firmaMetodo.value !== 'dibujar') return
+  const p = _posEnCanvas(evt)
+  const ctx = _canvasCtx()
+  if (!p || !ctx) return
+  if (ctx.lineWidth !== 2.2) {
+    ctx.lineWidth = 2.2
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.strokeStyle = '#111827'
+  }
+  _dibujandoFirma.value = true
+  _firmaTrazoPrev.value = p
+}
+
+function moverFirmaDibujo(evt) {
+  if (!_dibujandoFirma.value) return
+  const p = _posEnCanvas(evt)
+  const ctx = _canvasCtx()
+  if (!p || !ctx || !_firmaTrazoPrev.value) return
+  evt.preventDefault?.()
+  ctx.beginPath()
+  ctx.moveTo(_firmaTrazoPrev.value.x, _firmaTrazoPrev.value.y)
+  ctx.lineTo(p.x, p.y)
+  ctx.stroke()
+  _firmaTrazoPrev.value = p
+}
+
+function terminarFirmaDibujo() {
+  if (!_dibujandoFirma.value) return
+  _dibujandoFirma.value = false
+  _firmaTrazoPrev.value = null
+  const c = firmaCanvasRef.value
+  if (!c) return
+  firmaImagen.value = c.toDataURL('image/png')
+}
+
+function limpiarFirmaDibujo() {
+  const c = firmaCanvasRef.value
+  if (!c) return
+  prepararCanvasFirma()
+  firmaImagen.value = ''
+}
+
+watch(
+  () => firmaMetodo.value,
+  (m) => {
+    if (m !== 'dibujar') return
+    nextTick(() => {
+      prepararCanvasFirma()
+    })
+  },
+  { immediate: true }
+)
+
+function _onResizeFirma() {
+  if (firmaMetodo.value !== 'dibujar') return
+  prepararCanvasFirma()
+}
+
+onMounted(() => {
+  window.addEventListener('resize', _onResizeFirma)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', _onResizeFirma)
+})
+
+async function cargarFirmaImagen(evt) {
+  const file = evt?.target?.files?.[0]
+  if (evt?.target) evt.target.value = ''
+  if (!file) return
+  firmaArchivoNombre.value = file.name || ''
+  const reader = new FileReader()
+  const dataUrl = await new Promise((resolve, reject) => {
+    reader.onerror = () => reject(new Error('Error leyendo la imagen'))
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.readAsDataURL(file)
+  })
+  try {
+    const norm = await _normalizarImagenParaPdf(dataUrl)
+    firmaImagen.value = norm.dataUrl
+  } catch {
+    firmaImagen.value = dataUrl
+  }
+}
+
+function seleccionarFirmaArchivo() {
+  firmaFileRef.value?.click?.()
+}
+
+async function _sha256Hex(texto) {
+  const data = new TextEncoder().encode(texto)
+  const hash = await crypto.subtle.digest('SHA-256', data)
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+async function _sha256HexBuffer(buf) {
+  const hash = await crypto.subtle.digest('SHA-256', buf)
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+function _base64FromArrayBuffer(buffer) {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+  return btoa(binary)
+}
+
+function _mimeDesdeDataUrl(dataUrl) {
+  const m = /^data:([^;]+);/i.exec(String(dataUrl || ''))
+  return m?.[1] ? String(m[1]).toLowerCase() : ''
+}
+
+async function _convertirDataUrlAPng(dataUrl) {
+  const img = await new Promise((resolve, reject) => {
+    const i = new Image()
+    i.onload = () => resolve(i)
+    i.onerror = () => reject(new Error('No se pudo cargar la imagen'))
+    i.src = dataUrl
+  })
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, img.naturalWidth || img.width || 1)
+  canvas.height = Math.max(1, img.naturalHeight || img.height || 1)
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('No se pudo preparar la imagen')
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.drawImage(img, 0, 0)
+  return canvas.toDataURL('image/png')
+}
+
+async function _normalizarImagenParaPdf(dataUrl) {
+  const mime = _mimeDesdeDataUrl(dataUrl)
+  if (mime === 'image/jpeg' || mime === 'image/jpg') return { dataUrl, tipo: 'JPEG' }
+  if (mime === 'image/png') return { dataUrl, tipo: 'PNG' }
+  const png = await _convertirDataUrlAPng(dataUrl)
+  return { dataUrl: png, tipo: 'PNG' }
+}
+
+async function _obtenerTimestampServidor() {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), 1200)
+  try {
+    const res = await fetch('/', { method: 'HEAD', cache: 'no-store', signal: ctrl.signal })
+    const dateHeader = res.headers.get('date') || ''
+    const d = dateHeader ? new Date(dateHeader) : null
+    if (!d || Number.isNaN(d.getTime())) return null
+    return {
+      iso: d.toISOString(),
+      unix: String(Math.floor(d.getTime() / 1000)),
+      fuente: 'http-date',
+    }
+  } catch {
+    return null
+  } finally {
+    clearTimeout(t)
+  }
+}
+
+function _obtenerInfoDispositivo() {
+  const ua = navigator.userAgent || ''
+  const esMovil = /Mobi|Android|iPhone|iPad|iPod/i.test(ua)
+  const tipo = esMovil ? 'movil' : 'desktop'
+  const os =
+    /Windows NT/i.test(ua) ? 'Windows' :
+    /Mac OS X/i.test(ua) && !/iPhone|iPad|iPod/i.test(ua) ? 'macOS' :
+    /Android/i.test(ua) ? 'Android' :
+    /iPhone|iPad|iPod/i.test(ua) ? 'iOS' :
+    /Linux/i.test(ua) ? 'Linux' :
+    ''
+  const navegador =
+    /Edg\//i.test(ua) ? 'Edge' :
+    /OPR\//i.test(ua) ? 'Opera' :
+    /Chrome\//i.test(ua) && !/Edg\//i.test(ua) ? 'Chrome' :
+    /Safari\//i.test(ua) && !/Chrome\//i.test(ua) ? 'Safari' :
+    /Firefox\//i.test(ua) ? 'Firefox' :
+    ''
+  return { tipo, os, navegador }
+}
+
+async function _firmarHashDocumento(hashHex) {
+  const bytes = new Uint8Array(hashHex.match(/.{1,2}/g)?.map(h => parseInt(h, 16)) || [])
+  const keyPair = await crypto.subtle.generateKey(
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    true,
+    ['sign', 'verify']
+  )
+  const firmaBin = await crypto.subtle.sign(
+    { name: 'ECDSA', hash: 'SHA-256' },
+    keyPair.privateKey,
+    bytes
+  )
+  const publicJwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey)
+  return {
+    alg: 'ECDSA-P256-SHA256',
+    firmaB64: _base64FromArrayBuffer(firmaBin),
+    publicKeyJwk: publicJwk,
+  }
+}
+
+async function aplicarFirmaSolicitante() {
+  const nombre = (firma.value.nombre_firma || '').trim()
+  if (!nombre) return
+  if (!firmaImagen.value) return
+  if (!solicitudId.value) await guardarPaso()
+  const ahora = new Date().toISOString()
+  const nonce = crypto.randomUUID()
+  const transaccionId = crypto.randomUUID()
+  const resolucion = `${window.screen.width}x${window.screen.height}`
+  const disp = _obtenerInfoDispositivo()
+  const selloTiempo = await _obtenerTimestampServidor()
+  const ipPublica = await _obtenerIpPublica()
+  const imgHash = await _sha256Hex(firmaImagen.value)
+  const base = [
+    persona.value.numero_identificacion || '',
+    nombre,
+    ahora,
+    nonce,
+    transaccionId,
+    navigator.userAgent || '',
+    navigator.platform || '',
+    navigator.language || '',
+    resolucion,
+    firmaMetodo.value,
+    imgHash,
+  ].join('|')
+  const hash = await _sha256Hex(base)
+  const nuevo = {
+    ...firma.value,
+    nombre_firma: nombre,
+    firma_metodo: firmaMetodo.value,
+    firma_tipografia: '',
+    firma_imagen_dataurl: firmaImagen.value,
+    firma_imagen_hash: imgHash,
+    firma_hash: hash,
+    firma_fecha_iso: ahora,
+    firma_nonce: nonce,
+    firma_transaccion_id: transaccionId,
+    firma_timestamp_servidor_iso: selloTiempo?.iso || '',
+    firma_timestamp_servidor_unix: selloTiempo?.unix || '',
+    firma_timestamp_fuente: selloTiempo?.fuente || '',
+    firma_ip_publica: ipPublica || '',
+    firma_user_agent: navigator.userAgent || '',
+    firma_plataforma: navigator.platform || '',
+    firma_idioma: navigator.language || '',
+    firma_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+    firma_resolucion: resolucion,
+    firma_dispositivo_tipo: disp.tipo || '',
+    firma_sistema_operativo: disp.os || '',
+    firma_navegador: disp.navegador || '',
+    firma_geo_lat: '',
+    firma_geo_lon: '',
+    firma_geo_accuracy: '',
+    firma_doc_hash_sha256: '',
+    firma_doc_hash_firmado_b64: '',
+    firma_doc_firma_public_key_jwk: null,
+    firma_doc_firma_alg: '',
+  }
+  firma.value = nuevo
+
+  try {
+    const blob = await _generarPdfFormalizadoBlob()
+    const buf = await blob.arrayBuffer()
+    const docHash = await _sha256HexBuffer(buf)
+    let firmaDoc = null
+    try {
+      firmaDoc = await _firmarHashDocumento(docHash)
+    } catch {
+      firmaDoc = null
+    }
+    firma.value = {
+      ...firma.value,
+      firma_doc_hash_sha256: docHash,
+      firma_doc_hash_firmado_b64: firmaDoc?.firmaB64 || '',
+      firma_doc_firma_public_key_jwk: firmaDoc?.publicKeyJwk || null,
+      firma_doc_firma_alg: firmaDoc?.alg || '',
+    }
+  } catch {}
+}
+
+function cerrarPdfFormal() {
+  modalPdfFormalVisible.value = false
+}
+
+const _pdfAssets = {
+  logoPngDataUrl: null,
+  logoRatio: null,
+  afacadRegularB64: null,
+  afacadBoldB64: null,
+  afacadFailed: false,
+}
+
+async function _asegurarLogoPngDataUrl() {
+  if (_pdfAssets.logoPngDataUrl) return _pdfAssets.logoPngDataUrl
+  const res = await fetch('/logo-principal.svg')
+  const svgText = await res.text()
+  const blob = new Blob([svgText], { type: 'image/svg+xml' })
+  const url = URL.createObjectURL(blob)
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image()
+      i.onload = () => resolve(i)
+      i.onerror = () => reject(new Error('No se pudo cargar el logo'))
+      i.src = url
+    })
+    _pdfAssets.logoRatio = img.width ? (img.height / img.width) : null
+    const canvas = document.createElement('canvas')
+    canvas.width = 900
+    canvas.height = Math.max(300, Math.round((img.height / img.width) * 900))
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('No se pudo preparar el logo')
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+    _pdfAssets.logoPngDataUrl = canvas.toDataURL('image/png')
+    return _pdfAssets.logoPngDataUrl
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
+async function _asegurarFuenteAfacad(doc) {
+  if (_pdfAssets.afacadFailed) return false
+  try {
+    if (!_pdfAssets.afacadRegularB64 || !_pdfAssets.afacadBoldB64) {
+      const urlRegular = new URL('../assets/fonts/Afacad-Regular.ttf', import.meta.url).href
+      const urlBold = new URL('../assets/fonts/Afacad-Bold.ttf', import.meta.url).href
+      const [bufRegular, bufBold] = await Promise.all([
+        fetch(urlRegular).then(r => r.arrayBuffer()),
+        fetch(urlBold).then(r => r.arrayBuffer()),
+      ])
+      _pdfAssets.afacadRegularB64 = _base64FromArrayBuffer(bufRegular)
+      _pdfAssets.afacadBoldB64 = _base64FromArrayBuffer(bufBold)
+    }
+    doc.addFileToVFS('Afacad-Regular.ttf', _pdfAssets.afacadRegularB64)
+    doc.addFont('Afacad-Regular.ttf', 'Afacad', 'normal')
+    doc.addFileToVFS('Afacad-Bold.ttf', _pdfAssets.afacadBoldB64)
+    doc.addFont('Afacad-Bold.ttf', 'Afacad', 'bold')
+    return true
+  } catch {
+    _pdfAssets.afacadFailed = true
+    return false
+  }
+}
+
+async function _obtenerIpPublica() {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), 1200)
+  try {
+    const res = await fetch('https://api.ipify.org?format=json', { signal: ctrl.signal })
+    if (!res.ok) return ''
+    const data = await res.json()
+    return String(data?.ip || '')
+  } catch {
+    return ''
+  } finally {
+    clearTimeout(t)
+  }
+}
+
+function _escribirLineaPdf(doc, texto, y, x = 14, max = 182) {
+  const lineas = doc.splitTextToSize(texto, max)
+  for (const l of lineas) {
+    if (y > 282) {
+      doc.addPage()
+      y = 14
+    }
+    doc.text(l, x, y)
+    y += 5
+  }
+  return y
+}
+
+async function _generarPdfFormalizadoBlob() {
+  if (!solicitudId.value) await guardarPaso()
+  if (!firmaSolicitanteAplicada.value) await aplicarFirmaSolicitante()
+  const doc = new jsPDF()
+  const afacadOk = await _asegurarFuenteAfacad(doc)
+  doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'normal')
+  const logoPng = await _asegurarLogoPngDataUrl()
+  const pageW = doc.internal.pageSize.getWidth()
+  const pageH = doc.internal.pageSize.getHeight()
+
+  const colorPrimary = { r: 17, g: 76, b: 90 }
+  const colorSurface = { r: 245, g: 247, b: 250 }
+  const colorBorder = { r: 220, g: 227, b: 233 }
+  const colorText = { r: 17, g: 24, b: 39 }
+  const colorTextMuted = { r: 107, g: 114, b: 128 }
+
+  const setFill = (c) => doc.setFillColor(c.r, c.g, c.b)
+  const setDraw = (c) => doc.setDrawColor(c.r, c.g, c.b)
+  const setText = (c) => doc.setTextColor(c.r, c.g, c.b)
+
+  const fechaSolicitudIso = fechaSolicitud?.value
+    ? `${fechaSolicitud.value}T00:00:00.000Z`
+    : new Date().toISOString()
+  const radicado = solicitudId.value
+    ? `RAD-${fechaSolicitud.value.replaceAll('-', '')}-${String(solicitudId.value).slice(0, 8).toUpperCase()}`
+    : `RAD-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}`
+
+  const headerH = 34
+  setFill(colorPrimary)
+  doc.rect(0, 0, pageW, 6, 'F')
+  setFill({ r: 255, g: 255, b: 255 })
+  doc.rect(0, 6, pageW, headerH - 6, 'F')
+  setDraw(colorBorder)
+  doc.line(0, headerH, pageW, headerH)
+
+  try {
+    const props = doc.getImageProperties(logoPng)
+    const ratio = props?.width ? (props.height / props.width) : (_pdfAssets.logoRatio || (10 / 26))
+    const logoW = 26
+    const logoH = Math.max(8, Math.min(12, logoW * ratio))
+    doc.addImage(logoPng, 'PNG', 14, 11 + ((10 - logoH) / 2), logoW, logoH)
+  } catch {}
+
+  setText(colorText)
+  doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'bold')
+  doc.setFontSize(13)
+  doc.text('Solicitud de crédito', 44, 16)
+  doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.text(`Fecha solicitud: ${formatearFecha(fechaSolicitudIso)}`, pageW - 14, 14, { align: 'right' })
+  doc.text(`Radicado: ${radicado}`, pageW - 14, 20, { align: 'right' })
+
+  let y = headerH + 10
+  const x = 14
+  const cardW = pageW - (x * 2)
+  const cardPad = 8
+  const r = 3
+
+  const nuevaPagina = () => {
+    doc.addPage()
+    setFill(colorPrimary)
+    doc.rect(0, 0, pageW, 6, 'F')
+    setFill({ r: 255, g: 255, b: 255 })
+    doc.rect(0, 6, pageW, headerH - 6, 'F')
+    setDraw(colorBorder)
+    doc.line(0, headerH, pageW, headerH)
+    try {
+      const props = doc.getImageProperties(logoPng)
+      const ratio = props?.width ? (props.height / props.width) : (_pdfAssets.logoRatio || (10 / 26))
+      const logoW = 26
+      const logoH = Math.max(8, Math.min(12, logoW * ratio))
+      doc.addImage(logoPng, 'PNG', 14, 11 + ((10 - logoH) / 2), logoW, logoH)
+    } catch {}
+    setText(colorText)
+    doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'bold')
+    doc.setFontSize(13)
+    doc.text('Solicitud de crédito', 44, 16)
+    doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.text(`Fecha solicitud: ${formatearFecha(fechaSolicitudIso)}`, pageW - 14, 14, { align: 'right' })
+    doc.text(`Radicado: ${radicado}`, pageW - 14, 20, { align: 'right' })
+    y = headerH + 10
+  }
+
+  const _split = (texto, maxWidth) => doc.splitTextToSize(String(texto ?? ''), maxWidth)
+
+  const card = (titulo, items) => {
+    const colGap = 10
+    const colW = (cardW - colGap) / 2
+    const rows = []
+    for (let i = 0; i < items.length; i += 2) rows.push([items[i], items[i + 1]])
+    const labelSize = 7
+    const valueSize = 9.2
+    const labelLH = 3.4
+    const valueLH = 4.2
+    const rowHeights = rows.map(([izq, der]) => {
+      const leftLabelLines = izq ? _split(String(izq.label).toUpperCase(), colW - 2) : []
+      const rightLabelLines = der ? _split(String(der.label).toUpperCase(), colW - 2) : []
+      const leftValueLines = izq ? _split(izq.value, colW - 2) : []
+      const rightValueLines = der ? _split(der.value, colW - 2) : []
+      const labelLines = Math.max(leftLabelLines.length, rightLabelLines.length, 1)
+      const valueLines = Math.max(leftValueLines.length, rightValueLines.length, 1)
+      return 3 + (labelLines * labelLH) + 1 + (valueLines * valueLH) + 5
+    })
+    const contentH = rowHeights.reduce((a, b) => a + b, 0)
+    const alto = 10 + contentH + cardPad + 4
+    if (y + alto > pageH - 16) nuevaPagina()
+
+    setFill({ r: 255, g: 255, b: 255 })
+    setDraw(colorBorder)
+    doc.roundedRect(x, y, cardW, alto, r, r, 'FD')
+
+    setFill(colorSurface)
+    doc.roundedRect(x, y, cardW, 10, r, r, 'F')
+    setText(colorText)
+    doc.setFontSize(10)
+    doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'bold')
+    doc.text(titulo, x + cardPad, y + 7)
+
+    doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'normal')
+    let yy = y + 16
+    for (let i = 0; i < rows.length; i++) {
+      const [izq, der] = rows[i]
+      const rowH = rowHeights[i]
+      if (izq) {
+        doc.setFontSize(labelSize)
+        setText(colorTextMuted)
+        const labelLines = _split(String(izq.label).toUpperCase(), colW - 2)
+        for (let j = 0; j < labelLines.length; j++) {
+          doc.text(labelLines[j], x + cardPad, yy + (j * labelLH))
+        }
+        doc.setFontSize(valueSize)
+        setText(colorText)
+        const lines = _split(izq.value, colW - 2)
+        for (let j = 0; j < lines.length; j++) {
+          doc.text(lines[j], x + cardPad, yy + (labelLines.length * labelLH) + 1 + (j * valueLH))
+        }
+      }
+      if (der) {
+        doc.setFontSize(labelSize)
+        setText(colorTextMuted)
+        const labelLines = _split(String(der.label).toUpperCase(), colW - 2)
+        for (let j = 0; j < labelLines.length; j++) {
+          doc.text(labelLines[j], x + cardPad + colW + colGap, yy + (j * labelLH))
+        }
+        doc.setFontSize(valueSize)
+        setText(colorText)
+        const lines = _split(der.value, colW - 2)
+        for (let j = 0; j < lines.length; j++) {
+          doc.text(lines[j], x + cardPad + colW + colGap, yy + (labelLines.length * labelLH) + 1 + (j * valueLH))
+        }
+      }
+      yy += rowH
+    }
+    y += alto + 8
+  }
+
+  const cronologiaCard = (eventos) => {
+    const leftW = 54
+    const gap = 8
+    const rightW = cardW - leftW - gap - (cardPad * 2)
+    const labelSize = 7
+    const valueSize = 9.2
+    const labelLH = 3.4
+    const valueLH = 4.2
+
+    const filas = eventos.map((e) => {
+      const fecha = e.fecha || '—'
+      const titulo = e.titulo || ''
+      const detalle = e.detalle || ''
+      const rightLines = _split(`${titulo}${detalle ? ` — ${detalle}` : ''}`, rightW)
+      const h = 3 + labelLH + 1 + (Math.max(1, rightLines.length) * valueLH) + 4
+      return { fecha, rightLines, h }
+    })
+    const contentH = filas.reduce((a, f) => a + f.h, 0)
+    const alto = 10 + contentH + cardPad + 4
+    if (y + alto > pageH - 16) nuevaPagina()
+
+    setFill({ r: 255, g: 255, b: 255 })
+    setDraw(colorBorder)
+    doc.roundedRect(x, y, cardW, alto, r, r, 'FD')
+    setFill(colorSurface)
+    doc.roundedRect(x, y, cardW, 10, r, r, 'F')
+    setText(colorText)
+    doc.setFontSize(10)
+    doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'bold')
+    doc.text('Cronología del flujo', x + cardPad, y + 7)
+
+    let yy = y + 16
+    for (const f of filas) {
+      doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'normal')
+      doc.setFontSize(labelSize)
+      setText(colorTextMuted)
+      doc.text('FECHA / HORA', x + cardPad, yy)
+      doc.setFontSize(valueSize)
+      setText(colorText)
+      const fechaLines = _split(f.fecha, leftW)
+      for (let j = 0; j < fechaLines.length; j++) {
+        doc.text(fechaLines[j], x + cardPad, yy + labelLH + 1 + (j * valueLH))
+      }
+
+      doc.setFontSize(labelSize)
+      setText(colorTextMuted)
+      doc.text('EVENTO', x + cardPad + leftW + gap, yy)
+      doc.setFontSize(valueSize)
+      setText(colorText)
+      for (let j = 0; j < f.rightLines.length; j++) {
+        doc.text(f.rightLines[j], x + cardPad + leftW + gap, yy + labelLH + 1 + (j * valueLH))
+      }
+
+      yy += f.h
+      if (yy < y + alto - 8) {
+        setDraw(colorBorder)
+        doc.line(x + cardPad, yy - 2, x + cardW - cardPad, yy - 2)
+      }
+    }
+
+    y += alto + 8
+  }
+
+  for (const sec of seccionesRevisionCompleta.value) {
+    card(sec.titulo, sec.items)
+  }
+
+  const ip = firma.value.firma_ip_publica || await _obtenerIpPublica()
+  if (ip && ip !== firma.value.firma_ip_publica) {
+    firma.value = { ...firma.value, firma_ip_publica: ip }
+  }
+  const dispositivo = [
+    firma.value.firma_dispositivo_tipo,
+    firma.value.firma_sistema_operativo,
+    firma.value.firma_navegador,
+  ].filter(Boolean).join(' / ')
+
+  const firmaCardItems = [
+    { label: 'Nombre firmado', value: firma.value.nombre_firma || '' },
+    { label: 'Fecha firma', value: formatearFecha(firma.value.firma_fecha_iso || new Date().toISOString()) },
+    { label: 'Método', value: firma.value.firma_metodo || '' },
+    { label: 'Hash firma', value: firma.value.firma_hash || '' },
+    { label: 'IP pública', value: firma.value.firma_ip_publica || '—' },
+    { label: 'Dispositivo', value: dispositivo || '—' },
+    { label: 'Transacción', value: firma.value.firma_transaccion_id || '—' },
+    { label: 'Hash documento', value: firma.value.firma_doc_hash_sha256 || '—' },
+  ]
+  card('Evidencia de firma — Solicitante', firmaCardItems)
+
+  const img = firma.value.firma_imagen_dataurl || ''
+  if (img) {
+    const imgW = cardW
+    const imgH = 28
+    if (y + imgH + 10 > pageH - 16) nuevaPagina()
+    setDraw(colorBorder)
+    setFill({ r: 255, g: 255, b: 255 })
+    doc.roundedRect(x, y, imgW, imgH, r, r, 'FD')
+    try {
+      const norm = await _normalizarImagenParaPdf(img)
+      doc.addImage(norm.dataUrl, norm.tipo, x + 6, y + 6, imgW - 12, imgH - 12)
+    } catch {
+      setText(colorTextMuted)
+      doc.setFontSize(8)
+      doc.text('Firma (imagen no soportada)', x + 6, y + 16)
+      setText(colorText)
+      doc.setFontSize(9)
+    }
+    y += imgH + 8
+  }
+
+  const eventos = [
+    { fecha: formatearFecha(fechaSolicitudIso), titulo: 'Solicitud radicada', detalle: radicado },
+    { fecha: autorizaciones.value.autorizacion_aceptada ? '—' : '—', titulo: 'Autorizaciones', detalle: autorizaciones.value.autorizacion_aceptada ? 'Aceptadas' : 'Pendientes' },
+    { fecha: firma.value.firma_fecha_iso ? formatearFecha(firma.value.firma_fecha_iso) : '—', titulo: 'Firma aplicada', detalle: firma.value.nombre_firma || '' },
+    { fecha: new Date().toISOString() ? formatearFecha(new Date().toISOString()) : '—', titulo: 'Documento PDF generado', detalle: '' },
+  ]
+  cronologiaCard(eventos)
+
+  return doc.output('blob')
+}
+
+async function generarYVerPdfFormalizado() {
+  const blob = await _generarPdfFormalizadoBlob()
+  if (pdfFormalUrl.value?.startsWith('blob:')) URL.revokeObjectURL(pdfFormalUrl.value)
+  pdfFormalUrl.value = URL.createObjectURL(blob)
+  modalPdfFormalVisible.value = true
+}
+
 // ── Cálculos financieros ──────────────────────────────────
 const capacidadEndeudamiento = computed(() => {
   const ingresos = (Number(financiera.value.salario_ingresos_fijos) || 0) + (Number(financiera.value.ingresos_independiente) || 0)
@@ -350,13 +1287,25 @@ const alertasVacias = computed(() => {
   if (!persona.value.correo_electronico)                            items.push('Correo electrónico')
   if (!persona.value.direccion_residencia)                          items.push('Dirección de residencia')
   if (!laboral.value.tipo_trabajador)                               items.push('Tipo de trabajador')
-  if (!financiera.value.salario_ingresos_fijos)                     items.push('Ingresos')
+  if (laboral.value.tipo_trabajador === 'pensionado') {
+    if (!financiera.value.mesada_pensional) items.push('Valor mesada pensional')
+  } else if (laboral.value.tipo_trabajador === 'independiente') {
+    if (!financiera.value.ingresos_independiente) items.push('Ingresos como independiente')
+  } else if (laboral.value.tipo_trabajador === 'estudiante' || laboral.value.tipo_trabajador === 'cuidado_hogar') {
+    if (!financiera.value.salario_ingresos_fijos) items.push('Ingresos mensuales')
+    if (!financiera.value.fuente_ingresos)        items.push('Fuente de ingresos')
+  } else {
+    if (!financiera.value.salario_ingresos_fijos) items.push('Salario / Ingresos fijos')
+  }
   if (mostrarCuentaDesembolso.value && !cuenta.value.numero_cuenta) items.push('Número de cuenta bancaria')
   return items
 })
 
 function seleccionarModalidad(v) {
   actualizarGeneral('modalidad_credito', v)
+  if (paso.value === 1 && v) {
+    siguiente()
+  }
 }
 
 function actualizarGeneral(campo, valor) {
@@ -397,6 +1346,10 @@ function actualizarLaboral(campo, valor) {
 
 function actualizarCuenta(campo, valor) {
   cuenta.value = { ...cuenta.value, [campo]: valor }
+}
+
+function actualizarDocumentos(v) {
+  documentos.value = v
 }
 
 function actualizarLaboralCod1(campo, valor) {
@@ -655,7 +1608,7 @@ function onOtpValidado() {
     </div>
 
     <!-- ═══ FORMULARIO ACTIVO (3 pasos) ════════════════════ -->
-    <div v-else :style="{ width: '100%', margin: '0 auto' }">
+    <div v-else :style="{ width: '100%', margin: '0 auto', paddingTop: 'var(--sp-xl)' }">
 
       <!-- Banner: borrador encontrado — Continuar o Empezar de nuevo -->
       <div v-if="mostrarOpcionBorrador" :style="{
@@ -712,13 +1665,13 @@ function onOtpValidado() {
       </div>
 
       <!-- Encabezado -->
-      <div :style="{ marginBottom: 'var(--sp-xl)' }">
+      <div v-if="!verificado" :style="{ marginBottom: 'var(--sp-xl)' }">
         <div :style="{
           fontFamily: 'var(--font-display)',
           fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-extrabold)',
-          color: 'var(--color-text-1)', marginBottom: 'var(--sp-xs)',
+          color: 'var(--color-text-1)', marginBottom: '2px', lineHeight: '1.1',
         }">Solicitud de crédito</div>
-        <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-text-2)', fontWeight: 'var(--fw-medium)' }">
+        <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-text-2)', fontWeight: 'var(--fw-regular)', lineHeight: '1.25' }">
           Obtenga el financiamiento que necesita con las mejores condiciones
         </div>
       </div>
@@ -974,10 +1927,13 @@ function onOtpValidado() {
                     <div v-if="cartaAutorizacion.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', flexShrink: '0' }">
                       <IconLoader2 :size="15" :style="{ animation: 'spin 1s linear infinite' }" /> Subiendo…
                     </div>
-                    <div v-else-if="cartaAutorizacion.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-lg)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)', flexShrink: '0', maxWidth: '160px' }">
-                      <IconCheck :size="13" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
-                      <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-semibold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ cartaAutorizacion.nombre?.length > 16 ? cartaAutorizacion.nombre.substring(0, 13) + '...' : cartaAutorizacion.nombre }}</span>
-                      <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', borderRadius: 'var(--r-sm)', flexShrink: '0' }" @click="quitarCarta"><IconX :size="13" :style="{ color: 'var(--color-success-text)' }" /></button>
+                    <div v-else-if="cartaAutorizacion.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
+                      <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-lg)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)', maxWidth: '190px' }">
+                        <IconCheck :size="13" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
+                        <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-semibold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ cartaAutorizacion.nombre?.length > 16 ? cartaAutorizacion.nombre.substring(0, 13) + '...' : cartaAutorizacion.nombre }}</span>
+                        <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', borderRadius: 'var(--r-sm)', flexShrink: '0' }" @click="quitarCarta"><IconX :size="13" :style="{ color: 'var(--color-success-text)' }" /></button>
+                      </div>
+                      <button :style="{ border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)', flexShrink: '0' }" @click="abrirPreviewDoc(cartaAutorizacion.url, 'Carta de autorización')">Visualizar</button>
                     </div>
                     <button v-else-if="cartaAutorizacion.error" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-error)', background: 'var(--color-error-bg)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-error)', flexShrink: '0' }" @click="refCartaUpload?.click()">
                       <IconUpload :size="13" /> Reintentar
@@ -1007,10 +1963,13 @@ function onOtpValidado() {
                     <div v-if="certBancaria.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', flexShrink: '0' }">
                       <IconLoader2 :size="15" :style="{ animation: 'spin 1s linear infinite' }" /> Subiendo…
                     </div>
-                    <div v-else-if="certBancaria.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-lg)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)', flexShrink: '0', maxWidth: '160px' }">
-                      <IconCheck :size="13" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
-                      <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-semibold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ certBancaria.nombre?.length > 16 ? certBancaria.nombre.substring(0, 13) + '...' : certBancaria.nombre }}</span>
-                      <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', borderRadius: 'var(--r-sm)', flexShrink: '0' }" @click="quitarCert"><IconX :size="13" :style="{ color: 'var(--color-success-text)' }" /></button>
+                    <div v-else-if="certBancaria.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
+                      <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-lg)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)', maxWidth: '190px' }">
+                        <IconCheck :size="13" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
+                        <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-semibold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ certBancaria.nombre?.length > 16 ? certBancaria.nombre.substring(0, 13) + '...' : certBancaria.nombre }}</span>
+                        <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', borderRadius: 'var(--r-sm)', flexShrink: '0' }" @click="quitarCert"><IconX :size="13" :style="{ color: 'var(--color-success-text)' }" /></button>
+                      </div>
+                      <button :style="{ border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)', flexShrink: '0' }" @click="abrirPreviewDoc(certBancaria.url, 'Certificación bancaria')">Visualizar</button>
                     </div>
                     <button v-else-if="certBancaria.error" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-error)', background: 'var(--color-error-bg)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-error)', flexShrink: '0' }" @click="refCertUpload?.click()">
                       <IconUpload :size="13" /> Reintentar
@@ -1027,6 +1986,21 @@ function onOtpValidado() {
             </div>
           </div>
 
+          <div v-if="intentoContinuarPaso2 && !pasoSolicitudValido" :style="{ borderRadius: 'var(--r-md)', padding: 'var(--sp-md) var(--sp-lg)', background: '#fff8f0', display: 'flex', gap: 'var(--sp-md)' }">
+            <IconAlertTriangle :size="20" style="color: var(--color-impulso); flex-shrink: 0; margin-top: 2px;" />
+            <div>
+              <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-impulso)', marginBottom: 'var(--sp-xs)' }">
+                No puede continuar: faltan {{ erroresCampos.length }} campo{{ erroresCampos.length > 1 ? 's' : '' }} obligatorio{{ erroresCampos.length > 1 ? 's' : '' }} por completar:
+              </div>
+              <div :style="{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-xs)' }">
+                <span
+                  v-for="err in erroresCampos"
+                  :key="err"
+                  :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-impulso)', background: 'rgba(254,153,50,0.12)', borderRadius: 'var(--r-sm)', padding: '2px 8px' }"
+                >{{ err }}</span>
+              </div>
+            </div>
+          </div>
       </div>
 
       <!-- ── PASO 3: Codeudores ─────────────────────── -->
@@ -1281,7 +2255,7 @@ function onOtpValidado() {
               :laboral-cod1="laboralCod1"
               :laboral-cod2="laboralCod2"
               titulo=""
-              @update:model-value="documentos = $event"
+              @update:model-value="actualizarDocumentos($event)"
               @sesion-creada="onSesionCapturaCreada"
             />
           </div>
@@ -1312,18 +2286,19 @@ function onOtpValidado() {
       </div>
 
       <!-- ── PASO 5: Revisión y firma ─────────────────── -->
-      <div v-if="paso === 5" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+      <div v-if="paso === 5" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
 
-          <!-- Título -->
-          <div :style="{
-            fontFamily:   'var(--font-display)',
-            fontSize:     'var(--text-lg)',
-            fontWeight:   'var(--fw-extrabold)',
-            color:        'var(--color-text-1)',
-          }">Revise su solicitud antes de firmar</div>
+          <div :style="{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 'var(--sp-md)', flexWrap: 'wrap' }">
+            <div :style="{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)' }">
+              Revise su solicitud antes de firmar
+            </div>
+            <div v-if="ultimoGuardado" :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-semibold)' }">
+              Borrador guardado: {{ formatearFecha(ultimoGuardado.toISOString()) }}
+            </div>
+          </div>
 
           <!-- ── Banner de campos faltantes ────────────────────────── -->
-          <div v-if="!pasoSolicitudValido" :style="{ borderRadius: 'var(--r-md)', padding: 'var(--sp-md) var(--sp-lg)', background: '#fff8f0', border: '1px solid var(--color-impulso)', display: 'flex', gap: 'var(--sp-md)' }">
+          <div v-if="!pasoSolicitudValido" :style="{ borderRadius: 'var(--r-md)', padding: 'var(--sp-md) var(--sp-lg)', background: '#fff8f0', display: 'flex', gap: 'var(--sp-md)' }">
             <IconAlertTriangle :size="20" style="color: var(--color-impulso); flex-shrink: 0; margin-top: 2px;" />
             <div>
               <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-impulso)', marginBottom: 'var(--sp-xs)' }">
@@ -1339,8 +2314,119 @@ function onOtpValidado() {
             </div>
           </div>
 
+          <div v-if="usarNuevoResumenRevision" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+              <div :style="{ borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
+                <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)' }">
+                  <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
+                    <IconChecklist :size="16" /> Resumen completo diligenciado
+                  </div>
+                  <button @click="irAPaso(2)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
+                </div>
+                <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+                  <details v-for="sec in seccionesRevisionCompleta" :key="sec.titulo" open :style="{ border: '1px solid var(--color-border-light)', borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'white' }">
+                    <summary :style="{ listStyle: 'none', cursor: 'pointer', padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)', background: 'var(--color-bg-surface)' }">
+                      <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">{{ sec.titulo }}</span>
+                    </summary>
+                    <div v-if="sec.titulo === 'Datos de la Solicitud'" :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '6px var(--sp-lg)', padding: '10px 12px', borderTop: '1px solid var(--color-border-light)' }">
+                      <div v-for="item in sec.items" :key="sec.titulo + item.key" :style="{ padding: '10px 12px', border: '1px solid var(--color-border-light)', borderRadius: 'var(--r-md)', background: 'white', gridColumn: (!isMobile && item.key === 'tipo_operacion') ? 'span 2' : 'auto' }">
+                        <div :style="{ fontSize: '10px', color: 'var(--color-text-3)', textTransform: 'uppercase', fontWeight: 'var(--fw-bold)' }">{{ item.label }}</div>
+                        <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)' }">{{ item.value }}</div>
+                      </div>
+                    </div>
+                    <div v-else :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '0', borderTop: '1px solid var(--color-border-light)' }">
+                      <div v-for="(item, idx) in sec.items" :key="sec.titulo + item.key" :style="{ padding: '10px 12px', borderBottom: '1px solid var(--color-border-light)', borderRight: !isMobile && (idx % 2 === 0) ? '1px solid var(--color-border-light)' : 'none' }">
+                        <div :style="{ fontSize: '10px', color: 'var(--color-text-3)', textTransform: 'uppercase', fontWeight: 'var(--fw-bold)' }">{{ item.label }}</div>
+                        <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)' }">{{ item.value }}</div>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <div :style="{ borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
+                <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
+                  <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
+                    <IconUpload :size="16" /> Documentos adjuntos
+                  </div>
+                  <button @click="irAPaso(4)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
+                </div>
+                <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-sm)' }">
+                  <button
+                    v-for="doc in docResumen"
+                    :key="doc.label"
+                    type="button"
+                    :disabled="!doc.url"
+                    @click="doc.url ? (modalPreviewDocUrl = doc.url, modalPreviewDocTitulo = doc.label, modalPreviewDocVisible = true) : null"
+                    :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', background: doc.url ? 'var(--color-success-bg)' : 'var(--color-bg-surface)', padding: '4px 12px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (doc.url ? 'var(--color-success)' : 'var(--color-border)'), cursor: doc.url ? 'pointer' : 'not-allowed', opacity: doc.url ? 1 : 0.7 }"
+                  >
+                    <IconCheck v-if="doc.url" :size="12" :style="{ color: 'var(--color-success)' }" />
+                    <IconX v-else :size="12" :style="{ color: 'var(--color-error)' }" />
+                    <span :style="{ fontSize: '11px', fontWeight: 'bold', color: doc.url ? 'var(--color-success-text)' : 'var(--color-text-3)' }">{{ doc.label }}</span>
+                  </button>
+                </div>
+              </div>
+
+            <div :style="{ borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
+              <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+                <IconShieldCheck :size="18" :style="{ color: 'var(--color-primary)' }" />
+                <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">Firmar solicitud de crédito</span>
+              </div>
+              <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+                <div v-if="numCodudores > 0" :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-impulso)', fontWeight: 'var(--fw-bold)' }">Firma habilitada por ahora solo para solicitudes sin codeudores.</div>
+                <CampoTexto label="Nombre completo del solicitante" placeholder="TAL CUAL APARECE EN SU CÉDULA" :model-value="firma.nombre_firma" @update:model-value="firma.nombre_firma = $event" />
+
+                <div :style="{ display: 'flex', gap: '6px', flexWrap: 'wrap' }">
+                  <button type="button" @click="firmaMetodo = 'dibujar'" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (firmaMetodo === 'dibujar' ? 'var(--color-primary)' : 'var(--color-border)'), background: firmaMetodo === 'dibujar' ? 'rgba(17,76,90,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'dibujar' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Firmar en pantalla</button>
+                  <button type="button" @click="firmaMetodo = 'subir'" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-border)'), background: firmaMetodo === 'subir' ? 'rgba(17,76,90,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Cargar firma</button>
+                </div>
+
+                <div v-if="firmaMetodo === 'dibujar'" :style="{ display: 'flex', flexDirection: 'column', gap: '8px' }">
+                  <div :style="{ border: '1px solid var(--color-border)', borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'white' }">
+                    <canvas
+                      ref="firmaCanvasRef"
+                      width="720"
+                      height="220"
+                      :style="{ width: '100%', height: '140px', touchAction: 'none', display: 'block', cursor: 'crosshair' }"
+                      @mousedown="iniciarFirmaDibujo"
+                      @mousemove="moverFirmaDibujo"
+                      @mouseup="terminarFirmaDibujo"
+                      @mouseleave="terminarFirmaDibujo"
+                      @touchstart.prevent="iniciarFirmaDibujo"
+                      @touchmove.prevent="moverFirmaDibujo"
+                      @touchend="terminarFirmaDibujo"
+                    />
+                  </div>
+                  <div :style="{ display: 'flex', justifyContent: 'flex-end' }">
+                    <PortalButton variant="secondary" @click="limpiarFirmaDibujo()">Limpiar</PortalButton>
+                  </div>
+                </div>
+
+                <div v-if="firmaMetodo === 'subir'" :style="{ display: 'flex', flexDirection: 'column', gap: '8px' }">
+                  <div :style="{ border: '1px dashed var(--color-border)', borderRadius: 'var(--r-md)', padding: '10px 12px', background: 'var(--color-bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)', flexWrap: 'wrap' }">
+                    <div :style="{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '180px' }">
+                      <div :style="{ fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Archivo de firma</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: firmaArchivoNombre ? 'var(--color-text-1)' : 'var(--color-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? '100%' : '340px' }">
+                        {{ firmaArchivoNombre || 'PNG o JPG con fondo preferiblemente blanco' }}
+                      </div>
+                    </div>
+                    <PortalButton variant="secondary" @click="seleccionarFirmaArchivo()">Seleccionar archivo</PortalButton>
+                    <input ref="firmaFileRef" type="file" accept="image/png,image/jpeg" :style="{ display: 'none' }" @change="cargarFirmaImagen" />
+                  </div>
+                </div>
+
+                <div :style="{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-sm)', alignItems: 'center' }">
+                  <PortalButton variant="primary" :disabled="!firma.nombre_firma || !firmaImagen || numCodudores > 0" @click="aplicarFirmaSolicitante()">Aplicar firma electrónica</PortalButton>
+                  <PortalButton variant="secondary" :disabled="!firmaSolicitanteAplicada" @click="generarYVerPdfFormalizado()">Ver PDF</PortalButton>
+                </div>
+
+                <div v-if="firmaSolicitanteAplicada" :style="{ fontSize: '11px', color: 'var(--color-text-3)' }">Firma aplicada: {{ formatearFecha(firma.firma_fecha_iso) }}</div>
+                <div v-if="firmaSolicitanteAplicada" :style="{ fontSize: '11px', color: 'var(--color-text-3)' }">Huella de firma: {{ firma.firma_hash }}</div>
+              </div>
+            </div>
+          </div>
+
           <!-- ── SECCIONES DEL SUMARIO ─────────────────────────── -->
-          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+          <div v-else :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
             
             <!-- 1. Datos de la Solicitud -->
             <div :style="{ borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
@@ -1616,19 +2702,47 @@ function onOtpValidado() {
               </div>
             </div>
 
+            <div :style="{ borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
+              <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
+                <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
+                  <IconChecklist :size="16" /> Detalle completo diligenciado
+                </div>
+              </div>
+              <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+                <div v-for="sec in seccionesRevisionCompleta" :key="sec.titulo">
+                  <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', marginBottom: '6px' }">{{ sec.titulo }}</div>
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '6px var(--sp-lg)' }">
+                    <div v-for="item in sec.items" :key="sec.titulo + item.label">
+                      <div :style="{ fontSize: '10px', color: 'var(--color-text-3)', textTransform: 'uppercase', fontWeight: 'var(--fw-bold)' }">{{ item.label }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)' }">{{ item.value }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           <!-- Firma digital -->
-          <div :style="{ borderRadius: 'var(--r-xl)', border: '2px solid var(--color-accent)', overflow: 'hidden', marginTop: 'var(--sp-lg)' }">
+          <div v-if="!usarNuevoResumenRevision" :style="{ borderRadius: 'var(--r-xl)', border: '2px solid var(--color-accent)', overflow: 'hidden', marginTop: 'var(--sp-lg)' }">
             <div :style="{ padding: '12px var(--sp-lg)', background: 'var(--color-accent)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconShieldCheck :size="18" style="color: var(--color-dark);" />
               <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-dark)', textTransform: 'uppercase', letterSpacing: '0.07em' }">Firma electrónica de la solicitud</span>
             </div>
             <div :style="{ padding: 'var(--sp-xl)', background: 'white', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+              <div v-if="numCodudores > 0" :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-impulso)', fontWeight: 'var(--fw-bold)' }">
+                Firma habilitada por ahora solo para solicitudes sin codeudores.
+              </div>
               <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', lineHeight: '1.6' }">
                 Al escribir su nombre a continuación, usted certifica que la información proporcionada es veraz y autoriza a <strong>Cooperamigo</strong> para realizar las validaciones correspondientes.
               </div>
               <CampoTexto label="Escriba su nombre completo para firmar" placeholder="TAL CUAL APARECE EN SU CÉDULA" :model-value="firma.nombre_firma" @update:model-value="firma.nombre_firma = $event" />
+              <div :style="{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-sm)', alignItems: 'center' }">
+                <PortalButton variant="primary" :disabled="!firma.nombre_firma || numCodudores > 0" @click="aplicarFirmaSolicitante()">Aplicar firma electrónica</PortalButton>
+                <PortalButton variant="secondary" :disabled="!firmaSolicitanteAplicada" @click="generarYVerPdfFormalizado()">Ver PDF formalizado</PortalButton>
+                <span v-if="firmaSolicitanteAplicada" :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-bold)' }">Firma aplicada: {{ formatearFecha(firma.firma_fecha_iso) }}</span>
+              </div>
+              <div v-if="firmaSolicitanteAplicada" :style="{ fontSize: '11px', color: 'var(--color-text-3)' }">Huella de firma: {{ firma.firma_hash }}</div>
             </div>
           </div>
         </div>
@@ -1636,13 +2750,35 @@ function onOtpValidado() {
       <!-- Navegación -->
       <div :style="{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--sp-2xl)', gap: 'var(--sp-md)' }">
         <PortalButton variant="secondary" @click="paso === 1 ? router.push('/') : anterior()">{{ paso === 1 ? 'Cancelar' : 'Anterior' }}</PortalButton>
-        <PortalButton v-if="!esUltimoPaso" variant="primary" :loading="loading" :disabled="(paso === 1 && !general.modalidad_credito) || (paso === 2 && !pasoSolicitudValido)" @click="siguiente()">Continuar</PortalButton>
-        <PortalButton v-if="esUltimoPaso" variant="primary" :loading="loading" :disabled="!firma.nombre_firma" @click="enviar()">Enviar solicitud</PortalButton>
+        <PortalButton v-if="!esUltimoPaso && paso !== 1" variant="primary" :loading="loading" :disabled="paso === 4 && !autorizaciones.autorizacion_aceptada" @click="continuar()">Continuar</PortalButton>
+        <PortalButton v-if="esUltimoPaso" variant="primary" :loading="loading" :disabled="!firmaSolicitanteAplicada || !pasoSolicitudValido || numCodudores > 0" @click="enviar()">Enviar solicitud</PortalButton>
       </div>
     </div>
 
     <!-- Modal Asociado no encontrado -->
     <Teleport to="body">
+      <div v-if="modalPreviewDocVisible" :style="{ position: 'fixed', inset: '0', zIndex: '120', background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--sp-lg)' }">
+        <div :style="{ width: 'min(980px, 96vw)', height: 'min(86vh, 920px)', background: 'white', borderRadius: 'var(--r-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }">
+          <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-sm) var(--sp-md)', borderBottom: '1px solid var(--color-border)' }">
+            <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ modalPreviewDocTitulo }}</div>
+            <button :style="{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-3)' }" @click="cerrarPreviewDoc">
+              <IconX :size="18" />
+            </button>
+          </div>
+          <iframe :src="modalPreviewDocUrl" title="Vista previa del documento" :style="{ width: '100%', height: '100%', border: 'none', background: '#f5f5f5' }" />
+        </div>
+      </div>
+      <div v-if="modalPdfFormalVisible" :style="{ position: 'fixed', inset: '0', zIndex: '121', background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--sp-lg)' }">
+        <div :style="{ width: 'min(980px, 96vw)', height: 'min(86vh, 920px)', background: 'white', borderRadius: 'var(--r-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }">
+          <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-sm) var(--sp-md)', borderBottom: '1px solid var(--color-border)' }">
+            <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">PDF formalizado de solicitud</div>
+            <button :style="{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-3)' }" @click="cerrarPdfFormal">
+              <IconX :size="18" />
+            </button>
+          </div>
+          <iframe :src="pdfFormalUrl" title="PDF formalizado" :style="{ width: '100%', height: '100%', border: 'none', background: '#f5f5f5' }" />
+        </div>
+      </div>
       <div v-if="mostrarModalNoAsociado" :style="{ position: 'fixed', inset: '0', zIndex: '100', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--sp-lg)', background: 'rgba(0,0,0,0.5)' }">
         <div :style="{ background: 'white', padding: 'var(--sp-2xl)', borderRadius: 'var(--r-xl)', maxWidth: '400px', textAlign: 'center' }">
           <IconUserX :size="48" style="color: var(--color-error); margin-bottom: var(--sp-lg)" />

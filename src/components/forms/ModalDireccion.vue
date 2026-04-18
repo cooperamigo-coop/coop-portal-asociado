@@ -62,6 +62,10 @@ function onMunicipioChange(codigo) {
   local.value.municipio_nombre = m?.nombre || ''
 }
 
+watch(() => local.value.letra_via, (v) => { if (typeof v === 'string') local.value.letra_via = v.toUpperCase() })
+watch(() => local.value.letra_cruce, (v) => { if (typeof v === 'string') local.value.letra_cruce = v.toUpperCase() })
+watch(() => local.value.numero_placa, (v) => { if (typeof v === 'string') local.value.numero_placa = v.toUpperCase() })
+
 const preview = computed(() => {
   const {
     via_principal, numero_via, letra_via, bis, cuadrante_via,

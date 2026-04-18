@@ -4,7 +4,7 @@ import { useCapturaDocumento } from '@/composables/useCapturaDocumento.js'
 import PortalButton from '@/components/ui/PortalButton.vue'
 import {
   IconCamera, IconUpload, IconQrcode, IconCircleCheck,
-  IconRefresh, IconDeviceMobile, IconX, IconAlertCircle, IconClock, IconId, IconLoader2
+  IconRefresh, IconDeviceMobile, IconX, IconAlertCircle, IconClock, IconId, IconLoader2, IconEye
 } from '@tabler/icons-vue'
 
 const props = defineProps({
@@ -25,6 +25,7 @@ const {
 } = useCapturaDocumento()
 
 const urlFinal = ref(null)
+const modalPreviewVisible = ref(false)
 
 // ── Previews locales para upload directo ────────────────────────────────────
 const previewFrente  = ref(null)
@@ -50,6 +51,7 @@ async function onFinalizar() {
   try {
     const url = await finalizarConPdf(props.solicitudId, props.campo)
     urlFinal.value = url
+    _revocarPreviews()
     emit('completado', url)
   } catch (e) {
     console.error('Error al finalizar captura:', e)
@@ -69,11 +71,21 @@ async function onPdfSeleccionado(e) {
   try {
     const url = await subirPdfDirecto(props.solicitudId, props.campo, archivo)
     urlFinal.value = url
+    _revocarPreviews()
     emit('completado', url)
   } catch (e) {
     console.error('Error al subir PDF:', e)
   }
   e.target.value = ''
+}
+
+function abrirPreview() {
+  if (!urlFinal.value) return
+  modalPreviewVisible.value = true
+}
+
+function cerrarPreview() {
+  modalPreviewVisible.value = false
 }
 
 function onArchivoSeleccionado(lado, e) {
@@ -135,9 +147,14 @@ const LADOS = [
 
       <!-- Acciones Derecha (Estado Idle o Completado) -->
       <div v-if="urlFinal" :style="{ flexShrink: '0' }">
-        <button :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-success-text)', padding: 'var(--sp-xs)', display: 'flex' }" @click="cancelarConPreview">
-          <IconRefresh :size="16" />
-        </button>
+        <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)' }">
+          <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview">
+            <IconEye :size="13" /> Visualizar
+          </button>
+          <button :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-success-text)', padding: 'var(--sp-xs)', display: 'flex' }" @click="cancelarConPreview">
+            <IconRefresh :size="16" />
+          </button>
+        </div>
       </div>
 
       <div v-else-if="estado === 'idle'" :style="{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: '0' }">
@@ -201,6 +218,20 @@ const LADOS = [
     <div v-if="errorCaptura || error" :style="{ padding: '8px var(--sp-xl)', background: 'var(--color-error-bg)', color: 'var(--color-error-text)', fontSize: 'var(--text-xs)', fontWeight: 'bold', borderTop: '1px solid var(--color-error)' }">
       {{ errorCaptura || error }}
     </div>
+
+    <Teleport to="body">
+      <div v-if="modalPreviewVisible" :style="{ position: 'fixed', inset: '0', zIndex: '1000', background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--sp-lg)' }">
+        <div :style="{ width: 'min(980px, 96vw)', height: 'min(86vh, 920px)', background: 'white', borderRadius: 'var(--r-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }">
+          <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-sm) var(--sp-md)', borderBottom: '1px solid var(--color-border)' }">
+            <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">{{ label }}</div>
+            <button :style="{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-3)' }" @click="cerrarPreview">
+              <IconX :size="18" />
+            </button>
+          </div>
+          <iframe :src="urlFinal" title="Vista previa del documento" :style="{ width: '100%', height: '100%', border: 'none', background: '#f5f5f5' }" />
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 

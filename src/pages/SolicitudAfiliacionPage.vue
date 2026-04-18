@@ -95,20 +95,18 @@ const pasos = [
 // Estilos reutilizables
 const estiloSeccionTitulo = {
   fontFamily: 'var(--font-display)',
-  fontSize: 'var(--text-lg)',
-  fontWeight: 'var(--fw-extrabold)',
-  color: 'var(--color-text-1)',
-  marginBottom: 'var(--sp-xl)',
-}
-const estiloSubtitulo = {
-  fontFamily: 'var(--font-display)',
   fontSize: 'var(--text-base)',
   fontWeight: 'var(--fw-bold)',
-  color: 'var(--color-primary)',
+  color: 'var(--color-text-1)',
+  marginBottom: 'var(--sp-lg)',
+}
+const estiloSubtitulo = {
+  fontFamily: 'var(--font-body)',
+  fontSize: 'var(--text-sm)',
+  fontWeight: 'var(--fw-bold)',
+  color: 'var(--color-text-1)',
   marginBottom: 'var(--sp-md)',
-  marginTop: 'var(--sp-xl)',
-  paddingBottom: 'var(--sp-xs)',
-  borderBottom: '1px solid var(--color-border)',
+  marginTop: 'var(--sp-lg)',
 }
 const grid2 = (mobile) => ({
   display: 'grid',
@@ -330,7 +328,7 @@ function onOtpValidado() {
     <!-- PASOS 1–6: Formulario principal                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <template v-else>
-      <div :style="{ width: '100%', margin: '0 auto' }">
+      <div :style="{ width: '100%', margin: '0 auto', paddingTop: 'var(--sp-xl)' }">
 
         <!-- Banner: datos recuperados -->
         <div v-if="bannerRecuperadoVisible" :style="{
@@ -350,22 +348,10 @@ function onOtpValidado() {
           }">Sus datos anteriores fueron recuperados. Continúa desde donde lo dejó.</span>
         </div>
 
-        <!-- Encabezado -->
-        <div :style="{ marginBottom: 'var(--sp-xl)' }">
-        <div :style="{
-          fontFamily: 'var(--font-display)',
-          fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-extrabold)',
-          color: 'var(--color-text-1)', marginBottom: 'var(--sp-xs)',
-        }">Solicitud de afiliación</div>
-        <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-text-2)', fontWeight: 'var(--fw-medium)' }">
-          Únase a la cooperativa y acceda a todos sus beneficios
-        </div>
-      </div>
-
       <StepIndicator :pasos="pasos" :actual="paso" />
 
-      <!-- Título del paso + contador + barra de progreso -->
-      <div :style="{ marginBottom: 'var(--sp-xl)' }">
+      <!-- Título del paso + barra de progreso -->
+      <div :style="{ marginBottom: 'var(--sp-xl)', marginTop: 'var(--sp-lg)' }">
         <div :style="{
           display: 'flex', justifyContent: 'space-between',
           alignItems: 'flex-end', marginBottom: 'var(--sp-sm)',
@@ -394,10 +380,26 @@ function onOtpValidado() {
         background: 'var(--color-bg-card)',
         border: '1px solid var(--color-border-card)',
         borderRadius: 'var(--r-md)',
-        padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
+        overflow: 'hidden',
         boxShadow: 'var(--shadow-card)',
         position: 'relative',
       }">
+
+        <div :style="{
+          padding: 'var(--sp-md) var(--sp-xl)',
+          background: 'var(--color-primary)',
+          color: 'white',
+          fontFamily: 'var(--font-display)',
+          fontSize: 'var(--text-base)',
+          fontWeight: 'var(--fw-bold)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--sp-sm)',
+        }">
+          <IconUserCheck :size="20" /> {{ pasos[paso - 1]?.label }}
+        </div>
+
+        <div :style="{ padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-xl)' }">
 
         <!-- Honeypot anti-bot — NO modificar -->
         <div aria-hidden="true" :style="{
@@ -1250,7 +1252,8 @@ function onOtpValidado() {
         </div>
       </div>
     </div>
-  </template>
+  </div>
+</template>
 
     <!-- Modal OTP -->
     <ModalOtpEmail
