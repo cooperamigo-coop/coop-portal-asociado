@@ -26,6 +26,24 @@ const opciones = [
 
 <template>
   <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+
+    <!-- Encabezado -->
+    <div :style="{ marginBottom: 'var(--sp-sm)' }">
+      <h2 :style="{
+        fontFamily:   'var(--font-display)',
+        fontSize:     'var(--text-2xl)',
+        fontWeight:   'var(--fw-extrabold)',
+        color:        'var(--color-text-1)',
+        margin:       '0 0 var(--sp-xs)',
+      }">Solicitud de crédito</h2>
+      <p :style="{
+        fontSize:   'var(--text-base)',
+        color:      'var(--color-text-2)',
+        fontWeight: 'var(--fw-regular)',
+        lineHeight: '1.6',
+        margin:     '0',
+      }">A continuación, diligencie todos los datos necesarios en nuestro proceso de solicitud de crédito.</p>
+    </div>
     <div
       v-for="op in opciones"
       :key="op.value"

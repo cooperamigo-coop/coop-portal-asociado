@@ -9,7 +9,7 @@ const router = useRouter()
 <template>
   <div :style="{
     minHeight: '100vh',
-    background: 'var(--color-bg-app)',
+    background: 'var(--color-bg-card)',
     display: 'flex', flexDirection: 'column',
     position: 'relative'
   }">

@@ -23,6 +23,12 @@ const routes = [
     meta: { publico: true, sinLayout: true },
   },
   {
+    path: '/firma-codeudor',
+    name: 'firma-codeudor',
+    component: () => import('@/pages/FirmaCodeudorPage.vue'),
+    meta: { publico: true, sinLayout: true },
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/',
   },

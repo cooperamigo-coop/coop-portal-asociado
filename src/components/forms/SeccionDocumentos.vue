@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { IconUpload, IconCircleCheck, IconX, IconFileDescription, IconLoader2, IconRefresh, IconEye } from '@tabler/icons-vue'
+import { IconUpload, IconCircleCheck, IconX, IconFileDescription, IconLoader2, IconRefresh, IconEye, IconUser, IconUsers } from '@tabler/icons-vue'
 import CapturaDocumento from '@/components/forms/CapturaDocumento.vue'
 import { subirDocumentoSolicitud, obtenerMensajeErrorSubidaDocumento } from '@/services/documentos.service'
 
@@ -29,7 +29,7 @@ function nombreCorto(nombre) {
 }
 
 // ── Estado de subidas (para banners PDF) ────────────────────
-const estados = ref({}) // { campo: { cargando, url, nombre, error } }
+const estados = ref({})
 const modalPreviewVisible = ref(false)
 const modalPreviewUrl = ref('')
 const modalPreviewTitulo = ref('')
@@ -87,37 +87,42 @@ function cerrarPreview() {
   modalPreviewTitulo.value = ''
 }
 
-// ── Documentos adicionales por tipo de trabajador ──────────
-const docsAdicionales = computed(() => {
-  const items = []
+// ── Docs adicionales por grupo ─────────────────────────────
+const getDocCodeudor = (tipo) => {
+  return {
+    'empleado':      { label: 'Carta laboral', desc: 'Carta laboral vigente' },
+    'independiente': { label: 'Certificado de ingresos', desc: 'Certificado de ingresos' },
+    'pensionado':    { label: 'Últimas 2 colillas de pago', desc: 'Colillas de pago' },
+    'estudiante':    { label: 'Certificado académico', desc: 'Certificado de estudios' },
+    'cuidado_hogar': { label: 'Extractos bancarios', desc: 'Extractos bancarios de los últimos meses' },
+  }[tipo] || null
+}
 
-  // 1. Solicitante
+const docsAdicionalesTitular = computed(() => {
+  const items = []
   if (props.tipoTrabajador === 'empleado') {
     items.push({
       campo: 'doc_carta_laboral_solicitante_url',
-      titulo: 'Carta laboral (Titular)',
+      titulo: 'Carta laboral',
       descripcion: 'Cargue la carta laboral vigente en formato PDF.',
     })
     items.push({
       campo: 'doc_colillas_pago_solicitante_url',
-      titulo: 'Últimas 3 colillas de pago (Titular)',
+      titulo: 'Últimas 3 colillas de pago',
       descripcion: 'Cargue las últimas 3 colillas de pago en un solo PDF.',
     })
   } else if (props.tipoTrabajador && props.tipoTrabajador !== 'cuidado_hogar') {
     const label = {
       'independiente': 'Certificado de ingresos',
-      'pensionado':   'Últimas 2 colillas de pago',
-      'estudiante':   'Certificado académico',
+      'pensionado':    'Últimas 2 colillas de pago',
+      'estudiante':    'Certificado académico',
     }[props.tipoTrabajador] || 'Soporte de ingresos'
-
     items.push({
       campo: 'doc_soporte_ingresos_solicitante_url',
-      titulo: `${label} (Titular)`,
+      titulo: label,
       descripcion: `Cargue su ${label.toLowerCase()} en formato PDF.`,
     })
   }
-
-  // Crédito educativo
   if (props.modalidadCredito === 'educativo') {
     items.push({
       campo: 'doc_liquidacion_matricula_url',
@@ -125,46 +130,34 @@ const docsAdicionales = computed(() => {
       descripcion: 'Cargue el documento con el valor de la matrícula en PDF.',
     })
   }
-
-  // 2. Codeudores
-  const getDocCodeudor = (tipo) => {
-    return {
-      'empleado':      { label: 'Carta laboral', desc: 'Carta laboral vigente' },
-      'independiente': { label: 'Certificado de ingresos', desc: 'Certificado de ingresos' },
-      'pensionado':    { label: 'Últimas 2 colillas de pago', desc: 'Colillas de pago' },
-      'estudiante':    { label: 'Certificado académico', desc: 'Certificado de estudios' },
-      'cuidado_hogar': { label: 'Extractos bancarios', desc: 'Extractos bancarios de los últimos meses' },
-    }[tipo] || null
-  }
-
-  if (props.numCodeudores >= 1 && props.laboralCod1?.tipo_trabajador_codeudor) {
-    const info = getDocCodeudor(props.laboralCod1.tipo_trabajador_codeudor)
-    if (info) {
-      items.push({
-        campo: 'doc_soporte_laboral_codeudor_url',
-        titulo: `${info.label} (Codeudor 1)`,
-        descripcion: `Cargue el ${info.desc.toLowerCase()} del primer codeudor en PDF.`,
-      })
-    }
-  }
-
-  if (props.numCodeudores >= 2 && props.laboralCod2?.tipo_trabajador_codeudor2) {
-    const info = getDocCodeudor(props.laboralCod2.tipo_trabajador_codeudor2)
-    if (info) {
-      items.push({
-        campo: 'doc_soporte_laboral_codeudor2_url',
-        titulo: `${info.label} (Codeudor 2)`,
-        descripcion: `Cargue el ${info.desc.toLowerCase()} del segundo codeudor en PDF.`,
-      })
-    }
-  }
-
   return items
+})
+
+const docsAdicionalesCod1 = computed(() => {
+  if (props.numCodeudores < 1 || !props.laboralCod1?.tipo_trabajador_codeudor) return []
+  const info = getDocCodeudor(props.laboralCod1.tipo_trabajador_codeudor)
+  if (!info) return []
+  return [{
+    campo: 'doc_soporte_laboral_codeudor_url',
+    titulo: info.label,
+    descripcion: `Cargue el ${info.desc.toLowerCase()} del primer codeudor en PDF.`,
+  }]
+})
+
+const docsAdicionalesCod2 = computed(() => {
+  if (props.numCodeudores < 2 || !props.laboralCod2?.tipo_trabajador_codeudor2) return []
+  const info = getDocCodeudor(props.laboralCod2.tipo_trabajador_codeudor2)
+  if (!info) return []
+  return [{
+    campo: 'doc_soporte_laboral_codeudor2_url',
+    titulo: info.label,
+    descripcion: `Cargue el ${info.desc.toLowerCase()} del segundo codeudor en PDF.`,
+  }]
 })
 </script>
 
 <template>
-  <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+  <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2xl)' }">
 
     <!-- Título sección -->
     <div v-if="titulo" :style="{
@@ -174,12 +167,34 @@ const docsAdicionales = computed(() => {
       color:      'var(--color-text-1)',
     }">{{ titulo }}</div>
 
-    <!-- ── CÉDULAS ────────────────────────────────────────── -->
-    <div :style="{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 'var(--sp-lg)',
-    }">
+    <!-- ══ TITULAR ══════════════════════════════════════════ -->
+    <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+
+      <!-- Encabezado grupo -->
+      <div :style="{
+        display:     'flex',
+        alignItems:  'center',
+        gap:         'var(--sp-sm)',
+        paddingBottom: 'var(--sp-sm)',
+        borderBottom: '2px solid var(--color-primary)',
+      }">
+        <div :style="{
+          width: '28px', height: '28px', borderRadius: '50%',
+          background: 'var(--color-primary)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: '0',
+        }">
+          <IconUser :size="14" :style="{ color: 'var(--color-text-on-primary)' }" />
+        </div>
+        <span :style="{
+          fontFamily: 'var(--font-display)',
+          fontSize:   'var(--text-base)',
+          fontWeight: 'var(--fw-extrabold)',
+          color:      'var(--color-primary)',
+        }">Titular</span>
+      </div>
+
+      <!-- Cédula del titular -->
       <CapturaDocumento
         :solicitud-id="solicitudId"
         campo="doc_cedula_solicitante_url"
@@ -189,8 +204,92 @@ const docsAdicionales = computed(() => {
         @sesion-creada="emit('sesion-creada', $event)"
       />
 
+      <!-- Docs adicionales del titular -->
+      <template v-for="doc in docsAdicionalesTitular" :key="doc.campo">
+        <div :style="{
+          border:       '1px solid var(--color-border-card)',
+          borderRadius: 'var(--r-xl)',
+          overflow:     'hidden',
+        }">
+          <div :style="{
+            display:    'flex', alignItems: 'center', gap: 'var(--sp-md)',
+            padding:    'var(--sp-md) var(--sp-xl)',
+            background: getEstado(doc.campo).url ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
+          }">
+            <div :style="{
+              width: '36px', height: '36px', borderRadius: '50%',
+              background:     getEstado(doc.campo).url ? 'var(--color-success)' : 'var(--color-primary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0',
+            }">
+              <IconCircleCheck v-if="getEstado(doc.campo).url" :size="18" :style="{ color: '#fff' }" />
+              <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
+            </div>
+            <div :style="{ flex: '1', minWidth: '0' }">
+              <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
+                {{ doc.titulo }}
+                <span v-if="!getEstado(doc.campo).url" :style="{ marginLeft: 'var(--sp-sm)', fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 6px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase' }">Obligatorio</span>
+              </div>
+              <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">
+                {{ getEstado(doc.campo).url ? (getEstado(doc.campo).nombre || 'Documento cargado correctamente') : doc.descripcion }}
+              </div>
+            </div>
+            <div v-if="getEstado(doc.campo).cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
+              <IconLoader2 :size="16" class="spin" />
+            </div>
+            <div v-else-if="getEstado(doc.campo).url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
+              <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview(getEstado(doc.campo).url, doc.titulo)">
+                <IconEye :size="13" /> Visualizar
+              </button>
+              <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--sp-xs)', display: 'flex', color: 'var(--color-success-text)' }" @click="quitarArchivo(doc.campo)">
+                <IconRefresh :size="16" />
+              </button>
+            </div>
+            <div v-else :style="{ flexShrink: '0' }">
+              <button :style="{
+                display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)',
+                padding: '6px 14px', borderRadius: 'var(--r-pill)',
+                border: '1px solid var(--color-border)', background: 'white',
+                cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)',
+              }" @click="seleccionarArchivo($refs[`ref_${doc.campo}`]?.[0])">
+                <IconUpload :size="14" />Subir PDF
+              </button>
+              <input :ref="`ref_${doc.campo}`" type="file" accept=".pdf" :style="{ display: 'none' }" @change="onFilePdf($event, doc.campo)" />
+            </div>
+          </div>
+          <div v-if="getEstado(doc.campo).error" :style="{ padding: '6px var(--sp-xl)', background: 'var(--color-error-bg)', color: 'var(--color-error-text)', fontSize: '10px', fontWeight: 'bold', borderTop: '1px solid var(--color-error)' }">
+            {{ getEstado(doc.campo).error }}
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- ══ CODEUDOR 1 ════════════════════════════════════════ -->
+    <div v-if="numCodeudores >= 1" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+
+      <div :style="{
+        display:     'flex',
+        alignItems:  'center',
+        gap:         'var(--sp-sm)',
+        paddingBottom: 'var(--sp-sm)',
+        borderBottom: '2px solid var(--color-accent)',
+      }">
+        <div :style="{
+          width: '28px', height: '28px', borderRadius: '50%',
+          background: 'var(--color-accent)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: '0',
+        }">
+          <IconUsers :size="14" :style="{ color: 'var(--color-dark)' }" />
+        </div>
+        <span :style="{
+          fontFamily: 'var(--font-display)',
+          fontSize:   'var(--text-base)',
+          fontWeight: 'var(--fw-extrabold)',
+          color:      'var(--color-text-1)',
+        }">Codeudor 1</span>
+      </div>
+
       <CapturaDocumento
-        v-if="numCodeudores >= 1"
         :solicitud-id="solicitudId"
         campo="doc_cedula_codeudor_url"
         label="Cédula del Codeudor 1"
@@ -199,8 +298,91 @@ const docsAdicionales = computed(() => {
         @sesion-creada="emit('sesion-creada', $event)"
       />
 
+      <template v-for="doc in docsAdicionalesCod1" :key="doc.campo">
+        <div :style="{
+          border:       '1px solid var(--color-border-card)',
+          borderRadius: 'var(--r-xl)',
+          overflow:     'hidden',
+        }">
+          <div :style="{
+            display:    'flex', alignItems: 'center', gap: 'var(--sp-md)',
+            padding:    'var(--sp-md) var(--sp-xl)',
+            background: getEstado(doc.campo).url ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
+          }">
+            <div :style="{
+              width: '36px', height: '36px', borderRadius: '50%',
+              background:     getEstado(doc.campo).url ? 'var(--color-success)' : 'var(--color-primary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0',
+            }">
+              <IconCircleCheck v-if="getEstado(doc.campo).url" :size="18" :style="{ color: '#fff' }" />
+              <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
+            </div>
+            <div :style="{ flex: '1', minWidth: '0' }">
+              <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
+                {{ doc.titulo }}
+                <span v-if="!getEstado(doc.campo).url" :style="{ marginLeft: 'var(--sp-sm)', fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 6px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase' }">Obligatorio</span>
+              </div>
+              <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">
+                {{ getEstado(doc.campo).url ? (getEstado(doc.campo).nombre || 'Documento cargado correctamente') : doc.descripcion }}
+              </div>
+            </div>
+            <div v-if="getEstado(doc.campo).cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
+              <IconLoader2 :size="16" class="spin" />
+            </div>
+            <div v-else-if="getEstado(doc.campo).url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
+              <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview(getEstado(doc.campo).url, doc.titulo)">
+                <IconEye :size="13" /> Visualizar
+              </button>
+              <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--sp-xs)', display: 'flex', color: 'var(--color-success-text)' }" @click="quitarArchivo(doc.campo)">
+                <IconRefresh :size="16" />
+              </button>
+            </div>
+            <div v-else :style="{ flexShrink: '0' }">
+              <button :style="{
+                display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)',
+                padding: '6px 14px', borderRadius: 'var(--r-pill)',
+                border: '1px solid var(--color-border)', background: 'white',
+                cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)',
+              }" @click="seleccionarArchivo($refs[`ref_${doc.campo}`]?.[0])">
+                <IconUpload :size="14" />Subir PDF
+              </button>
+              <input :ref="`ref_${doc.campo}`" type="file" accept=".pdf" :style="{ display: 'none' }" @change="onFilePdf($event, doc.campo)" />
+            </div>
+          </div>
+          <div v-if="getEstado(doc.campo).error" :style="{ padding: '6px var(--sp-xl)', background: 'var(--color-error-bg)', color: 'var(--color-error-text)', fontSize: '10px', fontWeight: 'bold', borderTop: '1px solid var(--color-error)' }">
+            {{ getEstado(doc.campo).error }}
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- ══ CODEUDOR 2 ════════════════════════════════════════ -->
+    <div v-if="numCodeudores >= 2" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+
+      <div :style="{
+        display:     'flex',
+        alignItems:  'center',
+        gap:         'var(--sp-sm)',
+        paddingBottom: 'var(--sp-sm)',
+        borderBottom: '2px solid var(--color-impulso)',
+      }">
+        <div :style="{
+          width: '28px', height: '28px', borderRadius: '50%',
+          background: 'var(--color-impulso)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: '0',
+        }">
+          <IconUsers :size="14" :style="{ color: 'var(--color-text-on-primary)' }" />
+        </div>
+        <span :style="{
+          fontFamily: 'var(--font-display)',
+          fontSize:   'var(--text-base)',
+          fontWeight: 'var(--fw-extrabold)',
+          color:      'var(--color-text-1)',
+        }">Codeudor 2</span>
+      </div>
+
       <CapturaDocumento
-        v-if="numCodeudores >= 2"
         :solicitud-id="solicitudId"
         campo="doc_cedula_codeudor2_url"
         label="Cédula del Codeudor 2"
@@ -208,80 +390,66 @@ const docsAdicionales = computed(() => {
         @completado="emit('update:modelValue', { ...modelValue, doc_cedula_codeudor2_url: $event })"
         @sesion-creada="emit('sesion-creada', $event)"
       />
-    </div>
 
-    <!-- ── OTROS DOCUMENTOS (PDF ÚNICAMENTE) ───────────────── -->
-    <div v-for="doc in docsAdicionales" :key="doc.campo" :style="{
-      border:       '1px solid var(--color-border-card)',
-      borderRadius: 'var(--r-xl)',
-      overflow:     'hidden',
-    }">
-      <!-- Banner Compacto -->
-      <div :style="{
-        display:      'flex',
-        alignItems:   'center',
-        gap:          'var(--sp-md)',
-        padding:      'var(--sp-md) var(--sp-xl)',
-        background:   getEstado(doc.campo).url ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
-      }">
+      <template v-for="doc in docsAdicionalesCod2" :key="doc.campo">
         <div :style="{
-          width: '36px', height: '36px', borderRadius: '50%',
-          background:     getEstado(doc.campo).url ? 'var(--color-success)' : 'var(--color-primary)',
-          display:        'flex',
-          alignItems:     'center',
-          justifyContent: 'center',
-          flexShrink:     '0',
+          border:       '1px solid var(--color-border-card)',
+          borderRadius: 'var(--r-xl)',
+          overflow:     'hidden',
         }">
-          <IconCircleCheck v-if="getEstado(doc.campo).url" :size="18" :style="{ color: '#fff' }" />
-          <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
-        </div>
-        
-        <div :style="{ flex: '1', minWidth: '0' }">
-          <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
-            {{ doc.titulo }}
-            <span v-if="!getEstado(doc.campo).url" :style="{ marginLeft: 'var(--sp-sm)', fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 6px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase' }">Obligatorio</span>
+          <div :style="{
+            display:    'flex', alignItems: 'center', gap: 'var(--sp-md)',
+            padding:    'var(--sp-md) var(--sp-xl)',
+            background: getEstado(doc.campo).url ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
+          }">
+            <div :style="{
+              width: '36px', height: '36px', borderRadius: '50%',
+              background:     getEstado(doc.campo).url ? 'var(--color-success)' : 'var(--color-primary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0',
+            }">
+              <IconCircleCheck v-if="getEstado(doc.campo).url" :size="18" :style="{ color: '#fff' }" />
+              <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
+            </div>
+            <div :style="{ flex: '1', minWidth: '0' }">
+              <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
+                {{ doc.titulo }}
+                <span v-if="!getEstado(doc.campo).url" :style="{ marginLeft: 'var(--sp-sm)', fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 6px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase' }">Obligatorio</span>
+              </div>
+              <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">
+                {{ getEstado(doc.campo).url ? (getEstado(doc.campo).nombre || 'Documento cargado correctamente') : doc.descripcion }}
+              </div>
+            </div>
+            <div v-if="getEstado(doc.campo).cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
+              <IconLoader2 :size="16" class="spin" />
+            </div>
+            <div v-else-if="getEstado(doc.campo).url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
+              <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview(getEstado(doc.campo).url, doc.titulo)">
+                <IconEye :size="13" /> Visualizar
+              </button>
+              <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--sp-xs)', display: 'flex', color: 'var(--color-success-text)' }" @click="quitarArchivo(doc.campo)">
+                <IconRefresh :size="16" />
+              </button>
+            </div>
+            <div v-else :style="{ flexShrink: '0' }">
+              <button :style="{
+                display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)',
+                padding: '6px 14px', borderRadius: 'var(--r-pill)',
+                border: '1px solid var(--color-border)', background: 'white',
+                cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)',
+              }" @click="seleccionarArchivo($refs[`ref_${doc.campo}`]?.[0])">
+                <IconUpload :size="14" />Subir PDF
+              </button>
+              <input :ref="`ref_${doc.campo}`" type="file" accept=".pdf" :style="{ display: 'none' }" @change="onFilePdf($event, doc.campo)" />
+            </div>
           </div>
-          <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">
-            {{ getEstado(doc.campo).url ? (getEstado(doc.campo).nombre || 'Documento cargado correctamente') : doc.descripcion }}
+          <div v-if="getEstado(doc.campo).error" :style="{ padding: '6px var(--sp-xl)', background: 'var(--color-error-bg)', color: 'var(--color-error-text)', fontSize: '10px', fontWeight: 'bold', borderTop: '1px solid var(--color-error)' }">
+            {{ getEstado(doc.campo).error }}
           </div>
         </div>
-
-        <!-- Acciones -->
-        <div v-if="getEstado(doc.campo).cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
-          <IconLoader2 :size="16" class="spin" />
-        </div>
-
-        <div v-else-if="getEstado(doc.campo).url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
-          <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview(getEstado(doc.campo).url, doc.titulo)">
-            <IconEye :size="13" /> Visualizar
-          </button>
-          <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--sp-xs)', display: 'flex', color: 'var(--color-success-text)' }" @click="quitarArchivo(doc.campo)">
-            <IconRefresh :size="16" />
-          </button>
-        </div>
-
-        <div v-else :style="{ flexShrink: '0' }">
-          <button
-            :style="{
-              display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)',
-              padding: '6px 14px', borderRadius: 'var(--r-pill)',
-              border: '1px solid var(--color-border)', background: 'white',
-              cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)',
-            }"
-            @click="seleccionarArchivo($refs[`ref_${doc.campo}`]?.[0])"
-          >
-            <IconUpload :size="14" />Subir PDF
-          </button>
-          <input :ref="`ref_${doc.campo}`" type="file" accept=".pdf" :style="{ display: 'none' }" @change="onFilePdf($event, doc.campo)" />
-        </div>
-      </div>
-
-      <!-- Error (si existe) -->
-      <div v-if="getEstado(doc.campo).error" :style="{ padding: '6px var(--sp-xl)', background: 'var(--color-error-bg)', color: 'var(--color-error-text)', fontSize: '10px', fontWeight: 'bold', borderTop: '1px solid var(--color-error)' }">
-        {{ getEstado(doc.campo).error }}
-      </div>
+      </template>
     </div>
 
+    <!-- Modal preview -->
     <Teleport to="body">
       <div v-if="modalPreviewVisible" :style="{ position: 'fixed', inset: '0', zIndex: '1000', background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--sp-lg)' }">
         <div :style="{ width: 'min(980px, 96vw)', height: 'min(86vh, 920px)', background: 'white', borderRadius: 'var(--r-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }">
@@ -301,4 +469,5 @@ const docsAdicionales = computed(() => {
 
 <style scoped>
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; }
 </style>

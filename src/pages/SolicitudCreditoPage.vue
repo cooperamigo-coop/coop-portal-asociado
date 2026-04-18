@@ -1676,32 +1676,8 @@ function onOtpValidado() {
         </div>
       </div>
 
-      <StepIndicator v-if="paso !== 1" :pasos="secciones" :actual="seccionActual" />
-
-      <!-- Título del paso + barra de progreso — solo pasos 2 y 3 -->
-      <div v-if="paso !== 1" :style="{ marginBottom: 'var(--sp-xl)', marginTop: 'var(--sp-lg)' }">
-        <div :style="{
-          display: 'flex', justifyContent: 'space-between',
-          alignItems: 'flex-end', marginBottom: 'var(--sp-sm)',
-        }">
-          <div :style="{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-extrabold)',
-            color: 'var(--color-text-1)',
-          }">{{ pasoActual?.titulo }}</div>
-        </div>
-        <div :style="{
-          height: '6px', background: 'var(--color-border)',
-          borderRadius: 'var(--r-pill)', overflow: 'hidden',
-        }">
-          <div :style="{
-            height: '100%',
-            width: (porcentaje) + '%',
-            background: 'var(--color-primary)',
-            borderRadius: 'var(--r-pill)',
-            transition: 'width var(--transition-base)',
-          }" />
-        </div>
+      <div v-if="paso !== 1" :style="{ marginTop: '56px' }">
+        <StepIndicator :pasos="secciones" :actual="seccionActual" />
       </div>
 
       <!-- ── PASO 1: Modalidad de crédito ─────────────────── -->
@@ -1715,6 +1691,7 @@ function onOtpValidado() {
       <!-- ── PASO 2: Formulario Completo (Estilo PDF) ───────── -->
       <div v-if="paso === 2" :style="{
         display: 'flex', flexDirection: 'column', gap: 'var(--sp-2xl)',
+        marginTop: '48px',
       }">
 
           <!-- 1. Información de la Solicitud -->
@@ -2237,7 +2214,7 @@ function onOtpValidado() {
 
       </div>
 
-      <!-- ── PASO 4: Documentos y autorización ────────── -->
+      <!-- ── PASO 4: Documentos ────────── -->
       <div v-if="paso === 4" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2xl)' }">
 
         <!-- Cargue de documentos -->
