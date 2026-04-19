@@ -254,7 +254,7 @@ const secciones = [
   { label: 'Tipo de crédito'        },
   { label: 'Diligenciar formulario' },
   { label: 'Codeudores'             },
-  { label: 'Documentos y', label2: 'autorización' },
+  { label: 'Documentos'             },
   { label: 'Enviar solicitud'       },
 ]
 
@@ -455,7 +455,7 @@ function _seccionResumen(titulo, obj, omit = [], orden = null) {
 const seccionesRevisionCompleta = computed(() => {
   const salida = []
   salida.push(_seccionResumen(
-    'Datos de la Solicitud',
+    'Información de la solicitud',
     general.value,
     [],
     [
@@ -1332,7 +1332,7 @@ function actualizarPlazo(valor) {
   const num = Number(valor)
   if (valor !== '' && num > maxPlazo.value) {
     const label = esEducativo.value ? 'educativo' : 'ordinario'
-    errorPlazo.value = `El plazo máximo para crédito ${label} es ${maxPlazo.value} meses.`
+    errorPlazo.value = `Plazo máximo crédito ${label} es ${maxPlazo.value} meses.`
     actualizarGeneral('plazo_solicitado', valor)
   } else {
     errorPlazo.value = null
@@ -1439,21 +1439,20 @@ function onOtpValidado() {
         fontWeight:   'var(--fw-extrabold)',
         color:        'var(--color-text-1)',
         marginBottom: 'var(--sp-md)',
-      }">¡Solicitud enviada exitosamente!</div>
+      }">¡Solicitud radicada exitosamente!</div>
       <div :style="{
         fontSize:   'var(--text-base)',
         color:      'var(--color-text-2)',
-        fontWeight: 'var(--fw-medium)',
+        fontWeight: 'var(--fw-regular)',
         lineHeight: '1.7',
         maxWidth:   '480px',
         margin:     '0 auto var(--sp-2xl)',
       }">
-        Su solicitud de crédito fue radicada correctamente.
-        Un asesor de Cooperamigó se comunicará con usted en
-        los próximos días hábiles para continuar el proceso.
+       Te recomendamos estar atento al correo y contacto proporcionado.<br>
+       En caso de presentarse alguna novedad, un asesor de Cooperamigó se comunicará oportunamente.
       </div>
       <PortalButton variant="primary" @click="router.push('/')">
-        Volver al inicio
+       Regresar al inicio
       </PortalButton>
 
       <!-- Aviso codeudores -->
@@ -1771,7 +1770,7 @@ function onOtpValidado() {
           <!-- 2. Información del Solicitante -->
           <div id="seccion-persona" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
             <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
-              <IconUserCheck :size="20" /> Información del solicitante
+              <IconUserCheck :size="20" /> Información personal
             </div>
             <div :style="{ padding: 'var(--sp-xl)' }">
               <SeccionPersona :model-value="persona" titulo="" :bloquear-documento="true" :bloquear-correo="true" :direccion-estructurada="direccionEstructurada" :ubicacion="ubicacionResidencia" :show-nivel-educativo="true" @update:model-value="persona = $event" @update:direccion-estructurada="direccionEstructurada = $event" @update:ubicacion="ubicacionResidencia = $event" />
@@ -1790,7 +1789,7 @@ function onOtpValidado() {
           <!-- 3. Información Laboral -->
           <div id="seccion-laboral" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
             <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
-              <IconRotate :size="20" /> Información laboral
+              <IconRotate :size="20" /> Situación laboral
             </div>
             <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
               <SelectorTipoTrabajador :model-value="laboral.tipo_trabajador" @update:model-value="actualizarLaboral('tipo_trabajador', $event)" />
@@ -2247,14 +2246,14 @@ function onOtpValidado() {
             <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--sp-md)' }">
               <div>
                 <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">Autorizaciones y declaraciones</div>
-                <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)' }">Debe leer y aceptar para continuar.</div>
+                <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)' }">A continuación, lea atentamente antes de autorizar</div>
               </div>
               <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', padding: 'var(--sp-sm) var(--sp-lg)', borderRadius: 'var(--r-pill)', background: autorizaciones.autorizacion_aceptada ? 'var(--color-success-bg)' : 'var(--color-bg-surface)', border: autorizaciones.autorizacion_aceptada ? '1px solid var(--color-success)' : '1px solid var(--color-border)' }">
                 <IconCircleCheck v-if="autorizaciones.autorizacion_aceptada" :size="16" :style="{ color: 'var(--color-success)' }" />
                 <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: autorizaciones.autorizacion_aceptada ? 'var(--color-success-text)' : 'var(--color-text-3)' }">{{ autorizaciones.autorizacion_aceptada ? 'Aceptadas' : 'Pendiente' }}</span>
               </div>
             </div>
-            <PortalButton variant="primary" :full="true" @click="modalAutorizacionesVisible = true">Leer y aceptar autorizaciones</PortalButton>
+            <PortalButton variant="primary" :full="true" @click="modalAutorizacionesVisible = true">Validar contenido</PortalButton>
           </div>
         </div>
 
@@ -2304,7 +2303,7 @@ function onOtpValidado() {
                     <summary :style="{ listStyle: 'none', cursor: 'pointer', padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)', background: 'var(--color-bg-surface)' }">
                       <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">{{ sec.titulo }}</span>
                     </summary>
-                    <div v-if="sec.titulo === 'Datos de la Solicitud'" :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '6px var(--sp-lg)', padding: '10px 12px', borderTop: '1px solid var(--color-border-light)' }">
+                    <div v-if="sec.titulo === 'Información de la solicitud'" :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '6px var(--sp-lg)', padding: '10px 12px', borderTop: '1px solid var(--color-border-light)' }">
                       <div v-for="item in sec.items" :key="sec.titulo + item.key" :style="{ padding: '10px 12px', border: '1px solid var(--color-border-light)', borderRadius: 'var(--r-md)', background: 'white', gridColumn: (!isMobile && item.key === 'tipo_operacion') ? 'span 2' : 'auto' }">
                         <div :style="{ fontSize: '10px', color: 'var(--color-text-3)', textTransform: 'uppercase', fontWeight: 'var(--fw-bold)' }">{{ item.label }}</div>
                         <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)' }">{{ item.value }}</div>
@@ -2405,11 +2404,11 @@ function onOtpValidado() {
           <!-- ── SECCIONES DEL SUMARIO ─────────────────────────── -->
           <div v-else :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
             
-            <!-- 1. Datos de la Solicitud -->
+            <!-- 1. Información de la solicitud -->
             <div :style="{ borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
               <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
                 <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
-                  <IconFileDescription :size="16" /> Datos de la solicitud
+                  <IconFileDescription :size="16" /> Información de la solicitud
                 </div>
                 <button @click="irAPaso(1)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
               </div>

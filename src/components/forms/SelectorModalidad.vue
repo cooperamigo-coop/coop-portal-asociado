@@ -11,14 +11,14 @@ const iconos = { CreditCard, GraduationCap }
 const opciones = [
   {
     value:       'ordinario',
-    titulo:      'Crédito ordinario o de consumo',
+    titulo:      'Crédito Ordinario/Consumo',
     descripcion: 'Para necesidades personales, vivienda, vehículo u otros destinos.',
     icono:       'CreditCard',
   },
   {
     value:       'educativo',
-    titulo:      'Crédito educativo',
-    descripcion: 'Para estudios propios o de un familiar directo. Aplican condiciones especiales.',
+    titulo:      'Crédito Educativo',
+    descripcion: 'Para estudios de pregrado/postgrado en la Universidad Católica Luis Amigó',
     icono:       'GraduationCap',
   },
 ]
@@ -42,7 +42,7 @@ const opciones = [
         fontWeight: 'var(--fw-regular)',
         lineHeight: '1.6',
         margin:     '0',
-      }">A continuación, diligencie todos los datos necesarios en nuestro proceso de solicitud de crédito.</p>
+      }">¿Qué modalidad de crédito deseas solicitar?</p>
     </div>
     <div
       v-for="op in opciones"

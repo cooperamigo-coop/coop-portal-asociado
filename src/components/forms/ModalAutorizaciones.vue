@@ -158,7 +158,7 @@ function cerrar() {
             }"
           >
             <IconChevronsDown :size="14" :style="{ flexShrink: '0' }" />
-            Desplace hasta el final del texto para habilitar los botones
+            Lea el contenido con atención y desplace hasta el final para aprobar o rechazar
           </div>
 
           <!-- Texto legal — scrolleable -->

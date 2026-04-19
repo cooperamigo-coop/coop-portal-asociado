@@ -19,18 +19,12 @@
           <span class="footer-sep">·</span>
           <span class="footer-email">info@cooperamigo.coop</span>
         </p>
-        <p class="footer-info-row footer-info-tagline footer-info--desktop">
-          Portal de trámites digitales para asociados Cooperamigó
-        </p>
         <!-- Mobile: dos líneas -->
         <p class="footer-info-row footer-info--mobile">© 2026 COOPERATIVA MULTIACTIVA LUIS AMIGÓ - COOPERAMIGÓ</p>
         <p class="footer-info-row footer-info--mobile footer-nit-mobile">
           NIT 800.191.482-7
           <span class="footer-sep">·</span>
           <span class="footer-email">info@cooperamigo.coop</span>
-        </p>
-        <p class="footer-info-row footer-info-tagline footer-info--mobile">
-          Portal de trámites digitales para asociados Cooperamigó
         </p>
 
         <div class="footer-info-row footer-links">

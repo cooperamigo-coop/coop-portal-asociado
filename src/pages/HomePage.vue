@@ -62,7 +62,7 @@ const SERVICIOS_NO_ASOCIADO = [
     id: 'afiliacion',
     icono: IconUserPlus,
     nombre: 'Gestionar afiliación',
-    descripcion: 'Haga parte de nuestra comunidad cooperativa.',
+    descripcion: 'Gestiona tu proceso de vinculación como asociado.',
     disponible: true,
     ruta: '/solicitar-afiliacion',
     iconoBg: 'var(--color-bg-surface-alt)',
@@ -131,8 +131,8 @@ const SERVICIOS_NO_ASOCIADO = [
         <!-- ── Vista: pregunta inicial ───────────────────────── -->
         <div v-if="paso === 'pregunta'" class="vista animate-in">
           <img src="/favicon.svg" alt="Cooperamigó" class="hero-favicon" />
-          <h1 class="hero-title">Te damos la bienvenida</h1>
-          <p class="hero-question">¿Ya haces parte de nuestra cooperativa? Accede a tus trámites digitales o inicia tu proceso de vinculación como asociado.</p>
+          <h1 class="hero-title">¡Te damos la bienvenida!</h1>
+          <p class="hero-question">¿Ya haces parte de Cooperamigó?<br>Accede a los trámites digitales o inicia tu proceso de vinculación como asociado.</p>
           <div class="opciones">
             <button
               class="btn-opcion btn-opcion--primary"
@@ -140,7 +140,7 @@ const SERVICIOS_NO_ASOCIADO = [
               :disabled="proximamente"
               @click="!proximamente && (paso = 'asociado')"
             >
-              Sí, soy asociado
+              Soy asociado
             </button>
             <button
               class="btn-opcion btn-opcion--secondary"
@@ -148,7 +148,7 @@ const SERVICIOS_NO_ASOCIADO = [
               :disabled="proximamente"
               @click="!proximamente && (paso = 'no-asociado')"
             >
-              No, no estoy afiliado
+              Quiero afiliarme
             </button>
           </div>
           <p v-if="proximamente" class="proximamente-msg">
@@ -234,7 +234,7 @@ const SERVICIOS_NO_ASOCIADO = [
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  background: var(--color-bg-app);
+  background: white;
   font-family: var(--font-body);
   position: relative;
 }
@@ -316,7 +316,7 @@ const SERVICIOS_NO_ASOCIADO = [
 }
 
 .hero-question {
-  font-size: var(--text-lg);
+  font-size: 16px;
   font-weight: var(--fw-regular);
   color: var(--color-text-2);
   margin: 0;
@@ -606,7 +606,7 @@ const SERVICIOS_NO_ASOCIADO = [
 
 .vb-nombre {
   font-size: 0.66rem;
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-regular);
   letter-spacing: 0.06em;
   color: var(--color-primary);
 }
