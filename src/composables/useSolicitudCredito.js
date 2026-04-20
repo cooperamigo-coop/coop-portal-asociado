@@ -849,7 +849,7 @@ export function useSolicitudCredito() {
 
   // Persistir URLs de documentos en Supabase inmediatamente al cargarse
   watch(documentos, async (newDocs) => {
-    if (!solicitudId.value) return
+    if (!solicitudId.value || enviado.value) return
     const campos = {}
     for (const [k, v] of Object.entries(newDocs)) {
       if (v) campos[k] = v
@@ -976,6 +976,7 @@ export function useSolicitudCredito() {
       }
 
       await registrarIntento(supabase, verificacion.value.numero_documento, 'envio_credito')
+      clearTimeout(_debounceTimer) // cancelar auto-guardado pendiente antes de limpiar
       limpiarBorradorLocal(verificacion.value.correo)
       enviado.value = true
     } catch (e) {
