@@ -164,11 +164,11 @@ export function useSolicitudCredito() {
     numero_identificacion_codeudor: '',
     nombres_codeudor: '',
     apellidos_codeudor: '',
-    correo_codeudor: '',
+    correo_electronico_codeudor: '',
     celular_codeudor: '',
-    direccion_codeudor: '',
+    direccion_residencia_codeudor: '',
     fecha_nacimiento_codeudor: '',
-    fecha_expedicion_codeudor: '',
+    fecha_expedicion_documento_codeudor: '',
     nivel_educativo_codeudor: '',
   })
   const laboralCod1 = ref({
@@ -209,11 +209,11 @@ export function useSolicitudCredito() {
     numero_identificacion_codeudor2: '',
     nombres_codeudor2: '',
     apellidos_codeudor2: '',
-    correo_codeudor2: '',
+    correo_electronico_codeudor2: '',
     celular_codeudor2: '',
-    direccion_codeudor2: '',
+    direccion_residencia_codeudor2: '',
     fecha_nacimiento_codeudor2: '',
-    fecha_expedicion_codeudor2: '',
+    fecha_expedicion_documento_codeudor2: '',
     nivel_educativo_codeudor2: '',
   })
   const laboralCod2 = ref({
@@ -584,24 +584,42 @@ export function useSolicitudCredito() {
           : cuenta.value.entidad_bancaria,
       }))(cuenta.value),
       // Codeudor 1
-      ...(numCodudores.value >= 1 ? (({ ciudad_expedicion_codeudor: _ce, ...p }) => p)(personaCod1.value) : {}),
-      ...(numCodudores.value >= 1 ? { celular_codeudor: personaCod1.value.celular_codeudor } : {}),
+      ...(numCodudores.value >= 1 ? (({
+        ciudad_expedicion_codeudor: _ce,
+        correo_electronico_codeudor: _correo,
+        direccion_residencia_codeudor: _dir,
+        fecha_expedicion_documento_codeudor: _fexp,
+        ...p
+      }) => p)(personaCod1.value) : {}),
       ...(numCodudores.value >= 1 ? laboralCod1.value : {}),
       ...(numCodudores.value >= 1 ? financieraCod1.value : {}),
       ...(numCodudores.value >= 1 ? patrimonioCod1.value : {}),
       ...(numCodudores.value >= 1 ? {
         ciudad_codeudor: ubicacionCod1.value.municipio_nombre,
         departamento_codeudor: ubicacionCod1.value.depto_nombre,
+        // Mapeo explícito a nombres de columna DB
+        correo_codeudor: personaCod1.value.correo_electronico_codeudor,
+        direccion_codeudor: personaCod1.value.direccion_residencia_codeudor,
+        fecha_expedicion_codeudor: personaCod1.value.fecha_expedicion_documento_codeudor,
       } : {}),
       // Codeudor 2
-      ...(numCodudores.value >= 2 ? (({ ciudad_expedicion_codeudor2: _ce, ...p }) => p)(personaCod2.value) : {}),
-      ...(numCodudores.value >= 2 ? { celular_codeudor2: personaCod2.value.celular_codeudor2 } : {}),
+      ...(numCodudores.value >= 2 ? (({
+        ciudad_expedicion_codeudor2: _ce2,
+        correo_electronico_codeudor2: _correo2,
+        direccion_residencia_codeudor2: _dir2,
+        fecha_expedicion_documento_codeudor2: _fexp2,
+        ...p
+      }) => p)(personaCod2.value) : {}),
       ...(numCodudores.value >= 2 ? laboralCod2.value : {}),
       ...(numCodudores.value >= 2 ? financieraCod2.value : {}),
       ...(numCodudores.value >= 2 ? patrimonioCod2.value : {}),
       ...(numCodudores.value >= 2 ? {
         ciudad_codeudor2: ubicacionCod2.value.municipio_nombre,
         departamento_codeudor2: ubicacionCod2.value.depto_nombre,
+        // Mapeo explícito a nombres de columna DB
+        correo_codeudor2: personaCod2.value.correo_electronico_codeudor2,
+        direccion_codeudor2: personaCod2.value.direccion_residencia_codeudor2,
+        fecha_expedicion_codeudor2: personaCod2.value.fecha_expedicion_documento_codeudor2,
       } : {}),
       // Documentos capturados
       ...(({ value: _value, ...docs }) => docs)(documentos.value),
@@ -848,6 +866,7 @@ export function useSolicitudCredito() {
 
   // ── Guardar: localStorage + Supabase ─────────────────────
   async function guardarPaso() {
+    if (enviado.value) return
     try {
       if (verificacion.value.correo) {
         guardarBorradorLocal(verificacion.value.correo, _snapshotBorrador())
@@ -857,7 +876,12 @@ export function useSolicitudCredito() {
         const nuevo = await crearBorrador(datos)
         solicitudId.value = nuevo.id
       } else {
-        await actualizarBorrador(solicitudId.value, datos)
+        const actualizado = await actualizarBorrador(solicitudId.value, datos)
+        if (!actualizado) {
+          // La solicitud ya no está en estado borrador (enviada o eliminada).
+          // Resetear para evitar errores futuros en esta sesión.
+          solicitudId.value = null
+        }
       }
     } catch (e) {
       console.error('Error guardando borrador:', e)
@@ -932,11 +956,11 @@ export function useSolicitudCredito() {
       // Generar y persistir tokens de firma para codeudores antes de enviar
       if (numCodudores.value >= 1) {
         datos.token_firma_codeudor1 = generarToken()
-        datos.correo_envio_codeudor1 = personaCod1.value.correo_codeudor
+        datos.correo_envio_codeudor1 = personaCod1.value.correo_electronico_codeudor
       }
       if (numCodudores.value >= 2) {
         datos.token_firma_codeudor2 = generarToken()
-        datos.correo_envio_codeudor2 = personaCod2.value.correo_codeudor2
+        datos.correo_envio_codeudor2 = personaCod2.value.correo_electronico_codeudor2
       }
 
       // Guardar tokens en la BD antes de marcar como enviado

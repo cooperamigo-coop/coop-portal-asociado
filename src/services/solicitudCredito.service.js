@@ -29,9 +29,9 @@ export async function actualizarBorrador(id, datos) {
     .eq('id', id)
     .eq('estado', 'borrador')
     .select()
-    .single()
+    .maybeSingle()
   if (error) throw error
-  return data
+  return data // null si no hay fila que coincida (solicitud enviada o eliminada)
 }
 
 export async function enviarSolicitud(id) {

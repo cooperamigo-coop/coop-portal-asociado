@@ -33,7 +33,7 @@ import {
   IconCircleCheck, IconShieldCheck,
   IconUser, IconUserX, IconMail, IconRotate, IconUsers, IconUserCheck, IconFileDescription,
   IconCheck, IconUpload, IconCamera, IconX, IconLoader2,
-  IconPencil, IconAlertTriangle, IconFileCheck, IconFile, IconRotateClockwise2, IconChecklist,
+  IconPencil, IconAlertTriangle, IconFileCheck, IconFile, IconRotateClockwise2,
 } from '@tabler/icons-vue'
 import { useSolicitudCredito } from '@/composables/useSolicitudCredito'
 import { useBreakpoint } from '@/composables/useBreakpoint'
@@ -94,8 +94,7 @@ const certBancaria  = ref({ cargando: false, url: null, nombre: null, error: nul
 const modalPreviewDocVisible = ref(false)
 const modalPreviewDocUrl = ref('')
 const modalPreviewDocTitulo = ref('')
-const modalPdfFormalVisible = ref(false)
-const pdfFormalUrl = ref('')
+
 const intentoContinuarPaso2 = ref(false)
 
 function _nombreCorto(nombre) {
@@ -209,6 +208,9 @@ function cerrarPreviewDoc() {
 function continuar() {
   if (paso.value === 2 && !pasoSolicitudValido.value) {
     intentoContinuarPaso2.value = true
+    return
+  }
+  if (paso.value === 3 && hayErroresDuplicidad.value) {
     return
   }
   if (paso.value === 4 && !autorizaciones.value.autorizacion_aceptada) {
@@ -427,12 +429,22 @@ function _upperBonito(v) {
 
 function _valorVisible(k, v) {
   if (_esVacio(v)) return null
-  if (typeof v === 'boolean') return v ? 'SI' : 'NO'
+  if (typeof v === 'boolean') return v ? 'Sí' : 'No'
   if (typeof v === 'string' && k.includes('fecha')) return formatFecha(v) || v
   if (typeof v === 'number' && /(valor|monto|salario|ingresos|gastos|obligaciones|mesada|cuota|total)/i.test(k)) return formatMonto(v)
   if (typeof v === 'string' && /_url$/.test(k)) return 'Documento cargado'
-  if (typeof v === 'string' && ['modalidad_credito', 'tipo_operacion', 'destino_credito', 'tipo_estudio'].includes(k)) return _upperBonito(v)
-  return String(v)
+  // Enum lookups — evitar valores crudos como cedula_ciudadania
+  if (['tipo_documento', 'tipo_documento_codeudor', 'tipo_documento_codeudor2'].includes(k)) return LABEL_TIPO_DOC[v] || v
+  if (k === 'modalidad_credito') return LABEL_MODALIDAD[v] || v
+  if (k === 'tipo_operacion') return LABEL_TIPO_OP[v] || v
+  if (k === 'tipo_estudio') return LABEL_TIPO_ESTUDIO[v] || v
+  if (['tipo_trabajador', 'tipo_trabajador_codeudor', 'tipo_trabajador_codeudor2'].includes(k)) return LABEL_TIPO_TRABAJADOR[v] || v
+  if (k === 'tipo_cuenta') return LABEL_TIPO_CUENTA[v] || v
+  if (['tipo_contrato', 'tipo_contrato_codeudor', 'tipo_contrato_codeudor2'].includes(k)) return LABEL_TIPO_CONTRATO[v] || v
+  if (['nivel_educativo_solicitante', 'nivel_educativo_codeudor', 'nivel_educativo_codeudor2'].includes(k)) return LABEL_NIVEL_EDUCATIVO[v] || v
+  // Capitalizar primera letra en otros strings
+  const str = String(v)
+  return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
 function _seccionResumen(titulo, obj, omit = [], orden = null) {
@@ -470,29 +482,67 @@ const seccionesRevisionCompleta = computed(() => {
       'denominacion_carrera',
     ]
   ))
-  salida.push(_seccionResumen('Datos del Solicitante', persona.value))
-  salida.push(_seccionResumen('Ubicacion del Solicitante', ubicacionResidencia.value))
-  salida.push(_seccionResumen('Informacion Laboral', laboral.value))
-  salida.push(_seccionResumen('Informacion Financiera', financiera.value))
+  salida.push(_seccionResumen('Información personal', persona.value))
+  salida.push(_seccionResumen('Ubicación de residencia', ubicacionResidencia.value))
+  salida.push(_seccionResumen('Situación laboral', laboral.value))
+  salida.push(_seccionResumen('Información financiera', financiera.value))
   salida.push(_seccionResumen('Patrimonio', patrimonio.value))
-  salida.push(_seccionResumen('Cuenta de Desembolso', cuenta.value))
-  salida.push(_seccionResumen('Documentos', documentos.value))
+  salida.push(_seccionResumen('Cuenta de desembolso', cuenta.value))
+  salida.push(_seccionResumen('Documentos adjuntos', documentos.value))
   if (numCodudores.value >= 1) {
-    salida.push(_seccionResumen('Codeudor 1 - Persona', personaCod1.value))
-    salida.push(_seccionResumen('Codeudor 1 - Laboral', laboralCod1.value))
-    salida.push(_seccionResumen('Codeudor 1 - Financiera', financieraCod1.value))
-    salida.push(_seccionResumen('Codeudor 1 - Patrimonio', patrimonioCod1.value))
+    salida.push(_seccionResumen('Codeudor 1 — Información personal', personaCod1.value))
+    salida.push(_seccionResumen('Codeudor 1 — Situación laboral', laboralCod1.value))
+    salida.push(_seccionResumen('Codeudor 1 — Información financiera', financieraCod1.value))
+    salida.push(_seccionResumen('Codeudor 1 — Patrimonio', patrimonioCod1.value))
   }
   if (numCodudores.value >= 2) {
-    salida.push(_seccionResumen('Codeudor 2 - Persona', personaCod2.value))
-    salida.push(_seccionResumen('Codeudor 2 - Laboral', laboralCod2.value))
-    salida.push(_seccionResumen('Codeudor 2 - Financiera', financieraCod2.value))
-    salida.push(_seccionResumen('Codeudor 2 - Patrimonio', patrimonioCod2.value))
+    salida.push(_seccionResumen('Codeudor 2 — Información personal', personaCod2.value))
+    salida.push(_seccionResumen('Codeudor 2 — Situación laboral', laboralCod2.value))
+    salida.push(_seccionResumen('Codeudor 2 — Información financiera', financieraCod2.value))
+    salida.push(_seccionResumen('Codeudor 2 — Patrimonio', patrimonioCod2.value))
   }
   return salida.filter(s => s.items.length > 0)
 })
 
-const usarNuevoResumenRevision = true
+// ── Validaciones de unicidad entre titular y codeudores ─────
+const erroresDuplicidadCod1 = computed(() => {
+  const errs = []
+  if (!numCodudores.value) return errs
+  const c = personaCod1.value
+  const t = persona.value
+  if (c.correo_electronico_codeudor && c.correo_electronico_codeudor === t.correo_electronico)
+    errs.push('El correo del Codeudor 1 coincide con el del titular')
+  if (c.celular_codeudor && c.celular_codeudor === t.celular)
+    errs.push('El celular del Codeudor 1 coincide con el del titular')
+  if (c.numero_identificacion_codeudor && c.numero_identificacion_codeudor === t.numero_identificacion)
+    errs.push('La identificación del Codeudor 1 coincide con la del titular')
+  return errs
+})
+
+const erroresDuplicidadCod2 = computed(() => {
+  const errs = []
+  if (numCodudores.value < 2) return errs
+  const c  = personaCod2.value
+  const t  = persona.value
+  const c1 = personaCod1.value
+  if (c.correo_electronico_codeudor2) {
+    if (c.correo_electronico_codeudor2 === t.correo_electronico) errs.push('El correo del Codeudor 2 coincide con el del titular')
+    if (c.correo_electronico_codeudor2 === c1.correo_electronico_codeudor)  errs.push('El correo del Codeudor 2 coincide con el del Codeudor 1')
+  }
+  if (c.celular_codeudor2) {
+    if (c.celular_codeudor2 === t.celular)           errs.push('El celular del Codeudor 2 coincide con el del titular')
+    if (c.celular_codeudor2 === c1.celular_codeudor) errs.push('El celular del Codeudor 2 coincide con el del Codeudor 1')
+  }
+  if (c.numero_identificacion_codeudor2) {
+    if (c.numero_identificacion_codeudor2 === t.numero_identificacion)       errs.push('La identificación del Codeudor 2 coincide con la del titular')
+    if (c.numero_identificacion_codeudor2 === c1.numero_identificacion_codeudor) errs.push('La identificación del Codeudor 2 coincide con la del Codeudor 1')
+  }
+  return errs
+})
+
+const hayErroresDuplicidad = computed(() =>
+  erroresDuplicidadCod1.value.length > 0 || erroresDuplicidadCod2.value.length > 0
+)
 
 const firmaSolicitanteAplicada = computed(() => !!firma.value.firma_hash)
 
@@ -887,9 +937,14 @@ async function aplicarFirmaSolicitante() {
   } catch {}
 }
 
-function cerrarPdfFormal() {
-  modalPdfFormalVisible.value = false
+async function firmarYEnviar() {
+  if (!firma.value.nombre_firma || !firmaImagen.value) return
+  if (!firmaSolicitanteAplicada.value) {
+    await aplicarFirmaSolicitante()
+  }
+  await enviar()
 }
+
 
 const _pdfAssets = {
   logoPngDataUrl: null,
@@ -1257,12 +1312,6 @@ async function _generarPdfFormalizadoBlob() {
   return doc.output('blob')
 }
 
-async function generarYVerPdfFormalizado() {
-  const blob = await _generarPdfFormalizadoBlob()
-  if (pdfFormalUrl.value?.startsWith('blob:')) URL.revokeObjectURL(pdfFormalUrl.value)
-  pdfFormalUrl.value = URL.createObjectURL(blob)
-  modalPdfFormalVisible.value = true
-}
 
 // ── Cálculos financieros ──────────────────────────────────
 const capacidadEndeudamiento = computed(() => {
@@ -1898,7 +1947,7 @@ function onOtpValidado() {
                         Carta de autorización
                         <span :style="{ marginLeft: 'var(--sp-sm)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 8px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Obligatorio</span>
                       </div>
-                      <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">Carta firmada por el titular autorizando el desembolso.</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)' }">Debe anexar carta firmada autorizando el desembolso de los recursos en cuenta de titularidad de un tercero.</div>
                     </div>
                     <div v-if="cartaAutorizacion.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', flexShrink: '0' }">
                       <IconLoader2 :size="15" :style="{ animation: 'spin 1s linear infinite' }" /> Subiendo…
@@ -1934,7 +1983,7 @@ function onOtpValidado() {
                         Certificación bancaria
                         <span :style="{ marginLeft: 'var(--sp-sm)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 8px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Obligatorio</span>
                       </div>
-                      <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">Certificación bancaria del titular que confirme la cuenta.</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)' }">Por favor, anexe la certificación bancaria de la cuenta indicada.</div>
                     </div>
                     <div v-if="certBancaria.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', flexShrink: '0' }">
                       <IconLoader2 :size="15" :style="{ animation: 'spin 1s linear infinite' }" /> Subiendo…
@@ -2211,6 +2260,22 @@ function onOtpValidado() {
           </div>
         </template>
 
+        <!-- ── Alertas de datos duplicados ──────────────── -->
+        <div v-if="erroresDuplicidadCod1.length > 0 || erroresDuplicidadCod2.length > 0" :style="{
+          borderRadius: 'var(--r-md)', padding: 'var(--sp-md) var(--sp-lg)',
+          background: 'var(--color-error-bg)', border: '1px solid var(--color-error)',
+          display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)',
+        }">
+          <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-error-text)', fontSize: 'var(--text-sm)', marginBottom: 'var(--sp-xs)' }">
+            <IconAlertTriangle :size="16" /> Datos duplicados — corrija antes de continuar
+          </div>
+          <div
+            v-for="err in [...erroresDuplicidadCod1, ...erroresDuplicidadCod2]"
+            :key="err"
+            :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-error-text)', fontWeight: 'var(--fw-medium)' }"
+          >• {{ err }}</div>
+        </div>
+
       </div>
 
       <!-- ── PASO 4: Documentos ────────── -->
@@ -2262,7 +2327,7 @@ function onOtpValidado() {
       </div>
 
       <!-- ── PASO 5: Revisión y firma ─────────────────── -->
-      <div v-if="paso === 5" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+      <div v-if="paso === 5" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
 
           <div :style="{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 'var(--sp-md)', flexWrap: 'wrap' }">
             <div :style="{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)' }">
@@ -2290,435 +2355,834 @@ function onOtpValidado() {
             </div>
           </div>
 
-          <div v-if="usarNuevoResumenRevision" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
-              <div :style="{ borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
-                <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)' }">
-                  <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
-                    <IconChecklist :size="16" /> Resumen completo diligenciado
-                  </div>
-                  <button @click="irAPaso(2)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
-                </div>
-                <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
-                  <details v-for="sec in seccionesRevisionCompleta" :key="sec.titulo" open :style="{ border: '1px solid var(--color-border-light)', borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'white' }">
-                    <summary :style="{ listStyle: 'none', cursor: 'pointer', padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)', background: 'var(--color-bg-surface)' }">
-                      <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">{{ sec.titulo }}</span>
-                    </summary>
-                    <div v-if="sec.titulo === 'Información de la solicitud'" :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '6px var(--sp-lg)', padding: '10px 12px', borderTop: '1px solid var(--color-border-light)' }">
-                      <div v-for="item in sec.items" :key="sec.titulo + item.key" :style="{ padding: '10px 12px', border: '1px solid var(--color-border-light)', borderRadius: 'var(--r-md)', background: 'white', gridColumn: (!isMobile && item.key === 'tipo_operacion') ? 'span 2' : 'auto' }">
-                        <div :style="{ fontSize: '10px', color: 'var(--color-text-3)', textTransform: 'uppercase', fontWeight: 'var(--fw-bold)' }">{{ item.label }}</div>
-                        <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)' }">{{ item.value }}</div>
-                      </div>
-                    </div>
-                    <div v-else :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '0', borderTop: '1px solid var(--color-border-light)' }">
-                      <div v-for="(item, idx) in sec.items" :key="sec.titulo + item.key" :style="{ padding: '10px 12px', borderBottom: '1px solid var(--color-border-light)', borderRight: !isMobile && (idx % 2 === 0) ? '1px solid var(--color-border-light)' : 'none' }">
-                        <div :style="{ fontSize: '10px', color: 'var(--color-text-3)', textTransform: 'uppercase', fontWeight: 'var(--fw-bold)' }">{{ item.label }}</div>
-                        <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)' }">{{ item.value }}</div>
-                      </div>
-                    </div>
-                  </details>
-                </div>
+          <!-- 1. Información de la solicitud -->
+          <div :style="{ borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
+            <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
+              <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
+                <IconFileDescription :size="16" /> Información de la solicitud
               </div>
-
-              <div :style="{ borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
-                <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-                  <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
-                    <IconUpload :size="16" /> Documentos adjuntos
-                  </div>
-                  <button @click="irAPaso(4)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
-                </div>
-                <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-sm)' }">
-                  <button
-                    v-for="doc in docResumen"
-                    :key="doc.label"
-                    type="button"
-                    :disabled="!doc.url"
-                    @click="doc.url ? (modalPreviewDocUrl = doc.url, modalPreviewDocTitulo = doc.label, modalPreviewDocVisible = true) : null"
-                    :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', background: doc.url ? 'var(--color-success-bg)' : 'var(--color-bg-surface)', padding: '4px 12px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (doc.url ? 'var(--color-success)' : 'var(--color-border)'), cursor: doc.url ? 'pointer' : 'not-allowed', opacity: doc.url ? 1 : 0.7 }"
-                  >
-                    <IconCheck v-if="doc.url" :size="12" :style="{ color: 'var(--color-success)' }" />
-                    <IconX v-else :size="12" :style="{ color: 'var(--color-error)' }" />
-                    <span :style="{ fontSize: '11px', fontWeight: 'bold', color: doc.url ? 'var(--color-success-text)' : 'var(--color-text-3)' }">{{ doc.label }}</span>
-                  </button>
-                </div>
+              <button @click="irAPaso(2)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
+            </div>
+            <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 'var(--sp-md)' }">
+              <div>
+                <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Modalidad</div>
+                <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_MODALIDAD, general.modalidad_credito) }}</div>
               </div>
-
-            <div :style="{ borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
-              <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
-                <IconShieldCheck :size="18" :style="{ color: 'var(--color-primary)' }" />
-                <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">Firmar solicitud de crédito</span>
+              <div v-if="mostrarTipoOperacion">
+                <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Operación</div>
+                <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_OP, general.tipo_operacion) }}</div>
               </div>
-              <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
-                <div v-if="numCodudores > 0" :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-impulso)', fontWeight: 'var(--fw-bold)' }">Firma habilitada por ahora solo para solicitudes sin codeudores.</div>
-                <CampoTexto label="Nombre completo del solicitante" placeholder="TAL CUAL APARECE EN SU CÉDULA" :model-value="firma.nombre_firma" @update:model-value="firma.nombre_firma = $event" />
-
-                <div :style="{ display: 'flex', gap: '6px', flexWrap: 'wrap' }">
-                  <button type="button" @click="firmaMetodo = 'dibujar'" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (firmaMetodo === 'dibujar' ? 'var(--color-primary)' : 'var(--color-border)'), background: firmaMetodo === 'dibujar' ? 'rgba(17,76,90,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'dibujar' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Firmar en pantalla</button>
-                  <button type="button" @click="firmaMetodo = 'subir'" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-border)'), background: firmaMetodo === 'subir' ? 'rgba(17,76,90,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Cargar firma</button>
-                </div>
-
-                <div v-if="firmaMetodo === 'dibujar'" :style="{ display: 'flex', flexDirection: 'column', gap: '8px' }">
-                  <div :style="{ border: '1px solid var(--color-border)', borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'white' }">
-                    <canvas
-                      ref="firmaCanvasRef"
-                      width="720"
-                      height="220"
-                      :style="{ width: '100%', height: '140px', touchAction: 'none', display: 'block', cursor: 'crosshair' }"
-                      @mousedown="iniciarFirmaDibujo"
-                      @mousemove="moverFirmaDibujo"
-                      @mouseup="terminarFirmaDibujo"
-                      @mouseleave="terminarFirmaDibujo"
-                      @touchstart.prevent="iniciarFirmaDibujo"
-                      @touchmove.prevent="moverFirmaDibujo"
-                      @touchend="terminarFirmaDibujo"
-                    />
-                  </div>
-                  <div :style="{ display: 'flex', justifyContent: 'flex-end' }">
-                    <PortalButton variant="secondary" @click="limpiarFirmaDibujo()">Limpiar</PortalButton>
-                  </div>
-                </div>
-
-                <div v-if="firmaMetodo === 'subir'" :style="{ display: 'flex', flexDirection: 'column', gap: '8px' }">
-                  <div :style="{ border: '1px dashed var(--color-border)', borderRadius: 'var(--r-md)', padding: '10px 12px', background: 'var(--color-bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)', flexWrap: 'wrap' }">
-                    <div :style="{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '180px' }">
-                      <div :style="{ fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Archivo de firma</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: firmaArchivoNombre ? 'var(--color-text-1)' : 'var(--color-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? '100%' : '340px' }">
-                        {{ firmaArchivoNombre || 'PNG o JPG con fondo preferiblemente blanco' }}
-                      </div>
-                    </div>
-                    <PortalButton variant="secondary" @click="seleccionarFirmaArchivo()">Seleccionar archivo</PortalButton>
-                    <input ref="firmaFileRef" type="file" accept="image/png,image/jpeg" :style="{ display: 'none' }" @change="cargarFirmaImagen" />
-                  </div>
-                </div>
-
-                <div :style="{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-sm)', alignItems: 'center' }">
-                  <PortalButton variant="primary" :disabled="!firma.nombre_firma || !firmaImagen || numCodudores > 0" @click="aplicarFirmaSolicitante()">Aplicar firma electrónica</PortalButton>
-                  <PortalButton variant="secondary" :disabled="!firmaSolicitanteAplicada" @click="generarYVerPdfFormalizado()">Ver PDF</PortalButton>
-                </div>
-
-                <div v-if="firmaSolicitanteAplicada" :style="{ fontSize: '11px', color: 'var(--color-text-3)' }">Firma aplicada: {{ formatearFecha(firma.firma_fecha_iso) }}</div>
-                <div v-if="firmaSolicitanteAplicada" :style="{ fontSize: '11px', color: 'var(--color-text-3)' }">Huella de firma: {{ firma.firma_hash }}</div>
+              <div v-if="mostrarValorCredito">
+                <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Valor del crédito</div>
+                <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '800', color: 'var(--color-primary)' }">{{ formatMonto(general.valor_credito) }}</div>
+              </div>
+              <div v-if="mostrarValorReestructura">
+                <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Valor reestructura</div>
+                <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '800', color: 'var(--color-primary)' }">{{ formatMonto(general.valor_reestructura) }}</div>
+              </div>
+              <div v-if="mostrarValorDesembolso">
+                <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Desembolso adicional</div>
+                <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '800', color: 'var(--color-primary)' }">{{ formatMonto(general.valor_desembolso) }}</div>
+              </div>
+              <div>
+                <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Plazo</div>
+                <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ general.plazo_solicitado }} meses</div>
+              </div>
+              <div v-if="esEducativo" :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Carrera</div>
+                <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ general.denominacion_carrera }} ({{ label(LABEL_TIPO_ESTUDIO, general.tipo_estudio) }})</div>
+              </div>
+              <div v-else :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Destino</div>
+                <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ general.destino_credito }}</div>
               </div>
             </div>
           </div>
 
-          <!-- ── SECCIONES DEL SUMARIO ─────────────────────────── -->
-          <div v-else :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-            
-            <!-- 1. Información de la solicitud -->
-            <div :style="{ borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
-              <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-                <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
-                  <IconFileDescription :size="16" /> Información de la solicitud
-                </div>
-                <button @click="irAPaso(1)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
+          <!-- 2. Información personal del titular -->
+          <div :style="{ borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
+            <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
+              <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
+                <IconUser :size="16" /> Información personal
               </div>
-              <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 'var(--sp-md)' }">
-                <div>
-                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Modalidad</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_MODALIDAD, general.modalidad_credito) }}</div>
-                </div>
-                <div v-if="mostrarTipoOperacion">
-                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Operación</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_OP, general.tipo_operacion) }}</div>
-                </div>
-                <div>
-                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Monto</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '800', color: 'var(--color-primary)' }">{{ formatMonto(general.valor_credito || general.valor_reestructura) }}</div>
-                </div>
-                <div>
-                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Plazo</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ general.plazo_solicitado }} meses</div>
-                </div>
-                <div v-if="esEducativo" :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
-                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Carrera</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ general.denominacion_carrera }} ({{ label(LABEL_TIPO_ESTUDIO, general.tipo_estudio) }})</div>
-                </div>
-                <div v-else :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
-                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Destino</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ general.destino_credito }}</div>
-                </div>
-              </div>
+              <button @click="irAPaso(2)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
             </div>
-
-            <!-- 2. Información del Titular (Compacto) -->
-            <div :style="{ borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
-              <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-                <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
-                  <IconUser :size="16" /> Información del titular
+            <div :style="{ padding: 'var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nombre completo</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.nombres }} {{ persona.apellidos }}</div>
                 </div>
-                <button @click="irAPaso(2)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
+                <div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Documento</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_DOC, persona.tipo_documento) }} {{ persona.numero_identificacion }}</div>
+                </div>
+                <div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Expedición</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(persona.fecha_expedicion_documento) }}</div>
+                </div>
+                <div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nacimiento</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(persona.fecha_nacimiento) }}</div>
+                </div>
+                <div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Celular</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.celular }}</div>
+                </div>
+                <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Correo</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.correo_electronico }}</div>
+                </div>
+                <div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nivel educativo</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_NIVEL_EDUCATIVO, persona.nivel_educativo_solicitante) }}</div>
+                </div>
+                <div :style="{ gridColumn: isMobile ? 'auto' : 'span 3' }">
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Dirección</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.direccion_residencia }}</div>
+                </div>
+                <div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ciudad</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ ubicacionResidencia.municipio_nombre }}, {{ ubicacionResidencia.depto_nombre }}</div>
+                </div>
               </div>
-              <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
-                
-                <!-- Personal y Residencia -->
-                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+
+              <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
+              <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }">Situación laboral</div>
+
+              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                <div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Tipo trabajador</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_TRABAJADOR, laboral.tipo_trabajador) }}</div>
+                </div>
+                <template v-if="laboral.tipo_trabajador === 'empleado'">
                   <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nombre</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.nombres }} {{ persona.apellidos }}</div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Empresa</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboral.nombre_empresa || '—' }}</div>
                   </div>
                   <div>
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Documento</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_DOC, persona.tipo_documento) }} {{ persona.numero_identificacion }}</div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Cargo</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboral.cargo_oficio || '—' }}</div>
                   </div>
                   <div>
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Expedición</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(persona.fecha_expedicion_documento) }}</div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Tipo de contrato</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_CONTRATO, laboral.tipo_contrato) }}</div>
                   </div>
                   <div>
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nacimiento</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(persona.fecha_nacimiento) }}</div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Fecha de ingreso</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(laboral.fecha_ingreso) || '—' }}</div>
                   </div>
-                  <div>
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Celular</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.celular }}</div>
-                  </div>
+                </template>
+                <template v-if="laboral.tipo_trabajador === 'independiente'">
                   <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Correo</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.correo_electronico }}</div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Actividad comercial</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboral.actividad_comercial || '—' }}</div>
                   </div>
                   <div>
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nivel Educativo</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_NIVEL_EDUCATIVO, persona.nivel_educativo_solicitante) }}</div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Inicio actividad</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(laboral.fecha_inicio_actividad) || '—' }}</div>
                   </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ocupación</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboral.ocupacion || '—' }}</div>
+                  </div>
+                </template>
+                <template v-if="laboral.tipo_trabajador === 'pensionado'">
                   <div :style="{ gridColumn: isMobile ? 'auto' : 'span 3' }">
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Dirección</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.direccion_residencia }}</div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Entidad pagadora</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboral.entidad_pagadora || '—' }}</div>
+                  </div>
+                </template>
+                <template v-if="laboral.tipo_trabajador === 'estudiante'">
+                  <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Institución educativa</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboral.institucion_educativa || '—' }}</div>
                   </div>
                   <div>
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ciudad</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ ubicacionResidencia.municipio_nombre }}, {{ ubicacionResidencia.depto_nombre }}</div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nivel educativo</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboral.nivel_educativo || '—' }}</div>
                   </div>
-                </div>
+                </template>
+              </div>
 
-                <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
+              <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
+              <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }">Información financiera</div>
 
-                <!-- Laboral -->
+              <!-- Empleado (o sin tipo seleccionado) -->
+              <template v-if="!laboral.tipo_trabajador || laboral.tipo_trabajador === 'empleado'">
                 <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                   <div>
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Tipo Trabajador</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_TRABAJADOR, laboral.tipo_trabajador) }}</div>
-                  </div>
-                  <template v-if="laboral.tipo_trabajador === 'empleado'">
-                    <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Empresa</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboral.nombre_empresa }}</div>
-                    </div>
-                    <div>
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Cargo</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboral.cargo_oficio }}</div>
-                    </div>
-                    <div>
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Contrato</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_CONTRATO, laboral.tipo_contrato) }}</div>
-                    </div>
-                    <div>
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingreso</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(laboral.fecha_ingreso) }}</div>
-                    </div>
-                  </template>
-                  <template v-if="laboral.tipo_trabajador === 'independiente'">
-                    <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Actividad</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboral.actividad_comercial }}</div>
-                    </div>
-                    <div>
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Inicio</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(laboral.fecha_inicio_actividad) }}</div>
-                    </div>
-                  </template>
-                  <template v-if="laboral.tipo_trabajador === 'pensionado'">
-                    <div :style="{ gridColumn: isMobile ? 'auto' : 'span 3' }">
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Entidad Pagadora</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboral.entidad_pagadora }}</div>
-                    </div>
-                  </template>
-                </div>
-
-                <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
-
-                <!-- Financiera y Patrimonio -->
-                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
-                  <div>
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos Fijos</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financiera.salario_ingresos_fijos || financiera.mesada_pensional) }}</div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Salario / Ingresos fijos</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financiera.salario_ingresos_fijos) }}</div>
                   </div>
                   <div>
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Otros Ingresos</div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos independiente</div>
                     <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financiera.ingresos_independiente) }}</div>
                   </div>
                   <div>
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Gastos Fam.</div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Gastos familiares</div>
                     <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financiera.gastos_familiares) }}</div>
                   </div>
                   <div>
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Obligaciones</div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Otros gastos</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financiera.otros_gastos) }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Obligaciones financieras</div>
                     <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financiera.obligaciones_financieras) }}</div>
                   </div>
                   <div>
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Pers. a cargo</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financiera.numero_dependientes }}</div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financiera.numero_dependientes || '—' }}</div>
+                  </div>
+                </div>
+              </template>
+              <!-- Independiente -->
+              <template v-else-if="laboral.tipo_trabajador === 'independiente'">
+                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos independiente</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financiera.ingresos_independiente) }}</div>
                   </div>
                   <div>
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Propiedad Raíz</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ patrimonio.tiene_propiedad_raiz ? 'SÍ (' + formatMonto(patrimonio.valor_propiedad_raiz) + ')' : 'NO' }}</div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Gastos familiares</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financiera.gastos_familiares) }}</div>
                   </div>
                   <div>
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Vehículo</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ patrimonio.tiene_vehiculo ? 'SÍ (' + formatMonto(patrimonio.valor_vehiculo) + ')' : 'NO' }}</div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Otros gastos</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financiera.otros_gastos) }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Obligaciones financieras</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financiera.obligaciones_financieras) }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financiera.numero_dependientes || '—' }}</div>
+                  </div>
+                </div>
+              </template>
+              <!-- Pensionado -->
+              <template v-else-if="laboral.tipo_trabajador === 'pensionado'">
+                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Mesada pensional</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financiera.mesada_pensional) }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financiera.numero_dependientes || '—' }}</div>
+                  </div>
+                </div>
+              </template>
+              <!-- Estudiante / Cuidado del hogar -->
+              <template v-else-if="['estudiante', 'cuidado_hogar'].includes(laboral.tipo_trabajador)">
+                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos mensuales</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financiera.salario_ingresos_fijos) }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Fuente de ingresos</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financiera.fuente_ingresos || '—' }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financiera.numero_dependientes || '—' }}</div>
+                  </div>
+                </div>
+              </template>
+
+              <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
+              <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }">Patrimonio</div>
+
+              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                <div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Propiedad raíz</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ patrimonio.tiene_propiedad_raiz ? 'Sí (' + formatMonto(patrimonio.valor_propiedad_raiz) + ')' : 'No' }}</div>
+                </div>
+                <div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Vehículo</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ patrimonio.tiene_vehiculo ? 'Sí (' + formatMonto(patrimonio.valor_vehiculo) + ')' : 'No' }}</div>
+                </div>
+              </div>
+
+              <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
+              <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }">Cuenta de desembolso</div>
+
+              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                <div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Entidad bancaria</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ cuenta.entidad_bancaria === 'otro' ? cuenta.entidad_bancaria_otro : (cuenta.entidad_bancaria || '—') }}</div>
+                </div>
+                <div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Tipo de cuenta</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_CUENTA, cuenta.tipo_cuenta) }}</div>
+                </div>
+                <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Número de cuenta</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ cuenta.numero_cuenta || '—' }}</div>
+                </div>
+                <template v-if="cuenta.cuenta_tercero">
+                  <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Titular de la cuenta (tercero)</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ cuenta.nombre_tercero || '—' }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Tipo doc. tercero</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_DOC, cuenta.tipo_doc_tercero) }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">N.° doc. tercero</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ cuenta.numero_doc_tercero || '—' }}</div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Codeudores (si existen) -->
+          <template v-if="numCodudores > 0">
+
+            <!-- Codeudor 1 -->
+            <div :style="{ borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
+              <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
+                <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
+                  <IconUserCheck :size="16" /> Codeudor 1
+                </div>
+                <button @click="irAPaso(3)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
+              </div>
+              <div :style="{ padding: 'var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+
+                <!-- Datos personales cod1 -->
+                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                  <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nombre completo</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ personaCod1.nombres_codeudor }} {{ personaCod1.apellidos_codeudor }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Tipo documento</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_DOC, personaCod1.tipo_documento_codeudor) }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">N.° documento</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ personaCod1.numero_identificacion_codeudor }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">F. expedición</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(personaCod1.fecha_expedicion_documento_codeudor) }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">F. nacimiento</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(personaCod1.fecha_nacimiento_codeudor) }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Celular</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ personaCod1.celular_codeudor }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Correo electrónico</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ personaCod1.correo_electronico_codeudor }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nivel educativo</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_NIVEL_EDUCATIVO, personaCod1.nivel_educativo_codeudor) }}</div>
+                  </div>
+                  <div :style="{ gridColumn: isMobile ? 'auto' : 'span 3' }">
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Dirección</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ personaCod1.direccion_residencia_codeudor }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ciudad</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ ubicacionCod1.municipio_nombre }}, {{ ubicacionCod1.depto_nombre }}</div>
                   </div>
                 </div>
 
                 <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
+                <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }">Situación laboral</div>
 
-                <!-- Bancaria -->
-                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 'var(--sp-md)' }">
+                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                   <div>
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Banco para desembolso</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ cuenta.entidad_bancaria === 'otro' ? cuenta.entidad_bancaria_otro : cuenta.entidad_bancaria }}</div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Tipo trabajador</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_TRABAJADOR, laboralCod1.tipo_trabajador_codeudor) }}</div>
                   </div>
-                  <div>
-                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Cuenta</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_CUENTA, cuenta.tipo_cuenta) }} {{ cuenta.numero_cuenta }} {{ cuenta.cuenta_tercero ? '(Tercero: ' + cuenta.nombre_tercero + ')' : '' }}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 3. Codeudores (si existen) -->
-            <template v-if="numCodudores > 0">
-              <div v-for="i in numCodudores" :key="i" :style="{ borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
-                <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-                  <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
-                    <IconUserCheck :size="16" /> Codeudor {{ i }}
-                  </div>
-                  <button @click="irAPaso(3)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
-                </div>
-                <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-                  <!-- Personal -->
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                  <template v-if="laboralCod1.tipo_trabajador_codeudor === 'empleado'">
                     <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nombre</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ i === 1 ? (personaCod1.nombres_codeudor + ' ' + personaCod1.apellidos_codeudor) : (personaCod2.nombres_codeudor2 + ' ' + personaCod2.apellidos_codeudor2) }}</div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Empresa</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboralCod1.nombre_empresa_codeudor || '—' }}</div>
                     </div>
                     <div>
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Documento</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_DOC, i === 1 ? personaCod1.tipo_documento_codeudor : personaCod2.tipo_documento_codeudor2) }} {{ i === 1 ? personaCod1.numero_identificacion_codeudor : personaCod2.numero_identificacion_codeudor2 }}</div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Cargo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboralCod1.cargo_oficio_codeudor || '—' }}</div>
                     </div>
                     <div>
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Celular</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ i === 1 ? personaCod1.celular_codeudor : personaCod2.celular_codeudor2 }}</div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Tipo de contrato</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_CONTRATO, laboralCod1.tipo_contrato_codeudor) }}</div>
                     </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Fecha de ingreso</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(laboralCod1.fecha_ingreso_codeudor) || '—' }}</div>
+                    </div>
+                  </template>
+                  <template v-if="laboralCod1.tipo_trabajador_codeudor === 'independiente'">
                     <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Correo</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ i === 1 ? personaCod1.correo_codeudor : personaCod2.correo_codeudor2 }}</div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Actividad comercial</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboralCod1.actividad_comercial_codeudor || '—' }}</div>
                     </div>
                     <div>
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nivel Educativo</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_NIVEL_EDUCATIVO, i === 1 ? personaCod1.nivel_educativo_codeudor : personaCod2.nivel_educativo_codeudor2) }}</div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Inicio actividad</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(laboralCod1.fecha_inicio_actividad_codeudor) || '—' }}</div>
                     </div>
-                    <div>
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ciudad</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ i === 1 ? (ubicacionCod1.municipio_nombre + ', ' + ubicacionCod1.depto_nombre) : (ubicacionCod2.municipio_nombre + ', ' + ubicacionCod2.depto_nombre) }}</div>
-                    </div>
-                  </div>
-
-                  <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
-
-                  <!-- Laboral / Financiera -->
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ocupación</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_TRABAJADOR, i === 1 ? laboralCod1.tipo_trabajador_codeudor : laboralCod2.tipo_trabajador_codeudor2) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboralCod1.ocupacion_codeudor || '—' }}</div>
                     </div>
-                    <div>
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ i === 1 ? formatMonto(financieraCod1.salario_codeudor || financieraCod1.mesada_pensional_codeudor) : formatMonto(financieraCod2.salario_codeudor2 || financieraCod2.mesada_pensional_codeudor2) }}</div>
+                  </template>
+                  <template v-if="laboralCod1.tipo_trabajador_codeudor === 'pensionado'">
+                    <div :style="{ gridColumn: isMobile ? 'auto' : 'span 3' }">
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Entidad pagadora</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboralCod1.entidad_pagadora_codeudor || '—' }}</div>
                     </div>
-                    <div>
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Obligaciones</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ i === 1 ? formatMonto(financieraCod1.obligaciones_financieras_codeudor) : formatMonto(financieraCod2.obligaciones_financieras_codeudor2) }}</div>
-                    </div>
-                    <div>
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Pers. a cargo</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ i === 1 ? financieraCod1.numero_dependientes_codeudor : financieraCod2.numero_dependientes_codeudor2 }}</div>
-                    </div>
+                  </template>
+                  <template v-if="laboralCod1.tipo_trabajador_codeudor === 'estudiante'">
                     <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Empresa/Actividad</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">
-                        {{ i === 1 ? (laboralCod1.nombre_empresa_codeudor || laboralCod1.actividad_comercial_codeudor || laboralCod1.entidad_pagadora_codeudor) : (laboralCod2.nombre_empresa_codeudor2 || laboralCod2.actividad_comercial_codeudor2 || laboralCod2.entidad_pagadora_codeudor2) }}
-                      </div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Institución educativa</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboralCod1.institucion_educativa_codeudor || '—' }}</div>
                     </div>
                     <div>
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Propiedad Raíz</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ (i === 1 ? patrimonioCod1.tiene_propiedad_raiz_codeudor : patrimonioCod2.tiene_propiedad_raiz_codeudor2) ? 'SÍ' : 'NO' }}</div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nivel educativo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboralCod1.nivel_educativo_codeudor || '—' }}</div>
+                    </div>
+                  </template>
+                </div>
+
+                <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
+                <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }">Información financiera</div>
+
+              <!-- Empleado (o sin tipo) -->
+                <template v-if="!laboralCod1.tipo_trabajador_codeudor || laboralCod1.tipo_trabajador_codeudor === 'empleado'">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Salario / Ingresos fijos</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financieraCod1.salario_codeudor) }}</div>
                     </div>
                     <div>
-                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Vehículo</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ (i === 1 ? patrimonioCod1.tiene_vehiculo_codeudor : patrimonioCod2.tiene_vehiculo_codeudor2) ? 'SÍ' : 'NO' }}</div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos independiente</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod1.ingresos_independiente_codeudor) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Gastos familiares</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod1.gastos_familiares_codeudor) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Otros gastos</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod1.otros_gastos_codeudor) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Obligaciones financieras</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod1.obligaciones_financieras_codeudor) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financieraCod1.numero_dependientes_codeudor || '—' }}</div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </template>
+                </template>
+                <!-- Independiente -->
+                <template v-else-if="laboralCod1.tipo_trabajador_codeudor === 'independiente'">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos independiente</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financieraCod1.ingresos_independiente_codeudor) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Gastos familiares</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod1.gastos_familiares_codeudor) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Otros gastos</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod1.otros_gastos_codeudor) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Obligaciones financieras</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod1.obligaciones_financieras_codeudor) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financieraCod1.numero_dependientes_codeudor || '—' }}</div>
+                    </div>
+                  </div>
+                </template>
+                <!-- Pensionado -->
+                <template v-else-if="laboralCod1.tipo_trabajador_codeudor === 'pensionado'">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Mesada pensional</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financieraCod1.mesada_pensional_codeudor) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financieraCod1.numero_dependientes_codeudor || '—' }}</div>
+                    </div>
+                  </div>
+                </template>
+                <!-- Estudiante / Cuidado del hogar -->
+                <template v-else-if="['estudiante', 'cuidado_hogar'].includes(laboralCod1.tipo_trabajador_codeudor)">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos mensuales</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financieraCod1.salario_codeudor) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Fuente de ingresos</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financieraCod1.fuente_ingresos_codeudor || '—' }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financieraCod1.numero_dependientes_codeudor || '—' }}</div>
+                    </div>
+                  </div>
+                </template>
 
-            <!-- 4. Documentos cargados -->
-            <div :style="{ borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
-              <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-                <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
-                  <IconUpload :size="16" /> Documentos adjuntos
+                <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
+                <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }">Patrimonio</div>
+
+                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Propiedad raíz</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ patrimonioCod1.tiene_propiedad_raiz_codeudor ? 'Sí (' + formatMonto(patrimonioCod1.valor_propiedad_raiz_codeudor) + ')' : 'No' }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Vehículo</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ patrimonioCod1.tiene_vehiculo_codeudor ? 'Sí (' + formatMonto(patrimonioCod1.valor_vehiculo_codeudor) + ')' : 'No' }}</div>
+                  </div>
                 </div>
-                <button @click="irAPaso(4)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
-              </div>
-              <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-sm)' }">
-                <div v-for="doc in docResumen" :key="doc.label" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', background: doc.url ? 'var(--color-success-bg)' : 'var(--color-bg-surface)', padding: '4px 12px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (doc.url ? 'var(--color-success)' : 'var(--color-border)') }">
-                  <IconCheck v-if="doc.url" :size="12" :style="{ color: 'var(--color-success)' }" />
-                  <IconX v-else :size="12" :style="{ color: 'var(--color-error)' }" />
-                  <span :style="{ fontSize: '11px', fontWeight: 'bold', color: doc.url ? 'var(--color-success-text)' : 'var(--color-text-3)' }">{{ doc.label }}</span>
-                </div>
+
               </div>
             </div>
 
-            <div :style="{ borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
+            <!-- Codeudor 2 -->
+            <div v-if="numCodudores >= 2" :style="{ borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
               <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
                 <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
-                  <IconChecklist :size="16" /> Detalle completo diligenciado
+                  <IconUserCheck :size="16" /> Codeudor 2
                 </div>
+                <button @click="irAPaso(3)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
               </div>
-              <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-                <div v-for="sec in seccionesRevisionCompleta" :key="sec.titulo">
-                  <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', marginBottom: '6px' }">{{ sec.titulo }}</div>
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '6px var(--sp-lg)' }">
-                    <div v-for="item in sec.items" :key="sec.titulo + item.label">
-                      <div :style="{ fontSize: '10px', color: 'var(--color-text-3)', textTransform: 'uppercase', fontWeight: 'var(--fw-bold)' }">{{ item.label }}</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)' }">{{ item.value }}</div>
-                    </div>
+              <div :style="{ padding: 'var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+
+                <!-- Datos personales cod2 -->
+                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                  <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nombre completo</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ personaCod2.nombres_codeudor2 }} {{ personaCod2.apellidos_codeudor2 }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Tipo documento</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_DOC, personaCod2.tipo_documento_codeudor2) }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">N.° documento</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ personaCod2.numero_identificacion_codeudor2 }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">F. expedición</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(personaCod2.fecha_expedicion_documento_codeudor2) }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">F. nacimiento</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(personaCod2.fecha_nacimiento_codeudor2) }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Celular</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ personaCod2.celular_codeudor2 }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Correo electrónico</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ personaCod2.correo_electronico_codeudor2 }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nivel educativo</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_NIVEL_EDUCATIVO, personaCod2.nivel_educativo_codeudor2) }}</div>
+                  </div>
+                  <div :style="{ gridColumn: isMobile ? 'auto' : 'span 3' }">
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Dirección</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ personaCod2.direccion_residencia_codeudor2 }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ciudad</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ ubicacionCod2.municipio_nombre }}, {{ ubicacionCod2.depto_nombre }}</div>
                   </div>
                 </div>
+
+                <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
+                <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }">Situación laboral</div>
+
+                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Tipo trabajador</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_TRABAJADOR, laboralCod2.tipo_trabajador_codeudor2) }}</div>
+                  </div>
+                  <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'empleado'">
+                    <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Empresa</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboralCod2.nombre_empresa_codeudor2 || '—' }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Cargo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboralCod2.cargo_oficio_codeudor2 || '—' }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Tipo de contrato</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_CONTRATO, laboralCod2.tipo_contrato_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Fecha de ingreso</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(laboralCod2.fecha_ingreso_codeudor2) || '—' }}</div>
+                    </div>
+                  </template>
+                  <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'independiente'">
+                    <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Actividad comercial</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboralCod2.actividad_comercial_codeudor2 || '—' }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Inicio actividad</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(laboralCod2.fecha_inicio_actividad_codeudor2) || '—' }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ocupación</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboralCod2.ocupacion_codeudor2 || '—' }}</div>
+                    </div>
+                  </template>
+                  <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'pensionado'">
+                    <div :style="{ gridColumn: isMobile ? 'auto' : 'span 3' }">
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Entidad pagadora</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboralCod2.entidad_pagadora_codeudor2 || '—' }}</div>
+                    </div>
+                  </template>
+                  <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'estudiante'">
+                    <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Institución educativa</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboralCod2.institucion_educativa_codeudor2 || '—' }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nivel educativo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboralCod2.nivel_educativo_codeudor2 || '—' }}</div>
+                    </div>
+                  </template>
+                </div>
+
+                <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
+                <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }">Información financiera</div>
+
+              <!-- Empleado (o sin tipo) -->
+                <template v-if="!laboralCod2.tipo_trabajador_codeudor2 || laboralCod2.tipo_trabajador_codeudor2 === 'empleado'">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Salario / Ingresos fijos</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financieraCod2.salario_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos independiente</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod2.ingresos_independiente_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Gastos familiares</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod2.gastos_familiares_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Otros gastos</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod2.otros_gastos_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Obligaciones financieras</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod2.obligaciones_financieras_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financieraCod2.numero_dependientes_codeudor2 || '—' }}</div>
+                    </div>
+                  </div>
+                </template>
+                <!-- Independiente -->
+                <template v-else-if="laboralCod2.tipo_trabajador_codeudor2 === 'independiente'">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos independiente</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financieraCod2.ingresos_independiente_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Gastos familiares</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod2.gastos_familiares_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Otros gastos</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod2.otros_gastos_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Obligaciones financieras</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod2.obligaciones_financieras_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financieraCod2.numero_dependientes_codeudor2 || '—' }}</div>
+                    </div>
+                  </div>
+                </template>
+                <!-- Pensionado -->
+                <template v-else-if="laboralCod2.tipo_trabajador_codeudor2 === 'pensionado'">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Mesada pensional</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financieraCod2.mesada_pensional_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financieraCod2.numero_dependientes_codeudor2 || '—' }}</div>
+                    </div>
+                  </div>
+                </template>
+                <!-- Estudiante / Cuidado del hogar -->
+                <template v-else-if="['estudiante', 'cuidado_hogar'].includes(laboralCod2.tipo_trabajador_codeudor2)">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos mensuales</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financieraCod2.salario_codeudor2) }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Fuente de ingresos</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financieraCod2.fuente_ingresos_codeudor2 || '—' }}</div>
+                    </div>
+                    <div>
+                      <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ financieraCod2.numero_dependientes_codeudor2 || '—' }}</div>
+                    </div>
+                  </div>
+                </template>
+
+                <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
+                <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }">Patrimonio</div>
+
+                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Propiedad raíz</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ patrimonioCod2.tiene_propiedad_raiz_codeudor2 ? 'Sí (' + formatMonto(patrimonioCod2.valor_propiedad_raiz_codeudor2) + ')' : 'No' }}</div>
+                  </div>
+                  <div>
+                    <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Vehículo</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ patrimonioCod2.tiene_vehiculo_codeudor2 ? 'Sí (' + formatMonto(patrimonioCod2.valor_vehiculo_codeudor2) + ')' : 'No' }}</div>
+                  </div>
+                </div>
+
               </div>
             </div>
 
+          </template>
+
+          <!-- 4. Documentos adjuntos — checklist -->
+          <div :style="{ borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
+            <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
+              <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
+                <IconUpload :size="16" /> Documentos adjuntos
+              </div>
+              <button @click="irAPaso(4)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
+            </div>
+            <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
+              <div
+                v-for="doc in docResumen"
+                :key="doc.label"
+                :style="{
+                  display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)',
+                  padding: 'var(--sp-sm) var(--sp-md)',
+                  borderRadius: 'var(--r-md)',
+                  background: doc.url ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
+                  cursor: doc.url ? 'pointer' : 'default',
+                }"
+                @click="doc.url ? (modalPreviewDocUrl = doc.url, modalPreviewDocTitulo = doc.label, modalPreviewDocVisible = true) : null"
+              >
+                <IconCircleCheck v-if="doc.url" :size="16" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
+                <IconX v-else :size="16" :style="{ color: 'var(--color-error)', flexShrink: '0' }" />
+                <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: doc.url ? 'var(--color-success-text)' : 'var(--color-text-3)', flex: '1' }">{{ doc.label }}</span>
+                <span v-if="!doc.url" :style="{ fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', textTransform: 'uppercase' }">Pendiente</span>
+              </div>
+            </div>
           </div>
 
-          <!-- Firma digital -->
-          <div v-if="!usarNuevoResumenRevision" :style="{ borderRadius: 'var(--r-xl)', border: '2px solid var(--color-accent)', overflow: 'hidden', marginTop: 'var(--sp-lg)' }">
-            <div :style="{ padding: '12px var(--sp-lg)', background: 'var(--color-accent)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
-              <IconShieldCheck :size="18" style="color: var(--color-dark);" />
-              <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-dark)', textTransform: 'uppercase', letterSpacing: '0.07em' }">Firma electrónica de la solicitud</span>
+          <!-- 5. Firma electrónica de la solicitud -->
+          <div :style="{ borderRadius: 'var(--r-lg)', border: '2px solid var(--color-primary)', overflow: 'hidden' }">
+            <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconShieldCheck :size="18" style="color: white;" />
+              <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'white' }">Firma electrónica de la solicitud</span>
             </div>
             <div :style="{ padding: 'var(--sp-xl)', background: 'white', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
-              <div v-if="numCodudores > 0" :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-impulso)', fontWeight: 'var(--fw-bold)' }">
-                Firma habilitada por ahora solo para solicitudes sin codeudores.
+
+              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', lineHeight: '1.65', background: 'var(--color-bg-surface)', padding: 'var(--sp-md)', borderRadius: 'var(--r-md)', border: '1px solid var(--color-border-light)' }">
+                Al firmar, certifica que la información proporcionada es veraz y autoriza a <strong>Cooperamigo</strong> para realizar las validaciones correspondientes.
+                <template v-if="numCodudores > 0"> Una vez firmada, se notificará automáticamente a {{ numCodudores === 1 ? 'el codeudor' : 'los codeudores' }} para completar el proceso.</template>
               </div>
-              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', lineHeight: '1.6' }">
-                Al escribir su nombre a continuación, usted certifica que la información proporcionada es veraz y autoriza a <strong>Cooperamigo</strong> para realizar las validaciones correspondientes.
+
+              <CampoTexto
+                label="Nombre completo del solicitante"
+                placeholder="TAL CUAL APARECE EN SU CÉDULA"
+                :model-value="firma.nombre_firma"
+                @update:model-value="firma.nombre_firma = $event"
+              />
+
+              <div :style="{ display: 'flex', gap: '6px', flexWrap: 'wrap' }">
+                <button type="button" @click="firmaMetodo = 'dibujar'" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (firmaMetodo === 'dibujar' ? 'var(--color-primary)' : 'var(--color-border)'), background: firmaMetodo === 'dibujar' ? 'rgba(17,76,90,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'dibujar' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Firmar en pantalla</button>
+                <button type="button" @click="firmaMetodo = 'subir'" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-border)'), background: firmaMetodo === 'subir' ? 'rgba(17,76,90,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Cargar firma</button>
               </div>
-              <CampoTexto label="Escriba su nombre completo para firmar" placeholder="TAL CUAL APARECE EN SU CÉDULA" :model-value="firma.nombre_firma" @update:model-value="firma.nombre_firma = $event" />
-              <div :style="{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-sm)', alignItems: 'center' }">
-                <PortalButton variant="primary" :disabled="!firma.nombre_firma || numCodudores > 0" @click="aplicarFirmaSolicitante()">Aplicar firma electrónica</PortalButton>
-                <PortalButton variant="secondary" :disabled="!firmaSolicitanteAplicada" @click="generarYVerPdfFormalizado()">Ver PDF formalizado</PortalButton>
-                <span v-if="firmaSolicitanteAplicada" :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-bold)' }">Firma aplicada: {{ formatearFecha(firma.firma_fecha_iso) }}</span>
+
+              <div v-if="firmaMetodo === 'dibujar'" :style="{ display: 'flex', flexDirection: 'column', gap: '8px' }">
+                <div :style="{ border: '1px solid var(--color-border)', borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'white' }">
+                  <canvas
+                    ref="firmaCanvasRef"
+                    width="720"
+                    height="220"
+                    :style="{ width: '100%', height: '140px', touchAction: 'none', display: 'block', cursor: 'crosshair' }"
+                    @mousedown="iniciarFirmaDibujo"
+                    @mousemove="moverFirmaDibujo"
+                    @mouseup="terminarFirmaDibujo"
+                    @mouseleave="terminarFirmaDibujo"
+                    @touchstart.prevent="iniciarFirmaDibujo"
+                    @touchmove.prevent="moverFirmaDibujo"
+                    @touchend="terminarFirmaDibujo"
+                  />
+                </div>
+                <div :style="{ display: 'flex', justifyContent: 'flex-end' }">
+                  <PortalButton variant="secondary" @click="limpiarFirmaDibujo()">Limpiar</PortalButton>
+                </div>
               </div>
-              <div v-if="firmaSolicitanteAplicada" :style="{ fontSize: '11px', color: 'var(--color-text-3)' }">Huella de firma: {{ firma.firma_hash }}</div>
+
+              <div v-if="firmaMetodo === 'subir'" :style="{ display: 'flex', flexDirection: 'column', gap: '8px' }">
+                <div :style="{ border: '1px dashed var(--color-border)', borderRadius: 'var(--r-md)', padding: '10px 12px', background: 'var(--color-bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)', flexWrap: 'wrap' }">
+                  <div :style="{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '180px' }">
+                    <div :style="{ fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Archivo de firma</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: firmaArchivoNombre ? 'var(--color-text-1)' : 'var(--color-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? '100%' : '340px' }">
+                      {{ firmaArchivoNombre || 'PNG o JPG con fondo preferiblemente blanco' }}
+                    </div>
+                  </div>
+                  <PortalButton variant="secondary" @click="seleccionarFirmaArchivo()">Seleccionar archivo</PortalButton>
+                  <input ref="firmaFileRef" type="file" accept="image/png,image/jpeg" :style="{ display: 'none' }" @change="cargarFirmaImagen" />
+                </div>
+              </div>
+
+              <div v-if="firmaSolicitanteAplicada" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', padding: 'var(--sp-sm) var(--sp-md)', borderRadius: 'var(--r-md)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)' }">
+                <IconCircleCheck :size="16" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
+                <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-success-text)' }">Firma registrada el {{ formatearFecha(firma.firma_fecha_iso) }}</span>
+              </div>
+
+              <PortalButton
+                variant="primary"
+                :full="true"
+                :loading="loading"
+                :disabled="!firma.nombre_firma || !firmaImagen || !pasoSolicitudValido"
+                @click="firmarYEnviar()"
+              >
+                <IconShieldCheck :size="16" style="display:inline-block;vertical-align:middle;margin-right:6px;" />
+                Firmar solicitud y enviar
+              </PortalButton>
             </div>
           </div>
         </div>
@@ -2727,7 +3191,6 @@ function onOtpValidado() {
       <div :style="{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--sp-2xl)', gap: 'var(--sp-md)' }">
         <PortalButton variant="secondary" @click="paso === 1 ? router.push('/') : anterior()">{{ paso === 1 ? 'Cancelar' : 'Anterior' }}</PortalButton>
         <PortalButton v-if="!esUltimoPaso && paso !== 1" variant="primary" :loading="loading" :disabled="paso === 4 && !autorizaciones.autorizacion_aceptada" @click="continuar()">Continuar</PortalButton>
-        <PortalButton v-if="esUltimoPaso" variant="primary" :loading="loading" :disabled="!firmaSolicitanteAplicada || !pasoSolicitudValido || numCodudores > 0" @click="enviar()">Enviar solicitud</PortalButton>
       </div>
     </div>
 
@@ -2744,17 +3207,7 @@ function onOtpValidado() {
           <iframe :src="modalPreviewDocUrl" title="Vista previa del documento" :style="{ width: '100%', height: '100%', border: 'none', background: '#f5f5f5' }" />
         </div>
       </div>
-      <div v-if="modalPdfFormalVisible" :style="{ position: 'fixed', inset: '0', zIndex: '121', background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--sp-lg)' }">
-        <div :style="{ width: 'min(980px, 96vw)', height: 'min(86vh, 920px)', background: 'white', borderRadius: 'var(--r-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }">
-          <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-sm) var(--sp-md)', borderBottom: '1px solid var(--color-border)' }">
-            <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">PDF formalizado de solicitud</div>
-            <button :style="{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-3)' }" @click="cerrarPdfFormal">
-              <IconX :size="18" />
-            </button>
-          </div>
-          <iframe :src="pdfFormalUrl" title="PDF formalizado" :style="{ width: '100%', height: '100%', border: 'none', background: '#f5f5f5' }" />
-        </div>
-      </div>
+
       <Transition :name="isMobile ? 'sheet-modal' : 'fade-modal'">
         <div
           v-if="mostrarModalNoAsociado"

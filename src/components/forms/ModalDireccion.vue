@@ -147,7 +147,7 @@ function cerrar() { emit('update:visible', false) }
                   Ingresar dirección
                 </div>
                 <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">
-                  Estructure su dirección de forma estándar
+                  Estructura la dirección de manera estándar
                 </div>
               </div>
             </div>
