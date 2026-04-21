@@ -703,6 +703,17 @@ function limpiarFirmaDibujo() {
 }
 
 watch(
+  () => paso.value,
+  (p) => {
+    if (p === 5 && firmaMetodo.value === 'dibujar') {
+      nextTick(() => {
+        prepararCanvasFirma()
+      })
+    }
+  }
+)
+
+watch(
   () => firmaMetodo.value,
   (m) => {
     if (m !== 'dibujar') return
@@ -2140,7 +2151,7 @@ function onOtpValidado() {
                 <template v-if="laboralCod1.tipo_trabajador_codeudor === 'estudiante'">
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <CampoTexto :model-value="laboralCod1.institucion_educativa_codeudor" label="Institución educativa" required @update:model-value="actualizarLaboralCod1('institucion_educativa_codeudor', $event ? $event.toUpperCase() : $event)" />
-                    <CampoSelectBuscable :model-value="laboralCod1.nivel_educativo_codeudor" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboralCod1('nivel_educativo_codeudor', $event)" />
+                    <CampoSelectBuscable :model-value="laboralCod1.nivel_estudio_actual_codeudor" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboralCod1('nivel_estudio_actual_codeudor', $event)" />
                   </div>
                 </template>
                 <!-- Cuidado del hogar -->
@@ -2230,7 +2241,7 @@ function onOtpValidado() {
                 <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'estudiante'">
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <CampoTexto :model-value="laboralCod2.institucion_educativa_codeudor2" label="Institución educativa" required @update:model-value="actualizarLaboralCod2('institucion_educativa_codeudor2', $event ? $event.toUpperCase() : $event)" />
-                    <CampoSelectBuscable :model-value="laboralCod2.nivel_educativo_codeudor2" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboralCod2('nivel_educativo_codeudor2', $event)" />
+                    <CampoSelectBuscable :model-value="laboralCod2.nivel_estudio_actual_codeudor2" label="Nivel educativo" required :opciones="opsNivelEducativo" @update:model-value="actualizarLaboralCod2('nivel_estudio_actual_codeudor2', $event)" />
                   </div>
                 </template>
                 <!-- Cuidado del hogar -->
@@ -2439,7 +2450,7 @@ function onOtpValidado() {
                 </div>
                 <div :style="{ gridColumn: isMobile ? 'auto' : 'span 3' }">
                   <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Dirección</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.direccion_residencia }}</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.direccion_residencia }} {{ persona.barrio ? '— Barrio: ' + persona.barrio : '' }}</div>
                 </div>
                 <div>
                   <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ciudad</div>
@@ -2500,7 +2511,7 @@ function onOtpValidado() {
                   </div>
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nivel educativo</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboral.nivel_educativo || '—' }}</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_NIVEL_EDUCATIVO, laboral.nivel_educativo) || '—' }}</div>
                   </div>
                 </template>
               </div>
@@ -2690,7 +2701,7 @@ function onOtpValidado() {
                   </div>
                   <div :style="{ gridColumn: isMobile ? 'auto' : 'span 3' }">
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Dirección</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ personaCod1.direccion_residencia_codeudor }}</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ personaCod1.direccion_residencia_codeudor }} {{ personaCod1.barrio_codeudor ? '— Barrio: ' + personaCod1.barrio_codeudor : '' }}</div>
                   </div>
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ciudad</div>
@@ -2751,7 +2762,7 @@ function onOtpValidado() {
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nivel educativo</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboralCod1.nivel_educativo_codeudor || '—' }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_NIVEL_EDUCATIVO, laboralCod1.nivel_estudio_actual_codeudor) || '—' }}</div>
                     </div>
                   </template>
                 </div>
@@ -2907,7 +2918,7 @@ function onOtpValidado() {
                   </div>
                   <div :style="{ gridColumn: isMobile ? 'auto' : 'span 3' }">
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Dirección</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ personaCod2.direccion_residencia_codeudor2 }}</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ personaCod2.direccion_residencia_codeudor2 }} {{ personaCod2.barrio_codeudor2 ? '— Barrio: ' + personaCod2.barrio_codeudor2 : '' }}</div>
                   </div>
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ciudad</div>
@@ -2968,7 +2979,7 @@ function onOtpValidado() {
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nivel educativo</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ laboralCod2.nivel_educativo_codeudor2 || '—' }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_NIVEL_EDUCATIVO, laboralCod2.nivel_estudio_actual_codeudor2) || '—' }}</div>
                     </div>
                   </template>
                 </div>

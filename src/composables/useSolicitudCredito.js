@@ -170,6 +170,7 @@ export function useSolicitudCredito() {
     fecha_nacimiento_codeudor: '',
     fecha_expedicion_documento_codeudor: '',
     nivel_educativo_codeudor: '',
+    barrio_codeudor: '',
   })
   const laboralCod1 = ref({
     tipo_trabajador_codeudor: '',
@@ -182,7 +183,7 @@ export function useSolicitudCredito() {
     ocupacion_codeudor: '',
     entidad_pagadora_codeudor: '',
     institucion_educativa_codeudor: '',
-    nivel_educativo_codeudor: '',
+    nivel_estudio_actual_codeudor: '',
     tiene_dependientes_codeudor: false,
   })
   const financieraCod1 = ref({
@@ -215,6 +216,7 @@ export function useSolicitudCredito() {
     fecha_nacimiento_codeudor2: '',
     fecha_expedicion_documento_codeudor2: '',
     nivel_educativo_codeudor2: '',
+    barrio_codeudor2: '',
   })
   const laboralCod2 = ref({
     tipo_trabajador_codeudor2: '',
@@ -227,7 +229,7 @@ export function useSolicitudCredito() {
     ocupacion_codeudor2: '',
     entidad_pagadora_codeudor2: '',
     institucion_educativa_codeudor2: '',
-    nivel_educativo_codeudor2: '',
+    nivel_estudio_actual_codeudor2: '',
     tiene_dependientes_codeudor2: false,
   })
   const financieraCod2 = ref({
@@ -575,6 +577,8 @@ export function useSolicitudCredito() {
       // Laboral, financiera, patrimonio, cuenta
       ...laboral.value,
       ...financiera.value,
+      // Mapeo explícito de campos financieros para compatibilidad con DB
+      otros_ingresos: financiera.value.ingresos_independiente,
       ...patrimonio.value,
       // Cuenta: excluir entidad_bancaria_otro (campo UI), resolver valor real
       ...(({ entidad_bancaria_otro, ...c }) => ({
@@ -668,7 +672,10 @@ export function useSolicitudCredito() {
   let _syncTimer = null
 
   async function _sincronizarCampoAsociado(columnaAsociado, nuevoValor) {
-    if (!asociadoVerificado.value?.id || !nuevoValor) return
+    if (!asociadoVerificado.value?.id) return
+    // Permitir 0 como valor válido (numero_dependientes puede ser 0)
+    if (nuevoValor === undefined || nuevoValor === null || nuevoValor === '') return
+    
     const valorActual = asociadoVerificado.value[columnaAsociado]
     if (valorActual === nuevoValor) return
     try {
@@ -698,7 +705,16 @@ export function useSolicitudCredito() {
   watch(() => ubicacionResidencia.value.municipio_nombre, v => _syncDebounced('ciudad', v))
 
   // dirección estructurada
-  watch(() => direccionEstructurada.value.barrio, v => _syncDebounced('barrio', v))
+  watch(() => direccionEstructurada.value.barrio, v => {
+    persona.value.barrio = v
+    _syncDebounced('barrio', v)
+  })
+  watch(() => direccionEstructuradaCod1.value.barrio, v => {
+    personaCod1.value.barrio_codeudor = v
+  })
+  watch(() => direccionEstructuradaCod2.value.barrio, v => {
+    personaCod2.value.barrio_codeudor2 = v
+  })
 
   // laboral
   watch(() => laboral.value.nombre_empresa, v => _syncDebounced('empresa', v))
@@ -743,7 +759,7 @@ export function useSolicitudCredito() {
     laboralCod1.value.fecha_inicio_actividad_codeudor = ''
     laboralCod1.value.entidad_pagadora_codeudor = ''
     laboralCod1.value.institucion_educativa_codeudor = ''
-    laboralCod1.value.nivel_educativo_codeudor = ''
+    laboralCod1.value.nivel_estudio_actual_codeudor = ''
     financieraCod1.value.salario_codeudor = ''
     financieraCod1.value.ingresos_independiente_codeudor = ''
     financieraCod1.value.gastos_familiares_codeudor = ''
@@ -765,7 +781,7 @@ export function useSolicitudCredito() {
     laboralCod2.value.fecha_inicio_actividad_codeudor2 = ''
     laboralCod2.value.entidad_pagadora_codeudor2 = ''
     laboralCod2.value.institucion_educativa_codeudor2 = ''
-    laboralCod2.value.nivel_educativo_codeudor2 = ''
+    laboralCod2.value.nivel_estudio_actual_codeudor2 = ''
     financieraCod2.value.salario_codeudor2 = ''
     financieraCod2.value.ingresos_independiente_codeudor2 = ''
     financieraCod2.value.gastos_familiares_codeudor2 = ''

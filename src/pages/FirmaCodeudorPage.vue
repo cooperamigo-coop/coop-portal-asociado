@@ -9,6 +9,7 @@ import {
   IconLoader2, IconCircleCheck, IconAlertTriangle, IconDownload,
 } from '@tabler/icons-vue'
 import { obtenerSolicitudPorToken, guardarFirmaCodeudor } from '@/services/firmaCodeudor.service'
+import PortalLayout from '@/components/layout/PortalLayout.vue'
 
 const route = useRoute()
 const token = computed(() => route.query.token || '')
@@ -18,6 +19,18 @@ const token = computed(() => route.query.token || '')
 const paso    = ref('cargando')
 const solicitud = ref(null)
 const errorMsg  = ref('')
+
+const nombreCodeudorDisplay = computed(() => {
+  if (!solicitud.value) return ''
+  return solicitud.value.num_codeudor === 2
+    ? `${solicitud.value.nombres_codeudor2 || ''} ${solicitud.value.apellidos_codeudor2 || ''}`.trim()
+    : `${solicitud.value.nombres_codeudor || ''} ${solicitud.value.apellidos_codeudor || ''}`.trim()
+})
+
+const nombreTitularDisplay = computed(() => {
+  if (!solicitud.value) return ''
+  return `${solicitud.value.nombres_titular || ''} ${solicitud.value.apellidos_titular || ''}`.trim()
+})
 
 // ── Autorizaciones ─────────────────────────────────────────────────────────────
 const modalAutorizacionesVisible = ref(false)
@@ -581,34 +594,14 @@ function descargarPdf() {
 </script>
 
 <template>
-  <div :style="{
-    minHeight: '100vh',
-    background: 'var(--color-bg-app)',
-    display: 'flex',
-    flexDirection: 'column',
-  }">
-
-    <!-- Mini-header ──────────────────────────────────────────────────────── -->
-    <header :style="{
-      background: 'var(--color-primary)',
-      padding: '12px 20px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      boxShadow: 'var(--shadow-card)',
-    }">
-      <img src="/logo-principal.svg" alt="Cooperamigó" :style="{ height: '28px', filter: 'brightness(0) invert(1)' }" />
-      <span :style="{ color: 'rgba(255,255,255,0.65)', fontSize: 'var(--text-sm)' }">Portal de Firma</span>
-    </header>
-
-    <!-- Contenido principal ─────────────────────────────────────────────── -->
+  <PortalLayout>
     <div :style="{
       flex: 1,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: paso === 'cargando' || paso === 'enviando' ? 'center' : 'flex-start',
-      padding: '32px 16px 64px',
+      padding: '0 0 64px',
     }">
 
       <!-- CARGANDO ────────────────────────────────────────────────────────── -->
@@ -659,11 +652,15 @@ function descargarPdf() {
 
       <!-- REVISAR ─────────────────────────────────────────────────────────── -->
       <div v-else-if="paso === 'revisar'" :style="{ maxWidth: '640px', width: '100%' }">
-        <h2 :style="{ fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: '4px' }">
+        <h2 :style="{ fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: '12px' }">
           Revisa los datos de la solicitud
         </h2>
-        <p :style="{ color: 'var(--color-text-2)', fontSize: 'var(--text-sm)', marginBottom: '24px' }">
-          Estás siendo convocado como <strong>codeudor N° {{ solicitud?.num_codeudor }}</strong> en la siguiente solicitud de crédito.
+        <p :style="{ color: 'var(--color-text-2)', fontSize: '13px', marginBottom: '24px', lineHeight: '1.6' }">
+          Sr(a). <strong>{{ nombreCodeudorDisplay }}</strong>, usted ha sido convocado por <strong>{{ nombreTitularDisplay }}</strong> para ser codeudor en la siguiente operación de crédito. Le recomendamos revisar cuidadosamente la información y, en caso de aceptación, proceder a firmar la solicitud de crédito.
+          <br><br>
+          Recuerde que esta firma <strong>no constituye la aceptación y desembolso del crédito</strong> por ahora; su solicitud ingresará a estudio y, una vez concluido, será notificado nuevamente en caso de aprobación para la firma de pagaré, carta de instrucciones y plan de pagos.
+          <br><br>
+          Gracias.
         </p>
 
         <!-- Card titular -->
@@ -957,7 +954,7 @@ function descargarPdf() {
       @aceptar="onAutorizacionAceptada"
       @rechazar="modalAutorizacionesVisible = false"
     />
-  </div>
+    </PortalLayout>
 </template>
 
 <style scoped>
