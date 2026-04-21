@@ -191,15 +191,16 @@ const docsAdicionalesCod2 = computed(() => {
           fontSize:   'var(--text-base)',
           fontWeight: 'var(--fw-extrabold)',
           color:      'var(--color-primary)',
-        }">Titular</span>
+        }">Documentos del titular</span>
       </div>
 
       <!-- Cédula del titular -->
       <CapturaDocumento
         :solicitud-id="solicitudId"
         campo="doc_cedula_solicitante_url"
-        label="Cédula del Titular"
+        label="Cédula del titular"
         :required="true"
+        :initial-url="modelValue.doc_cedula_solicitante_url"
         @completado="emit('update:modelValue', { ...modelValue, doc_cedula_solicitante_url: $event })"
         @sesion-creada="emit('sesion-creada', $event)"
       />
@@ -208,7 +209,7 @@ const docsAdicionalesCod2 = computed(() => {
       <template v-for="doc in docsAdicionalesTitular" :key="doc.campo">
         <div :style="{
           border:       '1px solid var(--color-border-card)',
-          borderRadius: 'var(--r-xl)',
+          borderRadius: 'var(--r-lg)',
           overflow:     'hidden',
         }">
           <div :style="{
@@ -230,7 +231,7 @@ const docsAdicionalesCod2 = computed(() => {
                 <span v-if="!getEstado(doc.campo).url" :style="{ marginLeft: 'var(--sp-sm)', fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 6px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase' }">Obligatorio</span>
               </div>
               <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">
-                {{ getEstado(doc.campo).url ? (getEstado(doc.campo).nombre || 'Documento cargado correctamente') : doc.descripcion }}
+                {{ getEstado(doc.campo).url ? 'Documento cargado correctamente' : doc.descripcion }}
               </div>
             </div>
             <div v-if="getEstado(doc.campo).cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
@@ -294,6 +295,7 @@ const docsAdicionalesCod2 = computed(() => {
         campo="doc_cedula_codeudor_url"
         label="Cédula del Codeudor 1"
         :required="true"
+        :initial-url="modelValue.doc_cedula_codeudor_url"
         @completado="emit('update:modelValue', { ...modelValue, doc_cedula_codeudor_url: $event })"
         @sesion-creada="emit('sesion-creada', $event)"
       />
@@ -301,7 +303,7 @@ const docsAdicionalesCod2 = computed(() => {
       <template v-for="doc in docsAdicionalesCod1" :key="doc.campo">
         <div :style="{
           border:       '1px solid var(--color-border-card)',
-          borderRadius: 'var(--r-xl)',
+          borderRadius: 'var(--r-lg)',
           overflow:     'hidden',
         }">
           <div :style="{
@@ -323,7 +325,7 @@ const docsAdicionalesCod2 = computed(() => {
                 <span v-if="!getEstado(doc.campo).url" :style="{ marginLeft: 'var(--sp-sm)', fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 6px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase' }">Obligatorio</span>
               </div>
               <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">
-                {{ getEstado(doc.campo).url ? (getEstado(doc.campo).nombre || 'Documento cargado correctamente') : doc.descripcion }}
+                {{ getEstado(doc.campo).url ? 'Documento cargado correctamente' : doc.descripcion }}
               </div>
             </div>
             <div v-if="getEstado(doc.campo).cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
@@ -387,6 +389,7 @@ const docsAdicionalesCod2 = computed(() => {
         campo="doc_cedula_codeudor2_url"
         label="Cédula del Codeudor 2"
         :required="true"
+        :initial-url="modelValue.doc_cedula_codeudor2_url"
         @completado="emit('update:modelValue', { ...modelValue, doc_cedula_codeudor2_url: $event })"
         @sesion-creada="emit('sesion-creada', $event)"
       />
@@ -394,7 +397,7 @@ const docsAdicionalesCod2 = computed(() => {
       <template v-for="doc in docsAdicionalesCod2" :key="doc.campo">
         <div :style="{
           border:       '1px solid var(--color-border-card)',
-          borderRadius: 'var(--r-xl)',
+          borderRadius: 'var(--r-lg)',
           overflow:     'hidden',
         }">
           <div :style="{
@@ -416,7 +419,7 @@ const docsAdicionalesCod2 = computed(() => {
                 <span v-if="!getEstado(doc.campo).url" :style="{ marginLeft: 'var(--sp-sm)', fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 6px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase' }">Obligatorio</span>
               </div>
               <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">
-                {{ getEstado(doc.campo).url ? (getEstado(doc.campo).nombre || 'Documento cargado correctamente') : doc.descripcion }}
+                {{ getEstado(doc.campo).url ? 'Documento cargado correctamente' : doc.descripcion }}
               </div>
             </div>
             <div v-if="getEstado(doc.campo).cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
@@ -453,10 +456,10 @@ const docsAdicionalesCod2 = computed(() => {
     <Teleport to="body">
       <div v-if="modalPreviewVisible" :style="{ position: 'fixed', inset: '0', zIndex: '1000', background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--sp-lg)' }">
         <div :style="{ width: 'min(980px, 96vw)', height: 'min(86vh, 920px)', background: 'white', borderRadius: 'var(--r-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }">
-          <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-sm) var(--sp-md)', borderBottom: '1px solid var(--color-border)' }">
-            <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ modalPreviewTitulo }}</div>
+          <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-lg) var(--sp-xl)', borderBottom: '1px solid var(--color-border)' }">
+            <div :style="{ fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ modalPreviewTitulo }}</div>
             <button :style="{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-3)' }" @click="cerrarPreview">
-              <IconX :size="18" />
+              <IconX :size="20" />
             </button>
           </div>
           <iframe :src="modalPreviewUrl" title="Vista previa del documento" :style="{ width: '100%', height: '100%', border: 'none', background: '#f5f5f5' }" />

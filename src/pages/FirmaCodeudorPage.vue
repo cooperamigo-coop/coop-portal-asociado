@@ -11,6 +11,7 @@ import {
   IconClock, IconFileText, IconTrendingUp,
 } from '@tabler/icons-vue'
 import { obtenerSolicitudPorToken, guardarFirmaCodeudor } from '@/services/firmaCodeudor.service'
+import { notificarTitularSolicitudRadicada } from '@/services/solicitudCredito.service'
 import PortalLayout from '@/components/layout/PortalLayout.vue'
 import CampoTexto   from '@/components/forms/CampoTexto.vue'
 
@@ -370,6 +371,39 @@ async function enviarFirma() {
       paso.value = 'error'
       return
     }
+
+    try {
+      const estado = String(resultado?.estado || '')
+      const yaRadicada = /radic/i.test(estado)
+      if (yaRadicada) {
+        const sid =
+          solicitud.value?.id ||
+          solicitud.value?.solicitud_id ||
+          resultado?.solicitud_id ||
+          resultado?.id ||
+          null
+        const fechaSol = solicitud.value?.fecha_solicitud || ''
+        const radicado = sid && fechaSol
+          ? `RAD-${String(fechaSol).replaceAll('-', '')}-${String(sid).slice(0, 8).toUpperCase()}`
+          : ''
+        const nombreTitular = `${solicitud.value?.nombres_titular || ''} ${solicitud.value?.apellidos_titular || ''}`.trim()
+        const emailTitular =
+          solicitud.value?.correo_titular ||
+          solicitud.value?.email_titular ||
+          ''
+        const totalCodeudores = solicitud.value?.num_codeudores || (solicitud.value?.num_codeudor === 2 ? 2 : 1)
+
+        notificarTitularSolicitudRadicada({
+          solicitudId: sid,
+          emailTitular,
+          nombreTitular,
+          radicado,
+          requiereCodeudores: true,
+          numCodeudores: totalCodeudores,
+          fechaSolicitudIso: fechaSol,
+        }).catch(e => console.warn('[FirmaCodeudor] Error notificando titular:', e))
+      }
+    } catch {}
 
     _firmaGuardada.value = { datos, hash, ipPublica, transaccionId, ahora }
 

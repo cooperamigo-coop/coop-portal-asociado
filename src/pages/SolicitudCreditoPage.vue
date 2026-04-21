@@ -487,7 +487,7 @@ const seccionesRevisionCompleta = computed(() => {
   salida.push(_seccionResumen('Situación laboral', laboral.value))
   salida.push(_seccionResumen('Información financiera', financiera.value))
   salida.push(_seccionResumen('Patrimonio', patrimonio.value))
-  salida.push(_seccionResumen('Cuenta de desembolso', cuenta.value))
+  salida.push(_seccionResumen('Cuenta para desembolso', cuenta.value))
   salida.push(_seccionResumen('Documentos adjuntos', documentos.value))
   if (numCodudores.value >= 1) {
     salida.push(_seccionResumen('Codeudor 1 — Información personal', personaCod1.value))
@@ -1803,7 +1803,7 @@ function onOtpValidado() {
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <CampoSelectBuscable :model-value="general.tipo_estudio" label="Tipo de estudio" required :opciones="opsTipoEstudio" @update:model-value="actualizarGeneral('tipo_estudio', $event)" />
                     <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
-                      <div :style="{ position: 'relative', display: 'flex', alignItems: 'center', padding: '12px 14px', border: errorPlazo ? '1px solid var(--color-error)' : '1px solid var(--color-border)', borderRadius: 'var(--r-lg)', background: 'var(--color-bg-card)' }">
+                      <div :style="{ position: 'relative', display: 'flex', alignItems: 'center', height: '54px', boxSizing: 'border-box', padding: '0 16px', border: errorPlazo ? '1px solid var(--color-error)' : '1px solid var(--color-border)', borderRadius: 'var(--r-md)', background: 'var(--color-bg-card)' }">
                         <input :value="general.plazo_solicitado" type="text" inputmode="numeric" maxlength="2" :style="{ flex: '1', border: 'none', outline: 'none', background: 'transparent', fontSize: 'var(--text-base)', color: 'var(--color-text-1)' }" @keydown="e => { const ok = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab']; if (!ok.includes(e.key) && !/^\d$/.test(e.key)) e.preventDefault() }" @input="actualizarPlazo($event.target.value)" />
                         <label :style="{ position: 'absolute', left: '12px', top: '0', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 'var(--fw-semibold)', color: errorPlazo ? 'var(--color-error-text)' : 'var(--color-text-3)', background: 'var(--color-bg-card)', padding: '0 3px' }">Plazo (meses) <span :style="{ color: 'var(--color-error)' }">*</span></label>
                       </div>
@@ -1816,7 +1816,7 @@ function onOtpValidado() {
                   <CampoMoneda v-if="mostrarValorCredito" :model-value="general.valor_credito" label="Valor del crédito" required @update:model-value="actualizarGeneral('valor_credito', $event)" />
                   <CampoTexto :model-value="general.destino_credito" label="Destino del crédito" required :maxlength="40" @update:model-value="actualizarGeneral('destino_credito', $event ? $event.toUpperCase() : $event)" />
                   <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
-                    <div :style="{ position: 'relative', display: 'flex', alignItems: 'center', padding: '12px 14px', border: errorPlazo ? '1px solid var(--color-error)' : '1px solid var(--color-border)', borderRadius: 'var(--r-lg)', background: 'var(--color-bg-card)' }">
+                    <div :style="{ position: 'relative', display: 'flex', alignItems: 'center', height: '54px', boxSizing: 'border-box', padding: '0 16px', border: errorPlazo ? '1px solid var(--color-error)' : '1px solid var(--color-border)', borderRadius: 'var(--r-md)', background: 'var(--color-bg-card)' }">
                       <input :value="general.plazo_solicitado" type="text" inputmode="numeric" maxlength="2" :style="{ flex: '1', border: 'none', outline: 'none', background: 'transparent', fontSize: 'var(--text-base)', color: 'var(--color-text-1)' }" @keydown="e => { const ok = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab']; if (!ok.includes(e.key) && !/^\d$/.test(e.key)) e.preventDefault() }" @input="actualizarPlazo($event.target.value)" />
                       <label :style="{ position: 'absolute', left: '12px', top: '0', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 'var(--fw-semibold)', color: errorPlazo ? 'var(--color-error-text)' : 'var(--color-text-3)', background: 'var(--color-bg-card)', padding: '0 3px' }">Plazo (meses) <span :style="{ color: 'var(--color-error)' }">*</span></label>
                     </div>
@@ -1922,10 +1922,10 @@ function onOtpValidado() {
             </div>
           </div>
 
-          <!-- 6. Cuenta de Desembolso -->
+          <!-- 6. Cuenta para desembolso -->
           <div v-if="mostrarCuentaDesembolso" id="seccion-cuenta" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
             <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
-              <IconFileCheck :size="20" /> Cuenta de desembolso
+              <IconFileCheck :size="20" /> Cuenta para desembolso
             </div>
             <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
               <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
@@ -2315,21 +2315,21 @@ function onOtpValidado() {
 
         <!-- Autorizaciones legales -->
         <div id="seccion-autorizaciones" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-          <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
-            <IconShieldCheck :size="20" /> Autorizaciones legales
+          <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)' }">
+            <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)' }">
+              <IconShieldCheck :size="20" /> Autorizaciones
+            </div>
+            <div :style="{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 12px', borderRadius: 'var(--r-pill)', background: autorizaciones.autorizacion_aceptada ? 'white' : 'rgba(255, 255, 255, 0.15)', border: autorizaciones.autorizacion_aceptada ? '1px solid white' : 'none' }">
+              <IconCircleCheck v-if="autorizaciones.autorizacion_aceptada" :size="14" :style="{ color: 'var(--color-success)' }" />
+              <span :style="{ fontSize: '10px', fontWeight: 'var(--fw-extrabold)', textTransform: 'uppercase', letterSpacing: '0.05em', color: autorizaciones.autorizacion_aceptada ? 'var(--color-success)' : 'white' }">{{ autorizaciones.autorizacion_aceptada ? 'Aceptadas' : 'Pendiente' }}</span>
+            </div>
           </div>
           <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-            <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--sp-md)' }">
-              <div>
-                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">Autorizaciones y declaraciones</div>
-                <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)' }">A continuación, lea atentamente antes de autorizar</div>
-              </div>
-              <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', padding: 'var(--sp-sm) var(--sp-lg)', borderRadius: 'var(--r-pill)', background: autorizaciones.autorizacion_aceptada ? 'var(--color-success-bg)' : 'var(--color-bg-surface)', border: autorizaciones.autorizacion_aceptada ? '1px solid var(--color-success)' : '1px solid var(--color-border)' }">
-                <IconCircleCheck v-if="autorizaciones.autorizacion_aceptada" :size="16" :style="{ color: 'var(--color-success)' }" />
-                <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: autorizaciones.autorizacion_aceptada ? 'var(--color-success-text)' : 'var(--color-text-3)' }">{{ autorizaciones.autorizacion_aceptada ? 'Aceptadas' : 'Pendiente' }}</span>
-              </div>
+            <div>
+              <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-xs)' }">Autorizaciones y declaraciones</div>
+              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', lineHeight: '1.5' }">Es indispensable que lea y otorgue su consentimiento sobre las declaraciones legales y políticas de tratamiento de datos requeridas para dar trámite a su solicitud de crédito.</div>
             </div>
-            <PortalButton variant="primary" :full="true" @click="modalAutorizacionesVisible = true">Validar contenido</PortalButton>
+            <PortalButton variant="primary" :full="true" @click="modalAutorizacionesVisible = true">Revisar contenido...</PortalButton>
           </div>
         </div>
 
@@ -2344,9 +2344,7 @@ function onOtpValidado() {
             <div :style="{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)' }">
               Revise su solicitud antes de firmar
             </div>
-            <div v-if="ultimoGuardado" :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-semibold)' }">
-              Borrador guardado: {{ formatearFecha(ultimoGuardado.toISOString()) }}
-            </div>
+
           </div>
 
           <!-- ── Banner de campos faltantes ────────────────────────── -->
@@ -2367,12 +2365,9 @@ function onOtpValidado() {
           </div>
 
           <!-- 1. Información de la solicitud -->
-          <div :style="{ borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
-            <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-              <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
-                <IconFileDescription :size="16" /> Información de la solicitud
-              </div>
-              <button @click="irAPaso(2)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
+          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconFileDescription :size="20" /> Información de la solicitud
             </div>
             <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 'var(--sp-md)' }">
               <div>
@@ -2411,25 +2406,26 @@ function onOtpValidado() {
           </div>
 
           <!-- 2. Información personal del titular -->
-          <div :style="{ borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
-            <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-              <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
-                <IconUser :size="16" /> Información personal
-              </div>
-              <button @click="irAPaso(2)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
+          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconUser :size="20" /> Información personal
             </div>
             <div :style="{ padding: 'var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
               <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
-                <div :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+                <div>
                   <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nombre completo</div>
                   <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.nombres }} {{ persona.apellidos }}</div>
                 </div>
                 <div>
-                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Documento</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_DOC, persona.tipo_documento) }} {{ persona.numero_identificacion }}</div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Tipo documento</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_DOC, persona.tipo_documento) }}</div>
                 </div>
                 <div>
-                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Expedición</div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Número de documento</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.numero_identificacion }}</div>
+                </div>
+                <div>
+                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Fecha expedición</div>
                   <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatFecha(persona.fecha_expedicion_documento) }}</div>
                 </div>
                 <div>
@@ -2450,11 +2446,7 @@ function onOtpValidado() {
                 </div>
                 <div :style="{ gridColumn: isMobile ? 'auto' : 'span 3' }">
                   <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Dirección</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.direccion_residencia }} {{ persona.barrio ? '— Barrio: ' + persona.barrio : '' }}</div>
-                </div>
-                <div>
-                  <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ciudad</div>
-                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ ubicacionResidencia.municipio_nombre }}, {{ ubicacionResidencia.depto_nombre }}</div>
+                  <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.direccion_residencia }}</div>
                 </div>
               </div>
 
@@ -2524,7 +2516,7 @@ function onOtpValidado() {
                 <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Salario / Ingresos fijos</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financiera.salario_ingresos_fijos) }}</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financiera.salario_ingresos_fijos) }}</div>
                   </div>
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos independiente</div>
@@ -2532,15 +2524,15 @@ function onOtpValidado() {
                   </div>
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Gastos familiares</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financiera.gastos_familiares) }}</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financiera.gastos_familiares) }}</div>
                   </div>
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Otros gastos</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financiera.otros_gastos) }}</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financiera.otros_gastos) }}</div>
                   </div>
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Obligaciones financieras</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financiera.obligaciones_financieras) }}</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financiera.obligaciones_financieras) }}</div>
                   </div>
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
@@ -2553,19 +2545,19 @@ function onOtpValidado() {
                 <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos independiente</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financiera.ingresos_independiente) }}</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financiera.ingresos_independiente) }}</div>
                   </div>
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Gastos familiares</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financiera.gastos_familiares) }}</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financiera.gastos_familiares) }}</div>
                   </div>
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Otros gastos</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financiera.otros_gastos) }}</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financiera.otros_gastos) }}</div>
                   </div>
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Obligaciones financieras</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financiera.obligaciones_financieras) }}</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financiera.obligaciones_financieras) }}</div>
                   </div>
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
@@ -2578,7 +2570,7 @@ function onOtpValidado() {
                 <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Mesada pensional</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financiera.mesada_pensional) }}</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financiera.mesada_pensional) }}</div>
                   </div>
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
@@ -2591,7 +2583,7 @@ function onOtpValidado() {
                 <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos mensuales</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financiera.salario_ingresos_fijos) }}</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financiera.salario_ingresos_fijos) }}</div>
                   </div>
                   <div>
                     <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Fuente de ingresos</div>
@@ -2619,7 +2611,7 @@ function onOtpValidado() {
               </div>
 
               <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
-              <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }">Cuenta de desembolso</div>
+              <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }">Cuenta para desembolso</div>
 
               <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                 <div>
@@ -2656,12 +2648,9 @@ function onOtpValidado() {
           <template v-if="numCodudores > 0">
 
             <!-- Codeudor 1 -->
-            <div :style="{ borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
-              <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-                <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
-                  <IconUserCheck :size="16" /> Codeudor 1
-                </div>
-                <button @click="irAPaso(3)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
+            <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+                <IconUserCheck :size="20" /> Codeudor 1
               </div>
               <div :style="{ padding: 'var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
 
@@ -2775,7 +2764,7 @@ function onOtpValidado() {
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Salario / Ingresos fijos</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financieraCod1.salario_codeudor) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod1.salario_codeudor) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos independiente</div>
@@ -2783,15 +2772,15 @@ function onOtpValidado() {
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Gastos familiares</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod1.gastos_familiares_codeudor) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod1.gastos_familiares_codeudor) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Otros gastos</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod1.otros_gastos_codeudor) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod1.otros_gastos_codeudor) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Obligaciones financieras</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod1.obligaciones_financieras_codeudor) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod1.obligaciones_financieras_codeudor) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
@@ -2804,19 +2793,19 @@ function onOtpValidado() {
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos independiente</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financieraCod1.ingresos_independiente_codeudor) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod1.ingresos_independiente_codeudor) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Gastos familiares</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod1.gastos_familiares_codeudor) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod1.gastos_familiares_codeudor) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Otros gastos</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod1.otros_gastos_codeudor) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod1.otros_gastos_codeudor) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Obligaciones financieras</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod1.obligaciones_financieras_codeudor) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod1.obligaciones_financieras_codeudor) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
@@ -2829,7 +2818,7 @@ function onOtpValidado() {
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Mesada pensional</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financieraCod1.mesada_pensional_codeudor) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod1.mesada_pensional_codeudor) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
@@ -2842,7 +2831,7 @@ function onOtpValidado() {
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos mensuales</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financieraCod1.salario_codeudor) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod1.salario_codeudor) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Fuente de ingresos</div>
@@ -2873,12 +2862,9 @@ function onOtpValidado() {
             </div>
 
             <!-- Codeudor 2 -->
-            <div v-if="numCodudores >= 2" :style="{ borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
-              <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-                <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
-                  <IconUserCheck :size="16" /> Codeudor 2
-                </div>
-                <button @click="irAPaso(3)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
+            <div v-if="numCodudores >= 2" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+                <IconUserCheck :size="20" /> Codeudor 2
               </div>
               <div :style="{ padding: 'var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
 
@@ -2992,7 +2978,7 @@ function onOtpValidado() {
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Salario / Ingresos fijos</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financieraCod2.salario_codeudor2) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod2.salario_codeudor2) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos independiente</div>
@@ -3000,15 +2986,15 @@ function onOtpValidado() {
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Gastos familiares</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod2.gastos_familiares_codeudor2) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod2.gastos_familiares_codeudor2) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Otros gastos</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod2.otros_gastos_codeudor2) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod2.otros_gastos_codeudor2) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Obligaciones financieras</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod2.obligaciones_financieras_codeudor2) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod2.obligaciones_financieras_codeudor2) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
@@ -3021,19 +3007,19 @@ function onOtpValidado() {
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos independiente</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financieraCod2.ingresos_independiente_codeudor2) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod2.ingresos_independiente_codeudor2) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Gastos familiares</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod2.gastos_familiares_codeudor2) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod2.gastos_familiares_codeudor2) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Otros gastos</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod2.otros_gastos_codeudor2) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod2.otros_gastos_codeudor2) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Obligaciones financieras</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-error-text)' }">{{ formatMonto(financieraCod2.obligaciones_financieras_codeudor2) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod2.obligaciones_financieras_codeudor2) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
@@ -3046,7 +3032,7 @@ function onOtpValidado() {
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Mesada pensional</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financieraCod2.mesada_pensional_codeudor2) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod2.mesada_pensional_codeudor2) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Personas a cargo</div>
@@ -3059,7 +3045,7 @@ function onOtpValidado() {
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Ingresos mensuales</div>
-                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600', color: 'var(--color-success-text)' }">{{ formatMonto(financieraCod2.salario_codeudor2) }}</div>
+                      <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ formatMonto(financieraCod2.salario_codeudor2) }}</div>
                     </div>
                     <div>
                       <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Fuente de ingresos</div>
@@ -3092,12 +3078,9 @@ function onOtpValidado() {
           </template>
 
           <!-- 4. Documentos adjuntos — checklist -->
-          <div :style="{ borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'white', overflow: 'hidden' }">
-            <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }">
-              <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-text-1)' }">
-                <IconUpload :size="16" /> Documentos adjuntos
-              </div>
-              <button @click="irAPaso(4)" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'bold' }">Editar</button>
+          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconUpload :size="20" /> Documentos adjuntos
             </div>
             <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
               <div

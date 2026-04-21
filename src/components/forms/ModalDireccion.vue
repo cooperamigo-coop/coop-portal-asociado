@@ -73,7 +73,7 @@ const preview = computed(() => {
     complemento, barrio, municipio_nombre, depto_nombre
   } = local.value
 
-  if (!via_principal || !numero_via || !numero_placa) return ''
+  if (!via_principal || !numero_via || !numero_placa || !depto_nombre || !municipio_nombre) return ''
 
   let s = `${via_principal} ${numero_via}`
   if (letra_via)     s += ` ${letra_via}`

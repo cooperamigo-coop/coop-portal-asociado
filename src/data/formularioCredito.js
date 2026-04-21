@@ -43,7 +43,7 @@ export const PASOS_FORMULARIO = [
   { numero: 4, titulo: 'Información laboral', seccion: 'Solicitante' },
   { numero: 5, titulo: 'Información financiera', seccion: 'Solicitante' },
   { numero: 6, titulo: 'Patrimonio', seccion: 'Solicitante' },
-  { numero: 7, titulo: 'Cuenta de desembolso', seccion: 'Solicitante' },
+  { numero: 7, titulo: 'Cuenta para desembolso', seccion: 'Solicitante' },
   { numero: 8, titulo: 'Codeudores', seccion: 'Codeudores' },
   { numero: 9, titulo: 'Datos personales — Codeudor 1', seccion: 'Codeudor 1' },
   { numero: 10, titulo: 'Información laboral — Codeudor 1', seccion: 'Codeudor 1' },

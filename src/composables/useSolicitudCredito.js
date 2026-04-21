@@ -5,6 +5,7 @@ import {
   enviarSolicitud,
   verificarAsociado,
   notificarCodudores,
+  notificarTitularSolicitudRadicada,
 } from '@/services/solicitudCredito.service'
 import { actualizarCamposAsociado, buscarAsociadoPorCedula } from '@/services/afiliacion.service'
 import { supabase } from '@/services/supabase'
@@ -143,7 +144,7 @@ export function useSolicitudCredito() {
     valor_vehiculo: '',
   })
 
-  // ── Sección 7: Cuenta de desembolso ──────────────────────
+  // ── Sección 7: Cuenta para desembolso ──────────────────────
   const cuenta = ref({
     tipo_cuenta: '',
     entidad_bancaria: '',
@@ -598,7 +599,7 @@ export function useSolicitudCredito() {
       }) => p)(personaCod1.value) : {}),
       ...(numCodudores.value >= 1 ? laboralCod1.value : {}),
       ...(numCodudores.value >= 1 ? financieraCod1.value : {}),
-      numero_dependientes_codeudor: (numCodudores.value >= 1 && financieraCod1.value.numero_dependientes_codeudor) 
+      numero_dependientes_codeudor: (numCodudores.value >= 1 && financieraCod1.value.numero_dependientes_codeudor)
         ? Number(financieraCod1.value.numero_dependientes_codeudor) : 0,
       ...(numCodudores.value >= 1 ? patrimonioCod1.value : {}),
       ...(numCodudores.value >= 1 ? {
@@ -619,7 +620,7 @@ export function useSolicitudCredito() {
       }) => p)(personaCod2.value) : {}),
       ...(numCodudores.value >= 2 ? laboralCod2.value : {}),
       ...(numCodudores.value >= 2 ? financieraCod2.value : {}),
-      numero_dependientes_codeudor2: (numCodudores.value >= 2 && financieraCod2.value.numero_dependientes_codeudor2) 
+      numero_dependientes_codeudor2: (numCodudores.value >= 2 && financieraCod2.value.numero_dependientes_codeudor2)
         ? Number(financieraCod2.value.numero_dependientes_codeudor2) : 0,
       ...(numCodudores.value >= 2 ? patrimonioCod2.value : {}),
       ...(numCodudores.value >= 2 ? {
@@ -680,7 +681,7 @@ export function useSolicitudCredito() {
     if (!asociadoVerificado.value?.id) return
     // Permitir 0 como valor válido (numero_dependientes puede ser 0)
     if (nuevoValor === undefined || nuevoValor === null || nuevoValor === '') return
-    
+
     const valorActual = asociadoVerificado.value[columnaAsociado]
     if (valorActual === nuevoValor) return
     try {
@@ -994,6 +995,19 @@ export function useSolicitudCredito() {
         notificarCodudores(solicitudId.value).catch(e =>
           console.warn('[SolicitudCredito] Error notificando codeudores:', e)
         )
+      } else {
+        const radicado = solicitudId.value
+          ? `RAD-${String(fechaSolicitud.value || '').replaceAll('-', '')}-${String(solicitudId.value).slice(0, 8).toUpperCase()}`
+          : ''
+        notificarTitularSolicitudRadicada({
+          solicitudId: solicitudId.value,
+          emailTitular: verificacion.value.correo,
+          nombreTitular: `${persona.value.nombres || ''} ${persona.value.apellidos || ''}`.trim(),
+          radicado,
+          requiereCodeudores: false,
+          numCodeudores: 0,
+          fechaSolicitudIso: fechaSolicitud.value,
+        }).catch(e => console.warn('[SolicitudCredito] Error notificando titular:', e))
       }
 
       await registrarIntento(supabase, verificacion.value.numero_documento, 'envio_credito')
@@ -1010,10 +1024,10 @@ export function useSolicitudCredito() {
 
   // ── Helper formato moneda ─────────────────────────────────
   function formatMonto(n) {
-    if (!n) return ''
+    const val = Number(n) || 0
     return new Intl.NumberFormat('es-CO', {
       style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-    }).format(n)
+    }).format(val)
   }
 
   return {

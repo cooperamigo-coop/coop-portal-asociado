@@ -13,6 +13,7 @@ const props = defineProps({
   label: { type: String, default: 'Documento de identidad' },
   required: { type: Boolean, default: false },
   error: { type: String, default: null },
+  initialUrl: { type: String, default: null },
 })
 const emit = defineEmits(['completado', 'sesion-creada'])
 
@@ -24,7 +25,8 @@ const {
   finalizarConPdf, subirPdfDirecto,
 } = useCapturaDocumento()
 
-const urlFinal = ref(null)
+const urlFinal = ref(props.initialUrl || null)
+watch(() => props.initialUrl, (v) => { if (v) urlFinal.value = v })
 const modalPreviewVisible = ref(false)
 
 // ── Previews locales para upload directo ────────────────────────────────────
@@ -114,7 +116,7 @@ const LADOS = [
 </script>
 
 <template>
-  <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }">
+  <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }">
     <!-- Header/Banner Principal -->
     <div :style="{
       display: 'flex',
@@ -138,7 +140,7 @@ const LADOS = [
       <div :style="{ flex: '1', minWidth: '0' }">
         <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
           {{ label }}
-          <span v-if="required" :style="{ color: 'var(--color-error)', marginLeft: '4px' }">*</span>
+          <span v-if="required && !urlFinal" :style="{ marginLeft: 'var(--sp-sm)', fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 6px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase' }">Obligatorio</span>
         </div>
         <div :style="{ fontSize: 'var(--text-sm)', color: urlFinal ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">
           {{ urlFinal ? 'Documento cargado correctamente' : 'Suba un PDF o tome fotos de ambos lados' }}
@@ -160,12 +162,12 @@ const LADOS = [
       <div v-else-if="estado === 'idle'" :style="{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: '0' }">
         <!-- Botón PDF -->
         <label :style="{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)' }">
-          <IconUpload :size="14" /> PDF
+          <IconUpload :size="14" /> Subir PDF
           <input type="file" accept=".pdf" :style="{ display: 'none' }" @change="onPdfSeleccionado" />
         </label>
         <!-- Botón Cámara -->
         <button @click="esMovil ? null : iniciarQR()" :style="{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-primary)', background: 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)' }">
-          <IconCamera :size="14" /> {{ esMovil ? 'Fotos' : 'Celular' }}
+          <IconCamera :size="14" /> Tomar fotografía
         </button>
       </div>
 
@@ -222,10 +224,10 @@ const LADOS = [
     <Teleport to="body">
       <div v-if="modalPreviewVisible" :style="{ position: 'fixed', inset: '0', zIndex: '1000', background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--sp-lg)' }">
         <div :style="{ width: 'min(980px, 96vw)', height: 'min(86vh, 920px)', background: 'white', borderRadius: 'var(--r-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }">
-          <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-sm) var(--sp-md)', borderBottom: '1px solid var(--color-border)' }">
-            <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">{{ label }}</div>
+          <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-lg) var(--sp-xl)', borderBottom: '1px solid var(--color-border)' }">
+            <div :style="{ fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">{{ label }}</div>
             <button :style="{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-3)' }" @click="cerrarPreview">
-              <IconX :size="18" />
+              <IconX :size="20" />
             </button>
           </div>
           <iframe :src="urlFinal" title="Vista previa del documento" :style="{ width: '100%', height: '100%', border: 'none', background: '#f5f5f5' }" />

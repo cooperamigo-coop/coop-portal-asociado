@@ -132,7 +132,7 @@ const SERVICIOS_NO_ASOCIADO = [
         <div v-if="paso === 'pregunta'" class="vista animate-in">
           <img src="/favicon.svg" alt="Cooperamigó" class="hero-favicon" />
           <h1 class="hero-title">¡Te damos la bienvenida!</h1>
-          <p class="hero-question">¿Ya haces parte de Cooperamigó?<br>Accede a los trámites digitales o inicia tu proceso de vinculación como asociado.</p>
+          <p class="hero-question">¿Ya haces parte de Cooperamigó?<br>Accede a los trámites digitales o inicia tu proceso de vinculación como asociado de la Cooperativa.</p>
           <div class="opciones">
             <button
               class="btn-opcion btn-opcion--primary"

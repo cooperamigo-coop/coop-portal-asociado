@@ -33,6 +33,8 @@ function onScroll(e) {
   if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
     scrollCompletado.value = true
     porcentajeScroll.value = 100
+  } else {
+    scrollCompletado.value = false
   }
 }
 
@@ -77,7 +79,7 @@ function cerrar() {
             maxWidth:      '640px',
             maxHeight:     '92vh',
             background:    'var(--color-bg-card)',
-            borderRadius:  'var(--r-2xl)',
+            borderRadius:  'var(--r-lg)',
             boxShadow:     'var(--shadow-modal)',
             display:       'flex',
             flexDirection: 'column',
@@ -170,7 +172,7 @@ function cerrar() {
               fontSize:   'var(--text-base)',
               color:      'var(--color-text-2)',
               fontWeight: 'var(--fw-regular)',
-              lineHeight: '1.65',
+              lineHeight: '1.45',
             }"
             ref="contenedorTexto"
             @scroll="onScroll"
@@ -187,11 +189,11 @@ function cerrar() {
             <p :style="{ marginBottom: 'var(--sp-xl)' }">
               Autorizo(amos) de manera previa, expresa e informada a la COOPERATIVA MULTIACTIVA LUIS AMIGÓ – COOPERAMIGÓ (en adelante, “Cooperamigó”), o a quien represente sus derechos, para recolectar, almacenar, usar, circular, actualizar y suprimir los datos personales que he(mos) suministrado, que llegue(mos) a suministrar o que sean obtenidos lícitamente de terceros, para las siguientes finalidades:
             </p>
-            <p :style="{ marginBottom: 'var(--sp-sm)' }">a) Evaluar y gestionar solicitudes de productos y/o servicios.</p>
-            <p :style="{ marginBottom: 'var(--sp-sm)' }">b) Celebrar, ejecutar y administrar la relación contractual.</p>
-            <p :style="{ marginBottom: 'var(--sp-sm)' }">c) Informar sobre novedades, cambios o aspectos relacionados con los productos y/o servicios.</p>
-            <p :style="{ marginBottom: 'var(--sp-sm)' }">d) Realizar actividades comerciales, de mercadeo, promoción y publicidad.</p>
-            <p :style="{ marginBottom: 'var(--sp-xl)' }">e) Actualizar y verificar la información.</p>
+            <p :style="{ marginBottom: 'var(--sp-xs)', marginLeft: 'var(--sp-xl)' }">a) Evaluar y gestionar solicitudes de productos y/o servicios.</p>
+            <p :style="{ marginBottom: 'var(--sp-xs)', marginLeft: 'var(--sp-xl)' }">b) Celebrar, ejecutar y administrar la relación contractual.</p>
+            <p :style="{ marginBottom: 'var(--sp-xs)', marginLeft: 'var(--sp-xl)' }">c) Informar sobre novedades, cambios o aspectos relacionados con los productos y/o servicios.</p>
+            <p :style="{ marginBottom: 'var(--sp-xs)', marginLeft: 'var(--sp-xl)' }">d) Realizar actividades comerciales, de mercadeo, promoción y publicidad.</p>
+            <p :style="{ marginBottom: 'var(--sp-md)', marginLeft: 'var(--sp-xl)' }">e) Actualizar y verificar la información.</p>
 
             <p :style="{ marginBottom: 'var(--sp-xl)' }">
               Igualmente, autorizo(amos) a Cooperamigó para compartir mis(nuestros) datos personales con aliados comerciales, proveedores y entidades vinculadas, para que me(nos) ofrezcan productos y servicios relacionados con su actividad.
