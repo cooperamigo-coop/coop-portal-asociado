@@ -12,7 +12,7 @@ import {
 } from '@tabler/icons-vue'
 import { obtenerSolicitudPorToken, guardarFirmaCodeudor } from '@/services/firmaCodeudor.service'
 import PortalLayout from '@/components/layout/PortalLayout.vue'
-import CampoTexto   from '@/components/ui/CampoTexto.vue'
+import CampoTexto   from '@/components/forms/CampoTexto.vue'
 
 // ── Constantes de Etiquetado (replicadas de SolicitudCredito) ─────────────────
 const LABEL_TIPO_DOC = {
@@ -395,10 +395,6 @@ function formatearFecha(iso) {
   })
 }
 
-function formatMonto(v) {
-  const n = Number(v) || 0
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
-}
 
 function formatFechaSimple(fechaStr) {
   if (!fechaStr) return '—'
