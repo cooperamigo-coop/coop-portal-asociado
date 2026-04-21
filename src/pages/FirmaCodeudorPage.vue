@@ -7,9 +7,33 @@ import ModalOtpEmail      from '@/components/forms/ModalOtpEmail.vue'
 import PortalButton       from '@/components/ui/PortalButton.vue'
 import {
   IconLoader2, IconCircleCheck, IconAlertTriangle, IconDownload,
+  IconUser, IconBriefcase, IconCash, IconShieldCheck, IconUpload, IconX,
+  IconClock, IconFileText, IconTrendingUp,
 } from '@tabler/icons-vue'
 import { obtenerSolicitudPorToken, guardarFirmaCodeudor } from '@/services/firmaCodeudor.service'
 import PortalLayout from '@/components/layout/PortalLayout.vue'
+import CampoTexto   from '@/components/ui/CampoTexto.vue'
+
+// ── Constantes de Etiquetado (replicadas de SolicitudCredito) ─────────────────
+const LABEL_TIPO_DOC = {
+  cc: 'Cédula de Ciudadanía', ce: 'Cédula de Extranjería', nit: 'NIT', pasaporte: 'Pasaporte',
+}
+const LABEL_NIVEL_EDUCATIVO = {
+  primaria: 'Primaria', bachillerato: 'Bachillerato', tecnico: 'Técnico / Tecnológico',
+  universitario_incompleto: 'Pregrado (en curso)', universitario_completo: 'Pregrado (completo)',
+  postgrado: 'Postgrado / Maestría',
+}
+const LABEL_TIPO_TRABAJADOR = {
+  empleado: 'Empleado', independiente: 'Independiente', pensionado: 'Pensionado',
+  estudiante: 'Estudiante', cuidado_hogar: 'Cuidado del hogar',
+}
+const LABEL_TIPO_CONTRATO = {
+  termino_fijo: 'Término Fijo', termino_indefinido: 'Término Indefinido',
+  prestacion_servicios: 'Prestación de Servicios', obra_labor: 'Obra o Labor', otro: 'Otro',
+}
+const LABEL_TIPO_VIA = {
+  calle: 'Calle', carrera: 'Carrera', avenida: 'Avenida', diagonal: 'Diagonal', transversal: 'Transversal', circular: 'Circular',
+}
 
 const route = useRoute()
 const token = computed(() => route.query.token || '')
@@ -111,6 +135,23 @@ function seleccionarMetodo(metodo) {
   firmaMetodo.value = metodo
   firmaImagen.value = ''
   if (metodo === 'dibujar') nextTick(() => prepararCanvasFirma())
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function label(tabla, key) {
+  return tabla[key] || key || '—'
+}
+
+function formatMonto(n) {
+  if (!n && n !== 0) return '—'
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
+  }).format(n)
+}
+
+function formatFecha(f) {
+  if (!f) return '—'
+  return new Date(f).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 // ── Canvas firma ───────────────────────────────────────────────────────────────

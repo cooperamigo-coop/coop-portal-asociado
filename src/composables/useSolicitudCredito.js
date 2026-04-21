@@ -577,6 +577,7 @@ export function useSolicitudCredito() {
       // Laboral, financiera, patrimonio, cuenta
       ...laboral.value,
       ...financiera.value,
+      numero_dependientes: financiera.value.numero_dependientes ? Number(financiera.value.numero_dependientes) : 0,
       // Mapeo explícito de campos financieros para compatibilidad con DB
       otros_ingresos: financiera.value.ingresos_independiente,
       ...patrimonio.value,
@@ -597,6 +598,8 @@ export function useSolicitudCredito() {
       }) => p)(personaCod1.value) : {}),
       ...(numCodudores.value >= 1 ? laboralCod1.value : {}),
       ...(numCodudores.value >= 1 ? financieraCod1.value : {}),
+      numero_dependientes_codeudor: (numCodudores.value >= 1 && financieraCod1.value.numero_dependientes_codeudor) 
+        ? Number(financieraCod1.value.numero_dependientes_codeudor) : 0,
       ...(numCodudores.value >= 1 ? patrimonioCod1.value : {}),
       ...(numCodudores.value >= 1 ? {
         ciudad_codeudor: ubicacionCod1.value.municipio_nombre,
@@ -616,6 +619,8 @@ export function useSolicitudCredito() {
       }) => p)(personaCod2.value) : {}),
       ...(numCodudores.value >= 2 ? laboralCod2.value : {}),
       ...(numCodudores.value >= 2 ? financieraCod2.value : {}),
+      numero_dependientes_codeudor2: (numCodudores.value >= 2 && financieraCod2.value.numero_dependientes_codeudor2) 
+        ? Number(financieraCod2.value.numero_dependientes_codeudor2) : 0,
       ...(numCodudores.value >= 2 ? patrimonioCod2.value : {}),
       ...(numCodudores.value >= 2 ? {
         ciudad_codeudor2: ubicacionCod2.value.municipio_nombre,
