@@ -57,6 +57,8 @@ export function useSolicitudCredito() {
     valor_desembolso: '',
     destino_credito: '',
     tipo_estudio: '',
+    institucion: '',
+    beneficiario_nombre: '',
     denominacion_carrera: '',
     plazo_solicitado: '',
   })
@@ -254,6 +256,7 @@ export function useSolicitudCredito() {
   // ── Sección autorizaciones ────────────────────────────────
   const autorizaciones = ref({
     autorizacion_aceptada: false,
+    autorizacion_desembolso_directo_educativo: false,
   })
 
   // ── Documentos capturados ─────────────────────────────────
@@ -348,7 +351,7 @@ export function useSolicitudCredito() {
     if ((d.modalidad_credito === 'educativo' || d.tipo_operacion === 'credito_nuevo') && !d.valor_credito) list.push('Valor del crédito')
     if (d.tipo_operacion === 'reestructura' && !d.valor_reestructura) list.push('Valor reestructura')
     if (d.tipo_operacion === 'reestructura_desembolso' && (!d.valor_reestructura || !d.valor_desembolso)) list.push('Valores de reestructura/desembolso')
-    if (d.modalidad_credito === 'educativo' && (!d.tipo_estudio || !d.denominacion_carrera)) list.push('Información académica')
+    if (d.modalidad_credito === 'educativo' && (!d.tipo_estudio || !d.denominacion_carrera || !d.institucion)) list.push('Información académica')
     if (d.modalidad_credito !== 'educativo' && !d.destino_credito) list.push('Destino del crédito')
     if (!d.plazo_solicitado) list.push('Plazo solicitado')
 
@@ -390,12 +393,18 @@ export function useSolicitudCredito() {
 
     // 5. Cuenta
     if (d.tipo_operacion !== 'reestructura') {
-      if (!c.entidad_bancaria || !c.tipo_cuenta || !c.numero_cuenta) list.push('Información de cuenta bancaria')
-      if (c.cuenta_tercero) {
-        if (!c.nombre_tercero || !c.tipo_doc_tercero || !c.numero_doc_tercero) list.push('Información del titular de la cuenta (Tercero)')
-        // Validación de documentos obligatorios para cuenta de tercero
-        if (!documentos.value.doc_carta_autorizacion_tercero_url) list.push('Carta de autorización (Tercero)')
-        if (!documentos.value.doc_certificacion_bancaria_tercero_url) list.push('Certificación bancaria (Tercero)')
+      if (d.modalidad_credito === 'educativo') {
+        if (!d.institucion) list.push('Institución educativa')
+        if (!d.beneficiario_nombre) list.push('Beneficiario del desembolso')
+        if (!autorizaciones.value.autorizacion_desembolso_directo_educativo) list.push('Autorización desembolso directo')
+      } else {
+        if (!c.entidad_bancaria || !c.tipo_cuenta || !c.numero_cuenta) list.push('Información de cuenta bancaria')
+        if (c.cuenta_tercero) {
+          if (!c.nombre_tercero || !c.tipo_doc_tercero || !c.numero_doc_tercero) list.push('Información del titular de la cuenta (Tercero)')
+          // Validación de documentos obligatorios para cuenta de tercero
+          if (!documentos.value.doc_carta_autorizacion_tercero_url) list.push('Carta de autorización (Tercero)')
+          if (!documentos.value.doc_certificacion_bancaria_tercero_url) list.push('Certificación bancaria (Tercero)')
+        }
       }
     }
 

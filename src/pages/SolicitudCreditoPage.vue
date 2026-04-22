@@ -276,8 +276,15 @@ const opsTipoOperacion = [
 ]
 
 const opsTipoEstudio = [
-  { value: 'pregrado',  label: 'Pregrado'  },
-  { value: 'postgrado', label: 'Postgrado' },
+  { value: 'pregrado',        label: 'Pregrado' },
+  { value: 'especializacion', label: 'Especialización' },
+  { value: 'maestria',        label: 'Maestría' },
+  { value: 'postgrado',       label: 'Postgrado' },
+  { value: 'doctorado',       label: 'Doctorado' },
+]
+
+const opsInstitucionEducativa = [
+  { value: 'UNIVERSIDAD CATÓLICA LUIS AMIGÓ', label: 'UNIVERSIDAD CATÓLICA LUIS AMIGÓ' },
 ]
 
 const opsTipoCuenta = [
@@ -309,7 +316,13 @@ const opsTipoContrato = TIPOS_CONTRATO
 
 // ── Helpers de etiquetas para la pantalla de resumen ─────
 const LABEL_MODALIDAD    = { ordinario: 'Crédito ordinario', educativo: 'Crédito educativo' }
-const LABEL_TIPO_ESTUDIO = { pregrado: 'Pregrado', postgrado: 'Postgrado' }
+const LABEL_TIPO_ESTUDIO = {
+  pregrado: 'Pregrado',
+  especializacion: 'Especialización',
+  maestria: 'Maestría',
+  postgrado: 'Postgrado',
+  doctorado: 'Doctorado',
+}
 const LABEL_TIPO_OP   = {
   credito_nuevo:           'Crédito nuevo',
   reestructura:            'Reestructura',
@@ -371,8 +384,18 @@ function sr(val) {
 
 // Documentos requeridos según el contexto
 const docResumen = computed(() => {
+  const labelDocCodeudor = (tipo) => {
+    return {
+      empleado: 'Carta laboral',
+      independiente: 'Certificado de ingresos',
+      pensionado: 'Últimas 2 colillas de pago',
+      estudiante: 'Certificado académico',
+      cuidado_hogar: 'Extractos bancarios',
+    }[tipo] || 'Soporte de ingresos'
+  }
+
   const items = [
-    { label: 'Cédula (Titular)', url: documentos.value.doc_cedula_solicitante_url },
+    { label: 'Cédula del titular', url: documentos.value.doc_cedula_solicitante_url },
   ]
 
   // 1. Solicitante
@@ -380,35 +403,37 @@ const docResumen = computed(() => {
     items.push({ label: 'Carta laboral', url: documentos.value.doc_carta_laboral_solicitante_url })
     items.push({ label: 'Últimas 3 colillas de pago', url: documentos.value.doc_colillas_pago_solicitante_url })
   } else if (laboral.value.tipo_trabajador === 'pensionado') {
-    items.push({ label: 'Desprendibles pensión', url: documentos.value.doc_soporte_ingresos_solicitante_url })
+    items.push({ label: 'Últimas 2 colillas de pago', url: documentos.value.doc_soporte_ingresos_solicitante_url })
+  } else if (laboral.value.tipo_trabajador === 'independiente') {
+    items.push({ label: 'Certificado de ingresos', url: documentos.value.doc_soporte_ingresos_solicitante_url })
+  } else if (laboral.value.tipo_trabajador === 'estudiante') {
+    items.push({ label: 'Certificado académico', url: documentos.value.doc_soporte_ingresos_solicitante_url })
   } else if (laboral.value.tipo_trabajador && laboral.value.tipo_trabajador !== 'cuidado_hogar') {
-    items.push({ label: 'Soporte ingresos', url: documentos.value.doc_soporte_ingresos_solicitante_url })
+    items.push({ label: 'Soporte de ingresos', url: documentos.value.doc_soporte_ingresos_solicitante_url })
   }
 
   // Educativo
   if (esEducativo.value) {
-    items.push({ label: 'Liquidación matrícula', url: documentos.value.doc_liquidacion_matricula_url })
+    items.push({ label: 'Liquidación de matrícula', url: documentos.value.doc_liquidacion_matricula_url })
   }
 
   // Tercero
   if (cuenta.value.cuenta_tercero) {
-    items.push({ label: 'Carta autorización (Tercero)', url: documentos.value.doc_carta_autorizacion_tercero_url })
-    items.push({ label: 'Certificación bancaria (Tercero)', url: documentos.value.doc_certificacion_bancaria_tercero_url })
+    items.push({ label: 'Carta de autorización', url: documentos.value.doc_carta_autorizacion_tercero_url })
+    items.push({ label: 'Certificación bancaria', url: documentos.value.doc_certificacion_bancaria_tercero_url })
   }
 
   // 2. Codeudores
   if (numCodudores.value >= 1) {
-    items.push({ label: 'Cédula (Cod. 1)', url: documentos.value.doc_cedula_codeudor_url })
+    items.push({ label: 'Cédula del Codeudor 1', url: documentos.value.doc_cedula_codeudor_url })
     if (documentos.value.doc_soporte_laboral_codeudor_url) {
-      const labelDoc = laboralCod1.value.tipo_trabajador_codeudor === 'empleado' ? 'Carta/Colillas (Cod. 1)' : 'Soporte ingresos (Cod. 1)'
-      items.push({ label: labelDoc, url: documentos.value.doc_soporte_laboral_codeudor_url })
+      items.push({ label: labelDocCodeudor(laboralCod1.value.tipo_trabajador_codeudor), url: documentos.value.doc_soporte_laboral_codeudor_url })
     }
   }
   if (numCodudores.value >= 2) {
-    items.push({ label: 'Cédula (Cod. 2)', url: documentos.value.doc_cedula_codeudor2_url })
+    items.push({ label: 'Cédula del Codeudor 2', url: documentos.value.doc_cedula_codeudor2_url })
     if (documentos.value.doc_soporte_laboral_codeudor2_url) {
-      const labelDoc = laboralCod2.value.tipo_trabajador_codeudor2 === 'empleado' ? 'Carta/Colillas (Cod. 2)' : 'Soporte ingresos (Cod. 2)'
-      items.push({ label: labelDoc, url: documentos.value.doc_soporte_laboral_codeudor2_url })
+      items.push({ label: labelDocCodeudor(laboralCod2.value.tipo_trabajador_codeudor2), url: documentos.value.doc_soporte_laboral_codeudor2_url })
     }
   }
 
@@ -1381,6 +1406,9 @@ watch(esEducativo, (educativo) => {
   if (educativo && Number(general.value.plazo_solicitado) > 6) {
     general.value = { ...general.value, plazo_solicitado: '6' }
   }
+  if (educativo && !general.value.institucion) {
+    general.value = { ...general.value, institucion: 'UNIVERSIDAD CATÓLICA LUIS AMIGÓ' }
+  }
 })
 watch(esOrdinario, (ordinario) => {
   if (ordinario && Number(general.value.plazo_solicitado) > 60) {
@@ -1389,15 +1417,35 @@ watch(esOrdinario, (ordinario) => {
 })
 
 function actualizarPlazo(valor) {
-  const num = Number(valor)
-  if (valor !== '' && num > maxPlazo.value) {
+  const raw = String(valor ?? '')
+  const cleaned = raw.replace(/\D/g, '')
+
+  if (!cleaned) {
+    errorPlazo.value = null
+    actualizarGeneral('plazo_solicitado', '')
+    return
+  }
+
+  const num = Number(cleaned)
+  if (!Number.isFinite(num)) {
+    errorPlazo.value = null
+    actualizarGeneral('plazo_solicitado', '')
+    return
+  }
+
+  const min = 1
+  const max = maxPlazo.value
+  const clamped = Math.min(Math.max(num, min), max)
+  if (num > max) {
     const label = esEducativo.value ? 'educativo' : 'ordinario'
-    errorPlazo.value = `Plazo máximo crédito ${label} es ${maxPlazo.value} meses.`
-    actualizarGeneral('plazo_solicitado', valor)
+    errorPlazo.value = `Plazo máximo crédito ${label} es ${max} meses.`
+  } else if (num < min) {
+    errorPlazo.value = 'El plazo mínimo es 1 mes.'
   } else {
     errorPlazo.value = null
-    actualizarGeneral('plazo_solicitado', valor)
   }
+
+  actualizarGeneral('plazo_solicitado', String(clamped))
 }
 
 function actualizarLaboral(campo, valor) {
@@ -1477,11 +1525,11 @@ function onOtpValidado() {
 
     <!-- ═══ PANTALLA DE ÉXITO ═══════════════════════════════ -->
     <div v-if="enviado" :style="{
-      background:   'var(--color-bg-card)',
-      border:       '1px solid var(--color-border-card)',
+      background:   'transparent',
+      border:       'none',
       borderRadius: 'var(--r-xl)',
       padding:      '64px var(--sp-2xl)',
-      boxShadow:    'var(--shadow-card)',
+      boxShadow:    'none',
       textAlign:    'center',
     }">
       <div :style="{
@@ -1786,13 +1834,6 @@ function onOtpValidado() {
                 :opciones="opsTipoOperacion"
                 @update:model-value="actualizarGeneral('tipo_operacion', $event)"
               />
-              <CampoMoneda
-                v-if="mostrarValorCredito && esEducativo"
-                :model-value="general.valor_credito"
-                label="Valor del crédito"
-                required
-                @update:model-value="actualizarGeneral('valor_credito', $event)"
-              />
               <div v-if="mostrarValorReestructura && mostrarValorDesembolso" :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-md)' }">
                 <CampoMoneda :model-value="general.valor_reestructura" label="Valor reestructura" required @update:model-value="actualizarGeneral('valor_reestructura', $event)" />
                 <CampoMoneda :model-value="general.valor_desembolso" label="Valor desembolso" required @update:model-value="actualizarGeneral('valor_desembolso', $event)" />
@@ -1800,28 +1841,42 @@ function onOtpValidado() {
               <CampoMoneda v-if="mostrarValorReestructura && !mostrarValorDesembolso" :model-value="general.valor_reestructura" label="Valor de la reestructura" required @update:model-value="actualizarGeneral('valor_reestructura', $event)" />
               <template v-if="!mostrarTipoOperacion || general.tipo_operacion">
                 <template v-if="esEducativo">
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoMoneda
+                      v-if="mostrarValorCredito"
+                      :model-value="general.valor_credito"
+                      label="Valor del crédito"
+                      required
+                      @update:model-value="actualizarGeneral('valor_credito', $event)"
+                    />
                     <CampoSelectBuscable :model-value="general.tipo_estudio" label="Tipo de estudio" required :opciones="opsTipoEstudio" @update:model-value="actualizarGeneral('tipo_estudio', $event)" />
-                    <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
-                      <div :style="{ position: 'relative', display: 'flex', alignItems: 'center', height: '54px', boxSizing: 'border-box', padding: '0 16px', border: errorPlazo ? '1px solid var(--color-error)' : '1px solid var(--color-border)', borderRadius: 'var(--r-md)', background: 'var(--color-bg-card)' }">
-                        <input :value="general.plazo_solicitado" type="text" inputmode="numeric" maxlength="2" :style="{ flex: '1', border: 'none', outline: 'none', background: 'transparent', fontSize: 'var(--text-base)', color: 'var(--color-text-1)' }" @keydown="e => { const ok = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab']; if (!ok.includes(e.key) && !/^\d$/.test(e.key)) e.preventDefault() }" @input="actualizarPlazo($event.target.value)" />
-                        <label :style="{ position: 'absolute', left: '12px', top: '0', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 'var(--fw-semibold)', color: errorPlazo ? 'var(--color-error-text)' : 'var(--color-text-3)', background: 'var(--color-bg-card)', padding: '0 3px' }">Plazo (meses) <span :style="{ color: 'var(--color-error)' }">*</span></label>
-                      </div>
-                      <span v-if="errorPlazo" :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-error-text)', fontWeight: 'var(--fw-medium)' }">{{ errorPlazo }}</span>
-                    </div>
+                    <CampoTexto
+                      :model-value="general.plazo_solicitado"
+                      label="Plazo (meses)"
+                      required
+                      solo-numeros
+                      :maxlength="2"
+                      :error="errorPlazo"
+                      @update:model-value="actualizarPlazo($event)"
+                    />
                   </div>
-                  <CampoTexto :model-value="general.denominacion_carrera" label="Carrera o denominación" required @update:model-value="actualizarGeneral('denominacion_carrera', $event)" />
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                    <CampoTexto :model-value="general.denominacion_carrera" label="Carrera o programa académico" required @update:model-value="actualizarGeneral('denominacion_carrera', $event)" />
+                    <CampoSelectBuscable :model-value="general.institucion" label="Institución" required :opciones="opsInstitucionEducativa" @update:model-value="actualizarGeneral('institucion', $event)" />
+                  </div>
                 </template>
                 <div v-else :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : mostrarValorCredito ? '1fr 2fr 1fr' : '3fr 1fr', gap: 'var(--sp-lg)' }">
                   <CampoMoneda v-if="mostrarValorCredito" :model-value="general.valor_credito" label="Valor del crédito" required @update:model-value="actualizarGeneral('valor_credito', $event)" />
                   <CampoTexto :model-value="general.destino_credito" label="Destino del crédito" required :maxlength="40" @update:model-value="actualizarGeneral('destino_credito', $event ? $event.toUpperCase() : $event)" />
-                  <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
-                    <div :style="{ position: 'relative', display: 'flex', alignItems: 'center', height: '54px', boxSizing: 'border-box', padding: '0 16px', border: errorPlazo ? '1px solid var(--color-error)' : '1px solid var(--color-border)', borderRadius: 'var(--r-md)', background: 'var(--color-bg-card)' }">
-                      <input :value="general.plazo_solicitado" type="text" inputmode="numeric" maxlength="2" :style="{ flex: '1', border: 'none', outline: 'none', background: 'transparent', fontSize: 'var(--text-base)', color: 'var(--color-text-1)' }" @keydown="e => { const ok = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab']; if (!ok.includes(e.key) && !/^\d$/.test(e.key)) e.preventDefault() }" @input="actualizarPlazo($event.target.value)" />
-                      <label :style="{ position: 'absolute', left: '12px', top: '0', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 'var(--fw-semibold)', color: errorPlazo ? 'var(--color-error-text)' : 'var(--color-text-3)', background: 'var(--color-bg-card)', padding: '0 3px' }">Plazo (meses) <span :style="{ color: 'var(--color-error)' }">*</span></label>
-                    </div>
-                    <span v-if="errorPlazo" :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-error-text)', fontWeight: 'var(--fw-medium)' }">{{ errorPlazo }}</span>
-                  </div>
+                  <CampoTexto
+                    :model-value="general.plazo_solicitado"
+                    label="Plazo (meses)"
+                    required
+                    solo-numeros
+                    :maxlength="2"
+                    :error="errorPlazo"
+                    @update:model-value="actualizarPlazo($event)"
+                  />
                 </div>
               </template>
             </div>
@@ -1925,99 +1980,155 @@ function onOtpValidado() {
           <!-- 6. Cuenta para desembolso -->
           <div v-if="mostrarCuentaDesembolso" id="seccion-cuenta" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
             <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
-              <IconFileCheck :size="20" /> Cuenta para desembolso
+              <IconFileCheck :size="20" /> {{ esEducativo ? 'Autorización de desembolso directo' : 'Cuenta para desembolso' }}
             </div>
             <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
-                <CampoSelectBuscable :model-value="cuenta.tipo_cuenta" label="Tipo de cuenta" required :opciones="opsTipoCuenta" @update:model-value="actualizarCuenta('tipo_cuenta', $event)" />
-                <CampoSelectBuscable :model-value="cuenta.entidad_bancaria" label="Entidad bancaria" required :disabled="!cuenta.tipo_cuenta" :limit="0" :opciones="[...ENTIDADES_BANCARIAS.map(e => ({ value: e, label: e })), { value: 'otro', label: 'Otra entidad' }]" @update:model-value="actualizarCuenta('entidad_bancaria', $event)" />
-              </div>
-              <CampoTexto v-if="cuenta.entidad_bancaria === 'otro'" :model-value="cuenta.entidad_bancaria_otro" label="Especifique entidad" required @update:model-value="actualizarCuenta('entidad_bancaria_otro', $event)" />
-              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)', alignItems: 'center' }">
-                <CampoTexto :model-value="cuenta.numero_cuenta" label="Número de cuenta" required solo-numeros :maxlength="18" :disabled="!cuenta.entidad_bancaria" @update:model-value="actualizarCuenta('numero_cuenta', $event)" />
-                <CampoCheck :model-value="cuenta.cuenta_tercero" label="La cuenta pertenece a un tercero" @update:model-value="actualizarCuenta('cuenta_tercero', $event)" />
-              </div>
-              <template v-if="cuenta.cuenta_tercero">
-                <div :style="{ padding: 'var(--sp-xl)', borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', background: 'var(--color-bg-surface)', display: 'flex', flexDirection:'column', gap: 'var(--sp-lg)' }">
-                  <div :style="{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)' }">Datos del titular</div>
-                  <CampoTexto :model-value="cuenta.nombre_tercero" label="Nombre completo" required @update:model-value="actualizarCuenta('nombre_tercero', $event ? $event.toUpperCase() : $event)" />
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
-                    <CampoSelect :model-value="cuenta.tipo_doc_tercero" label="Tipo documento" required :opciones="opsTipoDocTitular" @update:model-value="actualizarCuenta('tipo_doc_tercero', $event)" />
-                    <CampoTexto :model-value="cuenta.numero_doc_tercero" label="Número documento" required solo-numeros @update:model-value="actualizarCuenta('numero_doc_tercero', $event)" />
+              <template v-if="esEducativo">
+                <div :style="{ padding: 'var(--sp-xl)', borderRadius: 'var(--r-xl)', background: 'white', display: 'flex', flexDirection:'column', gap: 'var(--sp-lg)' }">
+                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', fontWeight: 'var(--fw-regular)', lineHeight: '1.7', textAlign: 'justify' }">
+                    Señores
+                    <br />
+                    <span :style="{ fontWeight: 'var(--fw-bold)' }">COOPERATIVA MULTIACTIVA LUIS AMIGÓ</span>
+                    <br /><br />
+                    Yo, <span :style="{ fontWeight: 'var(--fw-bold)' }">{{ (persona.nombres + ' ' + persona.apellidos).trim() || '—' }}</span>,
+                    identificado(a) con la cédula de ciudadanía No. <span :style="{ fontWeight: 'var(--fw-bold)' }">{{ persona.numero_identificacion || '—' }}</span>,
+                    en mi calidad de asociado(a) y como titular del crédito bajo la línea <span :style="{ fontWeight: 'var(--fw-bold)' }">CRÉDITO EDUCATIVO</span>
+                    otorgado para estudios en la <span :style="{ fontWeight: 'var(--fw-bold)' }">UNIVERSIDAD CATÓLICA LUIS AMIGÓ</span>,
+                    autorizo de manera expresa a la Cooperativa para que efectúe directamente a la institución el pago de la matrícula a nombre del/la señor(a)
+                    <input
+                      :value="general.beneficiario_nombre"
+                      type="text"
+                      placeholder="Nombre beneficiario (estudiante)"
+                      :style="{
+                        display: 'inline-block',
+                        minWidth: isMobile ? '160px' : '220px',
+                        maxWidth: isMobile ? '220px' : '260px',
+                        border: 'none',
+                        borderBottom: '1px solid var(--color-text-2)',
+                        background: 'transparent',
+                        color: 'var(--color-text-2)',
+                        caretColor: 'var(--color-text-2)',
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 'var(--fw-medium)',
+                        outline: 'none',
+                        padding: '0 2px 0 2px',
+                        margin: '0 3px',
+                        lineHeight: '1.1',
+                        height: '18px',
+                        verticalAlign: 'bottom',
+                      }"
+                      @input="actualizarGeneral('beneficiario_nombre', $event.target.value ? $event.target.value.toUpperCase() : $event.target.value)"
+                    />,
+                    para {{ general.tipo_estudio === 'pregrado' ? 'pregrado' : 'posgrado' }}
+                    en el programa de <span :style="{ fontWeight: 'var(--fw-bold)' }">{{ general.denominacion_carrera || '—' }}</span>,
+                    por un valor total de <span :style="{ fontWeight: 'var(--fw-bold)' }">{{ formatMonto(general.valor_credito) }}</span>
+                    según consta en la liquidación de matrícula anexa.
                   </div>
-                </div>
 
-                <!-- Carta de autorización -->
-                <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }">
-                  <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)', padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-bg-surface)' }">
-                    <div :style="{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--color-impulso)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
-                      <IconUpload :size="18" :style="{ color: '#fff' }" />
-                    </div>
-                    <div :style="{ flex: '1', minWidth: '0' }">
-                      <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
-                        Carta de autorización
-                        <span :style="{ marginLeft: 'var(--sp-sm)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 8px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Obligatorio</span>
-                      </div>
-                      <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)' }">Debe anexar carta firmada autorizando el desembolso de los recursos en cuenta de titularidad de un tercero.</div>
-                    </div>
-                    <div v-if="cartaAutorizacion.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', flexShrink: '0' }">
-                      <IconLoader2 :size="15" :style="{ animation: 'spin 1s linear infinite' }" /> Subiendo…
-                    </div>
-                    <div v-else-if="cartaAutorizacion.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
-                      <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-lg)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)', maxWidth: '190px' }">
-                        <IconCheck :size="13" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
-                        <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-semibold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ cartaAutorizacion.nombre?.length > 16 ? cartaAutorizacion.nombre.substring(0, 13) + '...' : cartaAutorizacion.nombre }}</span>
-                        <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', borderRadius: 'var(--r-sm)', flexShrink: '0' }" @click="quitarCarta"><IconX :size="13" :style="{ color: 'var(--color-success-text)' }" /></button>
-                      </div>
-                      <button :style="{ border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)', flexShrink: '0' }" @click="abrirPreviewDoc(cartaAutorizacion.url, 'Carta de autorización')">Visualizar</button>
-                    </div>
-                    <button v-else-if="cartaAutorizacion.error" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-error)', background: 'var(--color-error-bg)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-error)', flexShrink: '0' }" @click="refCartaUpload?.click()">
-                      <IconUpload :size="13" /> Reintentar
-                    </button>
-                    <div v-else :style="{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: '0' }">
-                      <button :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'var(--color-bg-card)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-2)' }" @click="refCartaUpload?.click()">
-                        <IconUpload :size="13" /> Subir archivo
-                      </button>
-                    </div>
-                    <input ref="refCartaUpload" type="file" accept=".pdf,image/*" :style="{ display: 'none' }" @change="onFileCarta" />
-                  </div>
+                  <label :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-sm)', cursor: 'pointer' }">
+                    <input
+                      v-model="autorizaciones.autorizacion_desembolso_directo_educativo"
+                      type="checkbox"
+                      :style="{ marginTop: '3px', flexShrink: '0', accentColor: 'var(--color-primary)', width: '15px', height: '15px', cursor: 'pointer' }"
+                    />
+                    <span :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', fontWeight: 'var(--fw-medium)', lineHeight: '1.6' }">
+                      Autorizo el desembolso directo del crédito a la institución educativa.<span :style="{ color: 'var(--color-error)' }"> *</span>
+                    </span>
+                  </label>
                 </div>
+              </template>
+              <template v-else>
+                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                  <CampoSelectBuscable :model-value="cuenta.tipo_cuenta" label="Tipo de cuenta" required :opciones="opsTipoCuenta" @update:model-value="actualizarCuenta('tipo_cuenta', $event)" />
+                  <CampoSelectBuscable :model-value="cuenta.entidad_bancaria" label="Entidad bancaria" required :disabled="!cuenta.tipo_cuenta" :limit="0" :opciones="[...ENTIDADES_BANCARIAS.map(e => ({ value: e, label: e })), { value: 'otro', label: 'Otra entidad' }]" @update:model-value="actualizarCuenta('entidad_bancaria', $event)" />
+                </div>
+                <CampoTexto v-if="cuenta.entidad_bancaria === 'otro'" :model-value="cuenta.entidad_bancaria_otro" label="Especifique entidad" required @update:model-value="actualizarCuenta('entidad_bancaria_otro', $event)" />
+                <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)', alignItems: 'center' }">
+                  <CampoTexto :model-value="cuenta.numero_cuenta" label="Número de cuenta" required solo-numeros :maxlength="18" :disabled="!cuenta.entidad_bancaria" @update:model-value="actualizarCuenta('numero_cuenta', $event)" />
+                  <CampoCheck :model-value="cuenta.cuenta_tercero" label="La cuenta pertenece a un tercero" @update:model-value="actualizarCuenta('cuenta_tercero', $event)" />
+                </div>
+                <template v-if="cuenta.cuenta_tercero">
+                  <div :style="{ padding: 'var(--sp-xl)', borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', background: 'var(--color-bg-surface)', display: 'flex', flexDirection:'column', gap: 'var(--sp-lg)' }">
+                    <div :style="{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)' }">Datos del titular</div>
+                    <CampoTexto :model-value="cuenta.nombre_tercero" label="Nombre completo" required @update:model-value="actualizarCuenta('nombre_tercero', $event ? $event.toUpperCase() : $event)" />
+                    <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
+                      <CampoSelect :model-value="cuenta.tipo_doc_tercero" label="Tipo documento" required :opciones="opsTipoDocTitular" @update:model-value="actualizarCuenta('tipo_doc_tercero', $event)" />
+                      <CampoTexto :model-value="cuenta.numero_doc_tercero" label="Número documento" required solo-numeros @update:model-value="actualizarCuenta('numero_doc_tercero', $event)" />
+                    </div>
+                  </div>
 
-                <!-- Certificación bancaria -->
-                <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }">
-                  <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)', padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-bg-surface)' }">
-                    <div :style="{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--color-impulso)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
-                      <IconUpload :size="18" :style="{ color: '#fff' }" />
-                    </div>
-                    <div :style="{ flex: '1', minWidth: '0' }">
-                      <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
-                        Certificación bancaria
-                        <span :style="{ marginLeft: 'var(--sp-sm)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 8px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Obligatorio</span>
+                  <!-- Carta de autorización -->
+                  <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }">
+                    <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)', padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-bg-surface)' }">
+                      <div :style="{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--color-impulso)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
+                        <IconUpload :size="18" :style="{ color: '#fff' }" />
                       </div>
-                      <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)' }">Por favor, anexe la certificación bancaria de la cuenta indicada.</div>
-                    </div>
-                    <div v-if="certBancaria.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', flexShrink: '0' }">
-                      <IconLoader2 :size="15" :style="{ animation: 'spin 1s linear infinite' }" /> Subiendo…
-                    </div>
-                    <div v-else-if="certBancaria.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
-                      <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-lg)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)', maxWidth: '190px' }">
-                        <IconCheck :size="13" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
-                        <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-semibold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ certBancaria.nombre?.length > 16 ? certBancaria.nombre.substring(0, 13) + '...' : certBancaria.nombre }}</span>
-                        <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', borderRadius: 'var(--r-sm)', flexShrink: '0' }" @click="quitarCert"><IconX :size="13" :style="{ color: 'var(--color-success-text)' }" /></button>
+                      <div :style="{ flex: '1', minWidth: '0' }">
+                        <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
+                          Carta de autorización
+                          <span :style="{ marginLeft: 'var(--sp-sm)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 8px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Obligatorio</span>
+                        </div>
+                        <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)' }">Debe anexar carta firmada autorizando el desembolso de los recursos en cuenta de titularidad de un tercero.</div>
                       </div>
-                      <button :style="{ border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)', flexShrink: '0' }" @click="abrirPreviewDoc(certBancaria.url, 'Certificación bancaria')">Visualizar</button>
-                    </div>
-                    <button v-else-if="certBancaria.error" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-error)', background: 'var(--color-error-bg)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-error)', flexShrink: '0' }" @click="refCertUpload?.click()">
-                      <IconUpload :size="13" /> Reintentar
-                    </button>
-                    <div v-else :style="{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: '0' }">
-                      <button :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'var(--color-bg-card)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-2)' }" @click="refCertUpload?.click()">
-                        <IconUpload :size="13" /> Subir archivo
+                      <div v-if="cartaAutorizacion.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', flexShrink: '0' }">
+                        <IconLoader2 :size="15" :style="{ animation: 'spin 1s linear infinite' }" /> Subiendo…
+                      </div>
+                      <div v-else-if="cartaAutorizacion.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
+                        <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-lg)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)', maxWidth: '190px' }">
+                          <IconCheck :size="13" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
+                          <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-semibold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ cartaAutorizacion.nombre?.length > 16 ? cartaAutorizacion.nombre.substring(0, 13) + '...' : cartaAutorizacion.nombre }}</span>
+                          <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', borderRadius: 'var(--r-sm)', flexShrink: '0' }" @click="quitarCarta"><IconX :size="13" :style="{ color: 'var(--color-success-text)' }" /></button>
+                        </div>
+                        <button :style="{ border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)', flexShrink: '0' }" @click="abrirPreviewDoc(cartaAutorizacion.url, 'Carta de autorización')">Visualizar</button>
+                      </div>
+                      <button v-else-if="cartaAutorizacion.error" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-error)', background: 'var(--color-error-bg)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-error)', flexShrink: '0' }" @click="refCartaUpload?.click()">
+                        <IconUpload :size="13" /> Reintentar
                       </button>
+                      <div v-else :style="{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: '0' }">
+                        <button :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'var(--color-bg-card)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-2)' }" @click="refCartaUpload?.click()">
+                          <IconUpload :size="13" /> Subir archivo
+                        </button>
+                      </div>
+                      <input ref="refCartaUpload" type="file" accept=".pdf,image/*" :style="{ display: 'none' }" @change="onFileCarta" />
                     </div>
-                    <input ref="refCertUpload" type="file" accept=".pdf,image/*" :style="{ display: 'none' }" @change="onFileCert" />
                   </div>
-                </div>
+
+                  <!-- Certificación bancaria -->
+                  <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }">
+                    <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)', padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-bg-surface)' }">
+                      <div :style="{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--color-impulso)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
+                        <IconUpload :size="18" :style="{ color: '#fff' }" />
+                      </div>
+                      <div :style="{ flex: '1', minWidth: '0' }">
+                        <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
+                          Certificación bancaria
+                          <span :style="{ marginLeft: 'var(--sp-sm)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 8px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Obligatorio</span>
+                        </div>
+                        <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)' }">Por favor, anexe la certificación bancaria de la cuenta indicada.</div>
+                      </div>
+                      <div v-if="certBancaria.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', flexShrink: '0' }">
+                        <IconLoader2 :size="15" :style="{ animation: 'spin 1s linear infinite' }" /> Subiendo…
+                      </div>
+                      <div v-else-if="certBancaria.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
+                        <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-lg)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)', maxWidth: '190px' }">
+                          <IconCheck :size="13" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
+                          <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-semibold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ certBancaria.nombre?.length > 16 ? certBancaria.nombre.substring(0, 13) + '...' : certBancaria.nombre }}</span>
+                          <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', borderRadius: 'var(--r-sm)', flexShrink: '0' }" @click="quitarCert"><IconX :size="13" :style="{ color: 'var(--color-success-text)' }" /></button>
+                        </div>
+                        <button :style="{ border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)', flexShrink: '0' }" @click="abrirPreviewDoc(certBancaria.url, 'Certificación bancaria')">Visualizar</button>
+                      </div>
+                      <button v-else-if="certBancaria.error" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-error)', background: 'var(--color-error-bg)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-error)', flexShrink: '0' }" @click="refCertUpload?.click()">
+                        <IconUpload :size="13" /> Reintentar
+                      </button>
+                      <div v-else :style="{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: '0' }">
+                        <button :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'var(--color-bg-card)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-2)' }" @click="refCertUpload?.click()">
+                          <IconUpload :size="13" /> Subir archivo
+                        </button>
+                      </div>
+                      <input ref="refCertUpload" type="file" accept=".pdf,image/*" :style="{ display: 'none' }" @change="onFileCert" />
+                    </div>
+                  </div>
+                </template>
               </template>
             </div>
           </div>
@@ -2395,8 +2506,9 @@ function onOtpValidado() {
                 <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ general.plazo_solicitado }} meses</div>
               </div>
               <div v-if="esEducativo" :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
-                <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Carrera</div>
+                <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Programa académico</div>
                 <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ general.denominacion_carrera }} ({{ label(LABEL_TIPO_ESTUDIO, general.tipo_estudio) }})</div>
+                <div :style="{ fontSize: 'var(--text-xs)', fontWeight: '600', color: 'var(--color-text-2)', marginTop: '2px' }">{{ general.institucion || '—' }}</div>
               </div>
               <div v-else :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
                 <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Destino</div>
@@ -2410,7 +2522,7 @@ function onOtpValidado() {
             <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconUser :size="20" /> Información personal
             </div>
-            <div :style="{ padding: 'var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+            <div :style="{ padding: 'var(--sp-lg)' }">
               <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                 <div>
                   <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Nombre completo</div>
@@ -2449,10 +2561,14 @@ function onOtpValidado() {
                   <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ persona.direccion_residencia }}</div>
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
-              <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }">Situación laboral</div>
-
+          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconRotate :size="20" /> Situación laboral
+            </div>
+            <div :style="{ padding: 'var(--sp-lg)' }">
               <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                 <div>
                   <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Tipo trabajador</div>
@@ -2507,11 +2623,14 @@ function onOtpValidado() {
                   </div>
                 </template>
               </div>
+            </div>
+          </div>
 
-              <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
-              <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }">Información financiera</div>
-
-              <!-- Empleado (o sin tipo seleccionado) -->
+          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconFileDescription :size="20" /> Información financiera
+            </div>
+            <div :style="{ padding: 'var(--sp-lg)' }">
               <template v-if="!laboral.tipo_trabajador || laboral.tipo_trabajador === 'empleado'">
                 <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                   <div>
@@ -2540,7 +2659,6 @@ function onOtpValidado() {
                   </div>
                 </div>
               </template>
-              <!-- Independiente -->
               <template v-else-if="laboral.tipo_trabajador === 'independiente'">
                 <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                   <div>
@@ -2565,7 +2683,6 @@ function onOtpValidado() {
                   </div>
                 </div>
               </template>
-              <!-- Pensionado -->
               <template v-else-if="laboral.tipo_trabajador === 'pensionado'">
                 <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                   <div>
@@ -2578,7 +2695,6 @@ function onOtpValidado() {
                   </div>
                 </div>
               </template>
-              <!-- Estudiante / Cuidado del hogar -->
               <template v-else-if="['estudiante', 'cuidado_hogar'].includes(laboral.tipo_trabajador)">
                 <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                   <div>
@@ -2595,10 +2711,14 @@ function onOtpValidado() {
                   </div>
                 </div>
               </template>
+            </div>
+          </div>
 
-              <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
-              <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }">Patrimonio</div>
-
+          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconFile :size="20" /> Patrimonio
+            </div>
+            <div :style="{ padding: 'var(--sp-lg)' }">
               <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                 <div>
                   <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Propiedad raíz</div>
@@ -2609,10 +2729,14 @@ function onOtpValidado() {
                   <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ patrimonio.tiene_vehiculo ? 'Sí (' + formatMonto(patrimonio.valor_vehiculo) + ')' : 'No' }}</div>
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div :style="{ height: '1px', background: 'var(--color-border-light)' }" />
-              <div :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }">Cuenta para desembolso</div>
-
+          <div v-if="!esEducativo && mostrarCuentaDesembolso" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconFileCheck :size="20" /> Cuenta para desembolso
+            </div>
+            <div :style="{ padding: 'var(--sp-lg)' }">
               <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 'var(--sp-md)' }">
                 <div>
                   <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Entidad bancaria</div>
@@ -2640,6 +2764,36 @@ function onOtpValidado() {
                     <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ cuenta.numero_doc_tercero || '—' }}</div>
                   </div>
                 </template>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="esEducativo" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)' }">
+              <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)' }">
+                <IconFileCheck :size="20" /> Autorización de desembolso directo
+              </div>
+              <div :style="{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 12px', borderRadius: 'var(--r-pill)', background: autorizaciones.autorizacion_desembolso_directo_educativo ? 'white' : 'rgba(255, 255, 255, 0.15)', border: autorizaciones.autorizacion_desembolso_directo_educativo ? '1px solid white' : 'none' }">
+                <IconCircleCheck v-if="autorizaciones.autorizacion_desembolso_directo_educativo" :size="14" :style="{ color: 'var(--color-success)' }" />
+                <span :style="{ fontSize: '10px', fontWeight: 'var(--fw-extrabold)', textTransform: 'uppercase', letterSpacing: '0.05em', color: autorizaciones.autorizacion_desembolso_directo_educativo ? 'var(--color-success)' : 'white' }">{{ autorizaciones.autorizacion_desembolso_directo_educativo ? 'Aceptada' : 'Pendiente' }}</span>
+              </div>
+            </div>
+            <div :style="{ padding: 'var(--sp-lg) calc(var(--sp-xl) + 6px)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+              <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-regular)', color: 'var(--color-text-2)', lineHeight: '1.7', textAlign: 'justify' }">
+                Señores
+                <br />
+                <span :style="{ fontWeight: 'var(--fw-bold)' }">COOPERATIVA MULTIACTIVA LUIS AMIGÓ</span>
+                <br /><br />
+                Yo, <span :style="{ fontWeight: 'var(--fw-semibold)' }">{{ (persona.nombres + ' ' + persona.apellidos).trim() || '—' }}</span>,
+                identificado(a) con la cédula de ciudadanía No. <span :style="{ fontWeight: 'var(--fw-semibold)' }">{{ persona.numero_identificacion || '—' }}</span>,
+                en mi calidad de asociado(a) y como titular del crédito bajo la línea <span :style="{ fontWeight: 'var(--fw-semibold)' }">CRÉDITO EDUCATIVO</span>
+                otorgado para estudios en la <span :style="{ fontWeight: 'var(--fw-semibold)' }">UNIVERSIDAD CATÓLICA LUIS AMIGÓ</span>,
+                autorizo de manera expresa a la Cooperativa para que efectúe directamente a la institución el pago de la matrícula a nombre del/la señor(a)
+                <span :style="{ fontWeight: 'var(--fw-semibold)' }">{{ general.beneficiario_nombre || '—' }}</span>,
+                para {{ general.tipo_estudio === 'pregrado' ? 'pregrado' : 'posgrado' }}
+                en el programa de <span :style="{ fontWeight: 'var(--fw-semibold)' }">{{ general.denominacion_carrera || '—' }}</span>,
+                por un valor total de <span :style="{ fontWeight: 'var(--fw-semibold)' }">{{ formatMonto(general.valor_credito) }}</span>
+                según consta en la liquidación de matrícula anexa.
               </div>
             </div>
           </div>

@@ -104,12 +104,12 @@ const docsAdicionalesTitular = computed(() => {
     items.push({
       campo: 'doc_carta_laboral_solicitante_url',
       titulo: 'Carta laboral',
-      descripcion: 'Cargue la carta laboral vigente en formato PDF.',
+      descripcion: 'Cargue la carta laboral vigente en formato PDF',
     })
     items.push({
       campo: 'doc_colillas_pago_solicitante_url',
       titulo: 'Últimas 3 colillas de pago',
-      descripcion: 'Cargue las últimas 3 colillas de pago en un solo PDF.',
+      descripcion: 'Cargue las últimas 3 colillas de pago en un solo PDF',
     })
   } else if (props.tipoTrabajador && props.tipoTrabajador !== 'cuidado_hogar') {
     const label = {
@@ -120,14 +120,14 @@ const docsAdicionalesTitular = computed(() => {
     items.push({
       campo: 'doc_soporte_ingresos_solicitante_url',
       titulo: label,
-      descripcion: `Cargue su ${label.toLowerCase()} en formato PDF.`,
+      descripcion: `Cargue su ${label.toLowerCase()} en formato PDF`,
     })
   }
   if (props.modalidadCredito === 'educativo') {
     items.push({
       campo: 'doc_liquidacion_matricula_url',
       titulo: 'Liquidación de matrícula',
-      descripcion: 'Cargue el documento con el valor de la matrícula en PDF.',
+      descripcion: 'Cargue el documento de matrícula oficial expedido por la institución',
     })
   }
   return items

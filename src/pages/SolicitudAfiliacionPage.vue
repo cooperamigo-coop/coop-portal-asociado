@@ -108,9 +108,19 @@ const estiloSubtitulo = {
   marginBottom: 'var(--sp-md)',
   marginTop: 'var(--sp-lg)',
 }
+const estiloBloque = {
+  background: 'var(--color-bg-surface)',
+  borderRadius: 'var(--r-md)',
+  padding: 'var(--sp-lg)',
+}
 const grid2 = (mobile) => ({
   display: 'grid',
   gridTemplateColumns: mobile ? '1fr' : '1fr 1fr',
+  gap: 'var(--sp-lg)',
+})
+const grid3 = (mobile) => ({
+  display: 'grid',
+  gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)',
   gap: 'var(--sp-lg)',
 })
 const spanFull = { gridColumn: '1 / -1' }
@@ -119,15 +129,20 @@ const spanFull = { gridColumn: '1 / -1' }
 const emailValidado    = ref(false)
 const mostrarModalOtp  = ref(false)
 const bannerRecuperadoVisible = ref(false)
+const continuarDespuesOtp = ref(false)
 
 const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function onRestaurarBorrador() {
-  restaurarBorrador()
-  bannerRecuperadoVisible.value = true
-  setTimeout(() => {
+  try {
+    restaurarBorrador()
+    bannerRecuperadoVisible.value = true
+    setTimeout(() => {
+      bannerRecuperadoVisible.value = false
+    }, 5000)
+  } catch {
     bannerRecuperadoVisible.value = false
-  }, 5000)
+  }
 }
 
 function onDocumentoAreaClick() {
@@ -141,9 +156,24 @@ function onDocumentoAreaClick() {
   mostrarModalOtp.value = true
 }
 
-function onOtpValidado() {
+async function onOtpValidado() {
   emailValidado.value   = true
   mostrarModalOtp.value = false
+  if (continuarDespuesOtp.value) {
+    continuarDespuesOtp.value = false
+    await verificarYContinuar()
+  }
+}
+
+async function onVerificarYContinuarClick() {
+  if (!pasoValido.value) return
+  if (!emailValidado.value) {
+    continuarDespuesOtp.value = true
+    onDocumentoAreaClick()
+    return
+  }
+  continuarDespuesOtp.value = false
+  await verificarYContinuar()
 }
 </script>
 
@@ -261,9 +291,9 @@ function onOtpValidado() {
             <PortalButton variant="secondary" @click="router.push('/')">Volver</PortalButton>
             <PortalButton
               variant="primary"
-              :disabled="!pasoValido || !emailValidado"
+              :disabled="!pasoValido"
               :loading="loadingVerificacion"
-              @click="verificarYContinuar"
+              @click="onVerificarYContinuarClick"
             >
               Verificar y continuar
             </PortalButton>
@@ -348,32 +378,22 @@ function onOtpValidado() {
           }">Sus datos anteriores fueron recuperados. Continúa desde donde lo dejó.</span>
         </div>
 
-      <StepIndicator :pasos="pasos" :actual="paso" />
+      <div :style="{ marginBottom: 'var(--sp-xl)' }">
+        <div :style="{
+          fontFamily: 'var(--font-display)',
+          fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-extrabold)',
+          color: 'var(--color-text-1)', marginBottom: '2px', lineHeight: '1.1',
+        }">Solicitud de afiliación</div>
+        <div :style="{
+          fontSize: 'var(--text-base)',
+          color: 'var(--color-text-2)',
+          fontWeight: 'var(--fw-regular)',
+          lineHeight: '1.25',
+        }">Completa tus datos para solicitar tu afiliación a Cooperamigó</div>
+      </div>
 
-      <!-- Título del paso + barra de progreso -->
-      <div :style="{ marginBottom: 'var(--sp-xl)', marginTop: 'var(--sp-lg)' }">
-        <div :style="{
-          display: 'flex', justifyContent: 'space-between',
-          alignItems: 'flex-end', marginBottom: 'var(--sp-sm)',
-        }">
-          <div :style="{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-extrabold)',
-            color: 'var(--color-text-1)',
-          }">{{ pasos[paso - 1]?.label }}</div>
-        </div>
-        <div :style="{
-          height: '6px', background: 'var(--color-border)',
-          borderRadius: 'var(--r-pill)', overflow: 'hidden',
-        }">
-          <div :style="{
-            height: '100%',
-            width: (paso / 6 * 100) + '%',
-            background: 'var(--color-primary)',
-            borderRadius: 'var(--r-pill)',
-            transition: 'width var(--transition-base)',
-          }" />
-        </div>
+      <div :style="{ marginTop: paso !== 1 ? '56px' : '0' }">
+        <StepIndicator :pasos="pasos" :actual="paso" />
       </div>
 
       <div :style="{
@@ -423,192 +443,225 @@ function onOtpValidado() {
             :style="{ marginBottom: 'var(--sp-lg)' }"
           />
 
-          <!-- Encabezado: Oficina + Fecha -->
-          <div :style="estiloSubtitulo">Encabezado de la solicitud</div>
-          <div :style="grid2(isMobile)">
-            <CampoSelect
-              v-model="oficina"
-              label="Oficina receptora"
-              :opciones="opsOficina"
-              required
-            />
-          </div>
-
-          <!-- Identificación -->
-          <div :style="estiloSubtitulo">Identificación</div>
-          <div :style="grid2(isMobile)">
-            <CampoSelect
-              v-model="datosPersonales.tipo_identificacion"
-              label="Tipo"
-              :opciones="opsTipoDocumento"
-              required
-              :disabled="!!asociadoExistente"
-            />
-            <CampoTexto
-              v-model="datosPersonales.cedula"
-              label="Número de identificación"
-              placeholder="Ej. 1122334455"
-              required
-              solo-numeros
-              :disabled="!!asociadoExistente"
-              :error="erroresCampos.cedula"
-              @blur="() => {
-                validarCampoActual(schemaPersonales, 'cedula', datosPersonales.cedula)
-                verificarCedula()
-              }"
-            />
-            <CampoTexto
-              v-model="datosPersonales.nombres"
-              label="Nombres"
-              placeholder="SUS NOMBRES"
-              required
-              :disabled="!!asociadoExistente"
-              :error="erroresCampos.nombres"
-            />
-            <CampoTexto
-              v-model="datosPersonales.apellidos"
-              label="Apellidos"
-              placeholder="SUS APELLIDOS"
-              required
-              :disabled="!!asociadoExistente"
-              :error="erroresCampos.apellidos"
-            />
-            <CampoSelect
-              v-model="datosPersonales.nivel_academico"
-              label="Nivel académico"
-              :opciones="opsNivelAcademico"
-            />
-            <CampoTexto
-              v-model="datosPersonales.fecha_expedicion"
-              label="Fecha de expedición del documento"
-              type="date"
-            />
-            <CampoTexto
-              v-model="datosPersonales.lugar_nacimiento"
-              label="Lugar de nacimiento"
-              placeholder="Ciudad"
-            />
-            <CampoTexto
-              v-model="datosPersonales.nacionalidad"
-              label="Nacionalidad"
-              placeholder="Colombiana"
-            />
-            <CampoTexto
-              v-model="datosPersonales.fecha_nacimiento"
-              label="Fecha de nacimiento"
-              type="date"
-              required
-              :error="erroresCampos.fecha_nacimiento"
-            />
-          </div>
-
-          <!-- Datos personales adicionales -->
-          <div :style="estiloSubtitulo">Datos personales</div>
-          <div :style="grid2(isMobile)">
-            <CampoSelect
-              v-model="datosPersonales.genero"
-              label="Género"
-              :opciones="opsGenero"
-              required
-            />
-            <CampoSelect
-              v-model="datosPersonales.estado_civil"
-              label="Estado civil"
-              :opciones="opsEstadoCivil"
-              required
-            />
-            <CampoTexto
-              v-model="datosPersonales.rh"
-              label="RH (Grupo sanguíneo)"
-              placeholder="Ej. O+"
-            />
-            <CampoTexto
-              v-model="datosPersonales.titulo"
-              label="Título"
-              placeholder="Ej. Ingeniero, Licenciado"
-            />
-            <CampoTexto
-              v-model="datosPersonales.personas_a_cargo"
-              label="Personas a cargo"
-              type="number"
-              placeholder="0"
-            />
-            <CampoTexto
-              v-model="datosPersonales.personas_economicamente_activas"
-              label="Personas económicamente activas"
-              type="number"
-              placeholder="0"
-            />
-          </div>
-
-          <!-- Contacto y residencia -->
-          <div :style="estiloSubtitulo">Contacto y residencia</div>
-          <div :style="grid2(isMobile)">
-            <CampoTexto
-              v-model="datosPersonales.telefono"
-              label="Teléfono fijo"
-              placeholder="Ej. 6044456789"
-            />
-            <CampoTexto
-              v-model="datosPersonales.celular"
-              label="Celular"
-              placeholder="Ej. 3001234567"
-            />
-            <CampoTexto
-              v-model="datosPersonales.otro_email"
-              label="Otro correo (opcional)"
-              type="email"
-              placeholder="correo.alternativo@ejemplo.com"
-            />
-            <div :style="spanFull">
-              <CampoTexto
-                v-model="datosPersonales.direccion"
-                label="Dirección de residencia"
-                placeholder="Ej. Calle 45 # 23-18, Apto 301"
-              />
+          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+            <div :style="estiloBloque">
+              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Encabezado de la solicitud</div>
+              <div :style="grid2(isMobile)">
+                <CampoSelect
+                  v-model="oficina"
+                  label="Oficina receptora"
+                  :opciones="opsOficina"
+                  required
+                />
+              </div>
             </div>
-            <CampoTexto
-              v-model="datosPersonales.barrio"
-              label="Barrio"
-              placeholder="Nombre del barrio"
-            />
-            <CampoTexto
-              v-model="datosPersonales.ciudad"
-              label="Ciudad"
-              placeholder="Medellín"
-            />
-            <CampoTexto
-              v-model="datosPersonales.estrato"
-              label="Estrato"
-              type="number"
-              placeholder="1 – 6"
-            />
-            <CampoSelect
-              v-model="datosPersonales.tipo_vivienda"
-              label="Tipo de vivienda"
-              :opciones="opsTipoVivienda"
-            />
-            <CampoTexto
-              v-model="datosPersonales.tiempo_residencia_meses"
-              label="Tiempo de residencia (meses)"
-              type="number"
-              placeholder="Ej. 24"
-            />
-          </div>
 
-          <!-- PEP -->
-          <div :style="{ ...estiloSubtitulo, marginTop: 'var(--sp-2xl)' }">
-            Exposición política y pública
-          </div>
-          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
-            <CampoCheck
-              v-model="datosPersonales.administra_recursos_publicos"
-              label="Administro o he administrado recursos públicos"
-            />
-            <CampoCheck
-              v-model="datosPersonales.persona_expuesta_publicamente"
-              label="Soy una Persona Expuesta Públicamente (PEP)"
-            />
+            <div :style="estiloBloque">
+              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Identificación</div>
+              <div :style="grid3(isMobile)">
+                <CampoSelect
+                  v-model="datosPersonales.tipo_identificacion"
+                  label="Tipo"
+                  :opciones="opsTipoDocumento"
+                  required
+                  disabled
+                />
+                <CampoTexto
+                  v-model="datosPersonales.cedula"
+                  label="Número de identificación"
+                  placeholder="Ej. 1122334455"
+                  required
+                  solo-numeros
+                  disabled
+                />
+                <CampoTexto
+                  v-model="datosPersonales.nombres"
+                  label="Nombres"
+                  placeholder="SUS NOMBRES"
+                  required
+                  :disabled="!!asociadoExistente"
+                  :error="erroresCampos.nombres"
+                />
+                <CampoTexto
+                  v-model="datosPersonales.apellidos"
+                  label="Apellidos"
+                  placeholder="SUS APELLIDOS"
+                  required
+                  :disabled="!!asociadoExistente"
+                  :error="erroresCampos.apellidos"
+                />
+                <CampoSelect
+                  v-model="datosPersonales.nivel_academico"
+                  label="Nivel académico"
+                  :opciones="opsNivelAcademico"
+                />
+                <CampoTexto
+                  v-model="datosPersonales.fecha_expedicion"
+                  label="Fecha de expedición del documento"
+                  type="date"
+                />
+                <CampoTexto
+                  v-model="datosPersonales.lugar_nacimiento"
+                  label="Lugar de nacimiento"
+                  placeholder="Ciudad"
+                />
+                <CampoTexto
+                  v-model="datosPersonales.nacionalidad"
+                  label="Nacionalidad"
+                  placeholder="Colombiana"
+                />
+                <CampoTexto
+                  v-model="datosPersonales.fecha_nacimiento"
+                  label="Fecha de nacimiento"
+                  type="date"
+                  required
+                  :error="erroresCampos.fecha_nacimiento"
+                />
+              </div>
+            </div>
+
+            <div :style="estiloBloque">
+              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Datos personales</div>
+              <div :style="grid3(isMobile)">
+                <CampoSelect
+                  v-model="datosPersonales.genero"
+                  label="Género"
+                  :opciones="opsGenero"
+                  required
+                />
+                <CampoSelect
+                  v-model="datosPersonales.estado_civil"
+                  label="Estado civil"
+                  :opciones="opsEstadoCivil"
+                  required
+                />
+                <CampoTexto
+                  v-model="datosPersonales.rh"
+                  label="RH (Grupo sanguíneo)"
+                  placeholder="Ej. O+"
+                />
+                <CampoTexto
+                  v-model="datosPersonales.titulo"
+                  label="Título"
+                  placeholder="Ej. Ingeniero, Licenciado"
+                />
+                <CampoTexto
+                  v-model="datosPersonales.personas_a_cargo"
+                  label="Personas a cargo"
+                  type="number"
+                  placeholder="0"
+                />
+                <CampoTexto
+                  v-model="datosPersonales.personas_economicamente_activas"
+                  label="Personas económicamente activas"
+                  type="number"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <div :style="estiloBloque">
+              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Contacto y residencia</div>
+              <div :style="grid3(isMobile)">
+                <CampoTexto
+                  :model-value="emailInicial"
+                  label="Correo electrónico"
+                  type="email"
+                  disabled
+                />
+                <CampoTexto
+                  v-model="datosPersonales.telefono"
+                  label="Teléfono fijo"
+                  placeholder="Ej. 6044456789"
+                />
+                <CampoTexto
+                  v-model="datosPersonales.celular"
+                  label="Celular"
+                  placeholder="Ej. 3001234567"
+                />
+                <CampoTexto
+                  v-model="datosPersonales.otro_email"
+                  label="Otro correo (opcional)"
+                  type="email"
+                  placeholder="correo.alternativo@ejemplo.com"
+                />
+                <div :style="spanFull">
+                  <CampoTexto
+                    v-model="datosPersonales.direccion"
+                    label="Dirección de residencia"
+                    placeholder="Ej. Calle 45 # 23-18, Apto 301"
+                  />
+                </div>
+                <CampoTexto
+                  v-model="datosPersonales.barrio"
+                  label="Barrio"
+                  placeholder="Nombre del barrio"
+                />
+                <CampoTexto
+                  v-model="datosPersonales.ciudad"
+                  label="Ciudad"
+                  placeholder="Medellín"
+                />
+                <CampoTexto
+                  v-model="datosPersonales.estrato"
+                  label="Estrato"
+                  type="number"
+                  placeholder="1 – 6"
+                />
+                <CampoSelect
+                  v-model="datosPersonales.tipo_vivienda"
+                  label="Tipo de vivienda"
+                  :opciones="opsTipoVivienda"
+                />
+                <CampoTexto
+                  v-model="datosPersonales.tiempo_residencia_meses"
+                  label="Tiempo de residencia (meses)"
+                  type="number"
+                  placeholder="Ej. 24"
+                />
+              </div>
+            </div>
+
+            <div :style="estiloBloque">
+              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Exposición política y pública</div>
+              <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+                <div>
+                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginBottom: 'var(--sp-sm)' }">
+                    ¿Administra o ha administrado recursos públicos?
+                  </div>
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-md)' }">
+                    <CampoCheck
+                      :model-value="datosPersonales.administra_recursos_publicos === true"
+                      label="Sí"
+                      @update:model-value="() => { datosPersonales.administra_recursos_publicos = true }"
+                    />
+                    <CampoCheck
+                      :model-value="datosPersonales.administra_recursos_publicos === false"
+                      label="No"
+                      @update:model-value="() => { datosPersonales.administra_recursos_publicos = false }"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', marginBottom: 'var(--sp-sm)' }">
+                    ¿Es una Persona Expuesta Públicamente (PEP)?
+                  </div>
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-md)' }">
+                    <CampoCheck
+                      :model-value="datosPersonales.persona_expuesta_publicamente === true"
+                      label="Sí"
+                      @update:model-value="() => { datosPersonales.persona_expuesta_publicamente = true }"
+                    />
+                    <CampoCheck
+                      :model-value="datosPersonales.persona_expuesta_publicamente === false"
+                      label="No"
+                      @update:model-value="() => { datosPersonales.persona_expuesta_publicamente = false }"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -618,147 +671,152 @@ function onOtpValidado() {
         <div v-if="paso === 2">
           <div :style="estiloSeccionTitulo">Información laboral</div>
 
-          <!-- Ocupación -->
-          <div :style="estiloSubtitulo">Situación laboral actual</div>
-          <div :style="grid2(isMobile)">
-            <CampoSelect
-              v-model="datosLaborales.ocupacion"
-              label="Ocupación"
-              :opciones="opsOcupacion"
-              required
-            />
+          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+            <div :style="estiloBloque">
+              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Situación laboral actual</div>
+              <div :style="grid2(isMobile)">
+                <CampoSelect
+                  v-model="datosLaborales.ocupacion"
+                  label="Ocupación"
+                  :opciones="opsOcupacion"
+                  required
+                />
+              </div>
+            </div>
+
+            <template v-if="datosLaborales.ocupacion && datosLaborales.ocupacion !== 'Independiente'">
+              <div :style="estiloBloque">
+                <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Datos del empleador</div>
+                <div :style="grid3(isMobile)">
+                  <div :style="spanFull">
+                    <CampoTexto
+                      v-model="datosLaborales.empresa"
+                      label="Nombre de la empresa"
+                      placeholder="Empresa donde trabaja"
+                    />
+                  </div>
+                  <CampoTexto
+                    v-model="datosLaborales.cargo"
+                    label="Cargo u oficio"
+                    placeholder="Ej. Contador, Docente"
+                  />
+                  <CampoSelect
+                    v-model="datosLaborales.tipo_contrato"
+                    label="Tipo de contrato"
+                    :opciones="opsTipoContrato"
+                  />
+                  <CampoTexto
+                    v-model="datosLaborales.fecha_ingreso_empresa"
+                    label="Fecha de ingreso"
+                    type="date"
+                  />
+                  <CampoMoneda
+                    v-model="datosLaborales.salario"
+                    label="Salario básico mensual"
+                  />
+                  <div :style="spanFull">
+                    <CampoTexto
+                      v-model="datosLaborales.direccion_empresa"
+                      label="Dirección de la empresa"
+                      placeholder="Dirección completa"
+                    />
+                  </div>
+                  <CampoTexto
+                    v-model="datosLaborales.ciudad_empresa"
+                    label="Ciudad de la empresa"
+                    placeholder="Medellín"
+                  />
+                  <CampoTexto
+                    v-model="datosLaborales.telefono_empresa"
+                    label="Teléfono de la empresa"
+                    placeholder="Ej. 6044456789"
+                  />
+                  <div :style="spanFull">
+                    <CampoTexto
+                      v-model="datosLaborales.email_corporativo"
+                      label="Correo corporativo"
+                      type="email"
+                      placeholder="nombre@empresa.com"
+                    />
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <template v-if="esIndependiente">
+              <div :style="estiloBloque">
+                <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Actividad económica independiente</div>
+                <div :style="grid3(isMobile)">
+                  <CampoTexto
+                    v-model="actividadIndependiente.ciiu_1"
+                    label="Código CIIU actividad 1"
+                    placeholder="Ej. 4711"
+                  />
+                  <CampoTexto
+                    v-model="actividadIndependiente.descripcion_actividad_1"
+                    label="Descripción actividad 1"
+                    placeholder="Describe la actividad principal"
+                  />
+                  <CampoTexto
+                    v-model="actividadIndependiente.fecha_inicio_actividad_1"
+                    label="Fecha de inicio actividad 1"
+                    type="date"
+                  />
+                  <CampoTexto
+                    v-model="actividadIndependiente.nombre_establecimiento"
+                    label="Nombre del establecimiento"
+                    placeholder="Nombre comercial"
+                  />
+                  <CampoTexto
+                    v-model="actividadIndependiente.ciiu_2"
+                    label="Código CIIU actividad 2"
+                    placeholder="Opcional"
+                  />
+                  <CampoTexto
+                    v-model="actividadIndependiente.descripcion_actividad_2"
+                    label="Descripción actividad 2"
+                    placeholder="Describe la actividad secundaria"
+                  />
+                  <CampoTexto
+                    v-model="actividadIndependiente.fecha_inicio_actividad_2"
+                    label="Fecha de inicio actividad 2"
+                    type="date"
+                  />
+                  <CampoTexto
+                    v-model="actividadIndependiente.fecha_constitucion"
+                    label="Fecha de constitución"
+                    type="date"
+                  />
+                  <CampoTexto
+                    v-model="actividadIndependiente.fecha_vigencia"
+                    label="Fecha de vigencia"
+                    type="date"
+                  />
+                  <div :style="spanFull">
+                    <CampoTexto
+                      v-model="actividadIndependiente.direccion_negocio"
+                      label="Dirección del negocio"
+                      placeholder="Dirección completa"
+                    />
+                  </div>
+                  <CampoTexto
+                    v-model="actividadIndependiente.ciudad_negocio"
+                    label="Ciudad del negocio"
+                    placeholder="Medellín"
+                  />
+                  <CampoTexto
+                    v-model="actividadIndependiente.telefono_negocio"
+                    label="Teléfono del negocio"
+                    placeholder="Ej. 3001234567"
+                  />
+                  <CampoMoneda
+                    v-model="datosLaborales.salario"
+                    label="Ingresos mensuales promedio"
+                  />
+                </div>
+              </div>
+            </template>
           </div>
-
-          <!-- Datos del empleador (si no es independiente) -->
-          <template v-if="datosLaborales.ocupacion && datosLaborales.ocupacion !== 'Independiente'">
-            <div :style="estiloSubtitulo">Datos del empleador</div>
-            <div :style="grid2(isMobile)">
-              <div :style="spanFull">
-                <CampoTexto
-                  v-model="datosLaborales.empresa"
-                  label="Nombre de la empresa"
-                  placeholder="Empresa donde trabaja"
-                />
-              </div>
-              <CampoTexto
-                v-model="datosLaborales.cargo"
-                label="Cargo u oficio"
-                placeholder="Ej. Contador, Docente"
-              />
-              <CampoSelect
-                v-model="datosLaborales.tipo_contrato"
-                label="Tipo de contrato"
-                :opciones="opsTipoContrato"
-              />
-              <CampoTexto
-                v-model="datosLaborales.fecha_ingreso_empresa"
-                label="Fecha de ingreso"
-                type="date"
-              />
-              <CampoMoneda
-                v-model="datosLaborales.salario"
-                label="Salario básico mensual"
-              />
-              <div :style="spanFull">
-                <CampoTexto
-                  v-model="datosLaborales.direccion_empresa"
-                  label="Dirección de la empresa"
-                  placeholder="Dirección completa"
-                />
-              </div>
-              <CampoTexto
-                v-model="datosLaborales.ciudad_empresa"
-                label="Ciudad de la empresa"
-                placeholder="Medellín"
-              />
-              <CampoTexto
-                v-model="datosLaborales.telefono_empresa"
-                label="Teléfono de la empresa"
-                placeholder="Ej. 6044456789"
-              />
-              <div :style="spanFull">
-                <CampoTexto
-                  v-model="datosLaborales.email_corporativo"
-                  label="Correo corporativo"
-                  type="email"
-                  placeholder="nombre@empresa.com"
-                />
-              </div>
-            </div>
-          </template>
-
-          <!-- Actividad Independiente -->
-          <template v-if="esIndependiente">
-            <div :style="estiloSubtitulo">Actividad económica independiente</div>
-            <div :style="grid2(isMobile)">
-              <CampoTexto
-                v-model="actividadIndependiente.ciiu_1"
-                label="Código CIIU actividad 1"
-                placeholder="Ej. 4711"
-              />
-              <CampoTexto
-                v-model="actividadIndependiente.descripcion_actividad_1"
-                label="Descripción actividad 1"
-                placeholder="Describe la actividad principal"
-              />
-              <CampoTexto
-                v-model="actividadIndependiente.fecha_inicio_actividad_1"
-                label="Fecha de inicio actividad 1"
-                type="date"
-              />
-              <CampoTexto
-                v-model="actividadIndependiente.nombre_establecimiento"
-                label="Nombre del establecimiento"
-                placeholder="Nombre comercial"
-              />
-              <CampoTexto
-                v-model="actividadIndependiente.ciiu_2"
-                label="Código CIIU actividad 2"
-                placeholder="Opcional"
-              />
-              <CampoTexto
-                v-model="actividadIndependiente.descripcion_actividad_2"
-                label="Descripción actividad 2"
-                placeholder="Describe la actividad secundaria"
-              />
-              <CampoTexto
-                v-model="actividadIndependiente.fecha_inicio_actividad_2"
-                label="Fecha de inicio actividad 2"
-                type="date"
-              />
-              <CampoTexto
-                v-model="actividadIndependiente.fecha_constitucion"
-                label="Fecha de constitución"
-                type="date"
-              />
-              <CampoTexto
-                v-model="actividadIndependiente.fecha_vigencia"
-                label="Fecha de vigencia"
-                type="date"
-              />
-              <div :style="spanFull">
-                <CampoTexto
-                  v-model="actividadIndependiente.direccion_negocio"
-                  label="Dirección del negocio"
-                  placeholder="Dirección completa"
-                />
-              </div>
-              <CampoTexto
-                v-model="actividadIndependiente.ciudad_negocio"
-                label="Ciudad del negocio"
-                placeholder="Medellín"
-              />
-              <CampoTexto
-                v-model="actividadIndependiente.telefono_negocio"
-                label="Teléfono del negocio"
-                placeholder="Ej. 3001234567"
-              />
-              <CampoMoneda
-                v-model="datosLaborales.salario"
-                label="Ingresos mensuales promedio"
-              />
-            </div>
-          </template>
         </div>
 
         <!-- ─────────────────────────────────────────────────────────── -->
@@ -767,105 +825,111 @@ function onOtpValidado() {
         <div v-if="paso === 3">
           <div :style="estiloSeccionTitulo">Información financiera y patrimonio</div>
 
-          <!-- Ingresos y egresos -->
-          <div :style="estiloSubtitulo">Ingresos y egresos mensuales</div>
-          <div :style="grid2(isMobile)">
-            <CampoMoneda
-              v-model="datosFinancieros.gastos_familiares"
-              label="Gastos familiares"
-            />
-            <CampoMoneda
-              v-model="datosFinancieros.otros_ingresos"
-              label="Otros ingresos"
-            />
-            <CampoMoneda
-              v-model="datosFinancieros.cuotas_credito"
-              label="Cuotas de crédito vigentes"
-            />
-            <CampoMoneda
-              v-model="datosFinancieros.total_ingresos"
-              label="Total ingresos"
-            />
-            <CampoMoneda
-              v-model="datosFinancieros.total_egresos"
-              label="Total egresos"
-            />
-          </div>
+          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+            <div :style="estiloBloque">
+              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Ingresos y egresos mensuales</div>
+              <div :style="grid3(isMobile)">
+                <CampoMoneda
+                  v-model="datosFinancieros.gastos_familiares"
+                  label="Gastos familiares"
+                />
+                <CampoMoneda
+                  v-model="datosFinancieros.otros_ingresos"
+                  label="Otros ingresos"
+                />
+                <CampoMoneda
+                  v-model="datosFinancieros.cuotas_credito"
+                  label="Cuotas de crédito vigentes"
+                />
+                <CampoMoneda
+                  v-model="datosFinancieros.total_ingresos"
+                  label="Total ingresos"
+                />
+                <CampoMoneda
+                  v-model="datosFinancieros.total_egresos"
+                  label="Total egresos"
+                />
+              </div>
+            </div>
 
-          <!-- Activos: Propiedad raíz -->
-          <div :style="estiloSubtitulo">Propiedad raíz</div>
-          <div :style="grid2(isMobile)">
-            <CampoTexto
-              v-model="activosPasivos.tipo_propiedad_raiz"
-              label="Tipo de propiedad raíz"
-              placeholder="Ej. Casa, Apartamento, Lote"
-            />
-            <CampoTexto
-              v-model="activosPasivos.matricula_inmobiliaria"
-              label="Matrícula inmobiliaria"
-              placeholder="Número de matrícula"
-            />
-            <CampoMoneda
-              v-model="activosPasivos.deuda_cooperativa"
-              label="Deuda con la cooperativa"
-            />
-            <CampoMoneda
-              v-model="activosPasivos.cuota_mensual_cooperativa"
-              label="Cuota mensual cooperativa"
-            />
-            <CampoMoneda
-              v-model="activosPasivos.valor_comercial_hipoteca"
-              label="Valor comercial / hipoteca"
-            />
-            <CampoMoneda
-              v-model="activosPasivos.deuda_otras_entidades"
-              label="Deuda con otras entidades"
-            />
-            <CampoMoneda
-              v-model="activosPasivos.cuota_mensual_otras_deudas"
-              label="Cuota mensual otras deudas"
-            />
-          </div>
+            <div :style="estiloBloque">
+              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Propiedad raíz</div>
+              <div :style="grid3(isMobile)">
+                <CampoTexto
+                  v-model="activosPasivos.tipo_propiedad_raiz"
+                  label="Tipo de propiedad raíz"
+                  placeholder="Ej. Casa, Apartamento, Lote"
+                />
+                <CampoTexto
+                  v-model="activosPasivos.matricula_inmobiliaria"
+                  label="Matrícula inmobiliaria"
+                  placeholder="Número de matrícula"
+                />
+                <CampoMoneda
+                  v-model="activosPasivos.deuda_cooperativa"
+                  label="Deuda con la cooperativa"
+                />
+                <CampoMoneda
+                  v-model="activosPasivos.cuota_mensual_cooperativa"
+                  label="Cuota mensual cooperativa"
+                />
+                <CampoMoneda
+                  v-model="activosPasivos.valor_comercial_hipoteca"
+                  label="Valor comercial / hipoteca"
+                />
+                <CampoMoneda
+                  v-model="activosPasivos.deuda_otras_entidades"
+                  label="Deuda con otras entidades"
+                />
+                <CampoMoneda
+                  v-model="activosPasivos.cuota_mensual_otras_deudas"
+                  label="Cuota mensual otras deudas"
+                />
+              </div>
+            </div>
 
-          <!-- Vehículo -->
-          <div :style="estiloSubtitulo">Vehículo</div>
-          <div :style="grid2(isMobile)">
-            <CampoTexto
-              v-model="activosPasivos.marca_vehiculo"
-              label="Marca"
-              placeholder="Ej. Chevrolet"
-            />
-            <CampoTexto
-              v-model="activosPasivos.modelo_vehiculo"
-              label="Modelo / Año"
-              placeholder="Ej. Spark 2020"
-            />
-            <CampoTexto
-              v-model="activosPasivos.placa_vehiculo"
-              label="Placa"
-              placeholder="ABC 123"
-            />
-            <CampoMoneda
-              v-model="activosPasivos.valor_comercial_pignorado"
-              label="Valor comercial / pignoraciones"
-            />
-          </div>
+            <div :style="estiloBloque">
+              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Vehículo</div>
+              <div :style="grid3(isMobile)">
+                <CampoTexto
+                  v-model="activosPasivos.marca_vehiculo"
+                  label="Marca"
+                  placeholder="Ej. Chevrolet"
+                />
+                <CampoTexto
+                  v-model="activosPasivos.modelo_vehiculo"
+                  label="Modelo / Año"
+                  placeholder="Ej. Spark 2020"
+                />
+                <CampoTexto
+                  v-model="activosPasivos.placa_vehiculo"
+                  label="Placa"
+                  placeholder="ABC 123"
+                />
+                <CampoMoneda
+                  v-model="activosPasivos.valor_comercial_pignorado"
+                  label="Valor comercial / pignoraciones"
+                />
+              </div>
+            </div>
 
-          <!-- Otras deudas -->
-          <div :style="estiloSubtitulo">Otras deudas</div>
-          <div :style="grid2(isMobile)">
-            <CampoMoneda
-              v-model="activosPasivos.otras_deudas"
-              label="Otras deudas"
-            />
-            <CampoMoneda
-              v-model="activosPasivos.cuota_mensual_otras_deudas_2"
-              label="Cuota mensual otras deudas"
-            />
-            <CampoMoneda
-              v-model="activosPasivos.total_pasivos"
-              label="Total pasivos"
-            />
+            <div :style="estiloBloque">
+              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Otras deudas</div>
+              <div :style="grid3(isMobile)">
+                <CampoMoneda
+                  v-model="activosPasivos.otras_deudas"
+                  label="Otras deudas"
+                />
+                <CampoMoneda
+                  v-model="activosPasivos.cuota_mensual_otras_deudas_2"
+                  label="Cuota mensual otras deudas"
+                />
+                <CampoMoneda
+                  v-model="activosPasivos.total_pasivos"
+                  label="Total pasivos"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -894,143 +958,153 @@ function onOtpValidado() {
 
           <!-- Aplica -->
           <template v-else>
-            <div :style="estiloSubtitulo">Identificación</div>
-            <div :style="grid2(isMobile)">
-              <CampoSelect
-                v-model="datosConyuge.tipo_identificacion"
-                label="Tipo"
-                :opciones="opsTipoDocumento"
-              />
-              <CampoTexto
-                v-model="datosConyuge.numero_identificacion"
-                label="Número de identificación"
-                placeholder="Sin puntos ni espacios"
-                solo-numeros
-              />
-              <div :style="spanFull">
-                <CampoTexto
-                  v-model="datosConyuge.nombre"
-                  label="Nombre completo"
-                  placeholder="Nombres y apellidos"
-                  required
-                />
+            <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+              <div :style="estiloBloque">
+                <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Identificación</div>
+                <div :style="grid3(isMobile)">
+                  <CampoSelect
+                    v-model="datosConyuge.tipo_identificacion"
+                    label="Tipo"
+                    :opciones="opsTipoDocumento"
+                  />
+                  <CampoTexto
+                    v-model="datosConyuge.numero_identificacion"
+                    label="Número de identificación"
+                    placeholder="Sin puntos ni espacios"
+                    solo-numeros
+                  />
+                  <div :style="spanFull">
+                    <CampoTexto
+                      v-model="datosConyuge.nombre"
+                      label="Nombre completo"
+                      placeholder="Nombres y apellidos"
+                      required
+                    />
+                  </div>
+                  <CampoTexto
+                    v-model="datosConyuge.fecha_expedicion"
+                    label="Fecha de expedición"
+                    type="date"
+                  />
+                  <CampoTexto
+                    v-model="datosConyuge.fecha_nacimiento"
+                    label="Fecha de nacimiento"
+                    type="date"
+                  />
+                  <CampoTexto
+                    v-model="datosConyuge.lugar_nacimiento"
+                    label="Lugar de nacimiento"
+                    placeholder="Ciudad"
+                  />
+                  <CampoTexto
+                    v-model="datosConyuge.nacionalidad"
+                    label="Nacionalidad"
+                    placeholder="Colombiana"
+                  />
+                </div>
               </div>
-              <CampoTexto
-                v-model="datosConyuge.fecha_expedicion"
-                label="Fecha de expedición"
-                type="date"
-              />
-              <CampoTexto
-                v-model="datosConyuge.fecha_nacimiento"
-                label="Fecha de nacimiento"
-                type="date"
-              />
-              <CampoTexto
-                v-model="datosConyuge.lugar_nacimiento"
-                label="Lugar de nacimiento"
-                placeholder="Ciudad"
-              />
-              <CampoTexto
-                v-model="datosConyuge.nacionalidad"
-                label="Nacionalidad"
-                placeholder="Colombiana"
-              />
-            </div>
 
-            <div :style="estiloSubtitulo">Datos personales</div>
-            <div :style="grid2(isMobile)">
-              <CampoSelect
-                v-model="datosConyuge.genero"
-                label="Género"
-                :opciones="opsGenero"
-              />
-              <CampoSelect
-                v-model="datosConyuge.estado_civil"
-                label="Estado civil"
-                :opciones="opsEstadoCivil"
-              />
-              <CampoSelect
-                v-model="datosConyuge.nivel_academico"
-                label="Nivel académico"
-                :opciones="opsNivelAcademico"
-              />
-              <CampoSelect
-                v-model="datosConyuge.tipo_vivienda"
-                label="Tipo de vivienda"
-                :opciones="opsTipoVivienda"
-              />
-            </div>
-
-            <div :style="estiloSubtitulo">Contacto y residencia</div>
-            <div :style="grid2(isMobile)">
-              <div :style="spanFull">
-                <CampoTexto
-                  v-model="datosConyuge.direccion"
-                  label="Dirección de residencia"
-                  placeholder="Dirección completa"
-                />
+              <div :style="estiloBloque">
+                <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Datos personales</div>
+                <div :style="grid3(isMobile)">
+                  <CampoSelect
+                    v-model="datosConyuge.genero"
+                    label="Género"
+                    :opciones="opsGenero"
+                  />
+                  <CampoSelect
+                    v-model="datosConyuge.estado_civil"
+                    label="Estado civil"
+                    :opciones="opsEstadoCivil"
+                  />
+                  <CampoSelect
+                    v-model="datosConyuge.nivel_academico"
+                    label="Nivel académico"
+                    :opciones="opsNivelAcademico"
+                  />
+                  <CampoSelect
+                    v-model="datosConyuge.tipo_vivienda"
+                    label="Tipo de vivienda"
+                    :opciones="opsTipoVivienda"
+                  />
+                </div>
               </div>
-              <CampoTexto
-                v-model="datosConyuge.barrio"
-                label="Barrio"
-                placeholder="Nombre del barrio"
-              />
-              <CampoTexto
-                v-model="datosConyuge.ciudad"
-                label="Ciudad"
-                placeholder="Medellín"
-              />
-              <CampoTexto
-                v-model="datosConyuge.telefono"
-                label="Teléfono"
-                placeholder="Ej. 6044456789"
-              />
-              <CampoTexto
-                v-model="datosConyuge.celular"
-                label="Celular"
-                placeholder="Ej. 3001234567"
-              />
-              <div :style="spanFull">
-                <CampoTexto
-                  v-model="datosConyuge.email"
-                  label="Correo electrónico"
-                  type="email"
-                  placeholder="correo@ejemplo.com"
-                />
-              </div>
-            </div>
 
-            <div :style="estiloSubtitulo">Información laboral</div>
-            <div :style="grid2(isMobile)">
-              <CampoSelect
-                v-model="datosConyuge.ocupacion"
-                label="Ocupación"
-                :opciones="opsOcupacion"
-              />
-              <CampoTexto
-                v-model="datosConyuge.empresa"
-                label="Empresa"
-                placeholder="Nombre de la empresa"
-              />
-              <CampoTexto
-                v-model="datosConyuge.cargo"
-                label="Cargo"
-                placeholder="Cargo u oficio"
-              />
-              <CampoSelect
-                v-model="datosConyuge.tipo_contrato"
-                label="Tipo de contrato"
-                :opciones="opsTipoContrato"
-              />
-              <CampoTexto
-                v-model="datosConyuge.telefono_empresa"
-                label="Teléfono empresa"
-                placeholder="Ej. 6044456789"
-              />
-              <CampoMoneda
-                v-model="datosConyuge.salario"
-                label="Salario"
-              />
+              <div :style="estiloBloque">
+                <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Contacto y residencia</div>
+                <div :style="grid3(isMobile)">
+                  <div :style="spanFull">
+                    <CampoTexto
+                      v-model="datosConyuge.direccion"
+                      label="Dirección de residencia"
+                      placeholder="Dirección completa"
+                    />
+                  </div>
+                  <CampoTexto
+                    v-model="datosConyuge.barrio"
+                    label="Barrio"
+                    placeholder="Nombre del barrio"
+                  />
+                  <CampoTexto
+                    v-model="datosConyuge.ciudad"
+                    label="Ciudad"
+                    placeholder="Medellín"
+                  />
+                  <CampoTexto
+                    v-model="datosConyuge.telefono"
+                    label="Teléfono"
+                    placeholder="Ej. 6044456789"
+                  />
+                  <CampoTexto
+                    v-model="datosConyuge.celular"
+                    label="Celular"
+                    placeholder="Ej. 3001234567"
+                  />
+                  <div :style="spanFull">
+                    <CampoTexto
+                      v-model="datosConyuge.email"
+                      label="Correo electrónico"
+                      type="email"
+                      placeholder="correo@ejemplo.com"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div :style="estiloBloque">
+                <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Información laboral</div>
+                <div :style="grid3(isMobile)">
+                  <CampoSelect
+                    v-model="datosConyuge.ocupacion"
+                    label="Ocupación"
+                    :opciones="opsOcupacion"
+                  />
+                  <CampoTexto
+                    v-model="datosConyuge.empresa"
+                    label="Empresa"
+                    placeholder="Nombre de la empresa"
+                  />
+                  <CampoTexto
+                    v-model="datosConyuge.cargo"
+                    label="Cargo"
+                    placeholder="Cargo u oficio"
+                  />
+                  <CampoSelect
+                    v-model="datosConyuge.tipo_contrato"
+                    label="Tipo de contrato"
+                    :opciones="opsTipoContrato"
+                  />
+                  <CampoTexto
+                    v-model="datosConyuge.telefono_empresa"
+                    label="Teléfono empresa"
+                    placeholder="Ej. 6044456789"
+                  />
+                  <CampoMoneda
+                    v-model="datosConyuge.salario"
+                    label="Salario"
+                  />
+                </div>
+              </div>
             </div>
           </template>
         </div>
@@ -1041,70 +1115,75 @@ function onOtpValidado() {
         <div v-if="paso === 5">
           <div :style="estiloSeccionTitulo">Referencias</div>
 
-          <!-- Referencia personal -->
-          <div :style="estiloSubtitulo">Referencia personal</div>
-          <div :style="grid2(isMobile)">
-            <div :style="spanFull">
-              <CampoTexto
-                v-model="referencias.personal.nombre"
-                label="Nombres y apellidos"
-                placeholder="Nombre completo"
-              />
+          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+            <div :style="estiloBloque">
+              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Referencia personal</div>
+              <div :style="grid3(isMobile)">
+                <div :style="spanFull">
+                  <CampoTexto
+                    v-model="referencias.personal.nombre"
+                    label="Nombres y apellidos"
+                    placeholder="Nombre completo"
+                  />
+                </div>
+                <CampoTexto
+                  v-model="referencias.personal.contacto"
+                  label="Relación o cargo"
+                  placeholder="Ej. Amigo, Colega"
+                />
+                <CampoTexto
+                  v-model="referencias.personal.telefono"
+                  label="Teléfono de contacto"
+                  placeholder="Ej. 3001234567"
+                />
+              </div>
             </div>
-            <CampoTexto
-              v-model="referencias.personal.contacto"
-              label="Relación o cargo"
-              placeholder="Ej. Amigo, Colega"
-            />
-            <CampoTexto
-              v-model="referencias.personal.telefono"
-              label="Teléfono de contacto"
-              placeholder="Ej. 3001234567"
-            />
-          </div>
 
-          <!-- Referencia familiar -->
-          <div :style="estiloSubtitulo">Referencia familiar</div>
-          <div :style="grid2(isMobile)">
-            <div :style="spanFull">
-              <CampoTexto
-                v-model="referencias.familiar.nombre"
-                label="Nombres y apellidos"
-                placeholder="Nombre completo"
-              />
+            <div :style="estiloBloque">
+              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Referencia familiar</div>
+              <div :style="grid3(isMobile)">
+                <div :style="spanFull">
+                  <CampoTexto
+                    v-model="referencias.familiar.nombre"
+                    label="Nombres y apellidos"
+                    placeholder="Nombre completo"
+                  />
+                </div>
+                <CampoTexto
+                  v-model="referencias.familiar.parentesco"
+                  label="Parentesco"
+                  placeholder="Ej. Hermano, Padre"
+                />
+                <CampoTexto
+                  v-model="referencias.familiar.contacto"
+                  label="Teléfono de contacto"
+                  placeholder="Ej. 3001234567"
+                />
+              </div>
             </div>
-            <CampoTexto
-              v-model="referencias.familiar.parentesco"
-              label="Parentesco"
-              placeholder="Ej. Hermano, Padre"
-            />
-            <CampoTexto
-              v-model="referencias.familiar.contacto"
-              label="Teléfono de contacto"
-              placeholder="Ej. 3001234567"
-            />
-          </div>
 
-          <!-- Referencia comercial -->
-          <div :style="estiloSubtitulo">Referencia comercial</div>
-          <div :style="grid2(isMobile)">
-            <div :style="spanFull">
-              <CampoTexto
-                v-model="referencias.comercial.nombre_establecimiento"
-                label="Nombre del establecimiento"
-                placeholder="Nombre comercial"
-              />
+            <div :style="estiloBloque">
+              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Referencia comercial</div>
+              <div :style="grid3(isMobile)">
+                <div :style="spanFull">
+                  <CampoTexto
+                    v-model="referencias.comercial.nombre_establecimiento"
+                    label="Nombre del establecimiento"
+                    placeholder="Nombre comercial"
+                  />
+                </div>
+                <CampoTexto
+                  v-model="referencias.comercial.nombre_contacto"
+                  label="Nombre del contacto"
+                  placeholder="Nombre completo"
+                />
+                <CampoTexto
+                  v-model="referencias.comercial.producto"
+                  label="Producto o servicio"
+                  placeholder="Ej. Cuenta de ahorros, Crédito"
+                />
+              </div>
             </div>
-            <CampoTexto
-              v-model="referencias.comercial.nombre_contacto"
-              label="Nombre del contacto"
-              placeholder="Nombre completo"
-            />
-            <CampoTexto
-              v-model="referencias.comercial.producto"
-              label="Producto o servicio"
-              placeholder="Ej. Cuenta de ahorros, Crédito"
-            />
           </div>
         </div>
 

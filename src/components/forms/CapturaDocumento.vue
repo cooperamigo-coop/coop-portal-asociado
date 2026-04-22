@@ -143,7 +143,7 @@ const LADOS = [
           <span v-if="required && !urlFinal" :style="{ marginLeft: 'var(--sp-sm)', fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 6px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase' }">Obligatorio</span>
         </div>
         <div :style="{ fontSize: 'var(--text-sm)', color: urlFinal ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">
-          {{ urlFinal ? 'Documento cargado correctamente' : 'Suba un PDF o tome fotos de ambos lados' }}
+          {{ urlFinal ? 'Documento cargado correctamente' : 'Cargue el archivo o tome las fotografías de ambos lados' }}
         </div>
       </div>
 

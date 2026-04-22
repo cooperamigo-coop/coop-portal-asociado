@@ -266,7 +266,7 @@ export function useAfiliacion() {
       }
       const borrador = await buscarBorrador(email, 'afiliacion')
       if (borrador) {
-        borradorDisponible.value = borrador
+        borradorDisponible.value = Array.isArray(borrador) ? borrador[0] : borrador
       } else {
         _prepararPaso1(email, numDoc)
       }
@@ -288,22 +288,43 @@ export function useAfiliacion() {
 
   // ── Borrador ──────────────────────────────────────────────────────────────
   function restaurarBorrador() {
-    const b = borradorDisponible.value
-    if (!b) return
-    const d = b.datos
-    if (d.datosPersonales)        datosPersonales.value        = { ...datosPersonales.value,        ...d.datosPersonales }
-    if (d.datosLaborales)         datosLaborales.value         = { ...datosLaborales.value,         ...d.datosLaborales }
-    if (d.actividadIndependiente) actividadIndependiente.value = { ...actividadIndependiente.value, ...d.actividadIndependiente }
-    if (d.datosFinancieros)       datosFinancieros.value       = { ...datosFinancieros.value,       ...d.datosFinancieros }
-    if (d.activosPasivos)         activosPasivos.value         = { ...activosPasivos.value,         ...d.activosPasivos }
-    if (d.datosConyuge)           datosConyuge.value           = { ...datosConyuge.value,           ...d.datosConyuge }
-    if (d.referencias)            referencias.value            = { ...referencias.value,            ...d.referencias }
-    if (d.declaraciones)          declaraciones.value          = { ...declaraciones.value,          ...d.declaraciones }
-    if (d.oficina)                oficina.value                = d.oficina
-    borradorDisponible.value = null
-    paso.value = b.paso_actual ?? 1
-    error.value = null
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    try {
+      const raw = borradorDisponible.value
+      const b = Array.isArray(raw) ? raw[0] : raw
+      if (!b) return
+
+      let d = b.datos ?? b.data ?? null
+      if (typeof d === 'string') {
+        try { d = JSON.parse(d) } catch { d = null }
+      }
+      d = d && typeof d === 'object' ? d : {}
+
+      if (d.datosPersonales)        datosPersonales.value        = { ...datosPersonales.value,        ...d.datosPersonales }
+      if (d.datosLaborales)         datosLaborales.value         = { ...datosLaborales.value,         ...d.datosLaborales }
+      if (d.actividadIndependiente) actividadIndependiente.value = { ...actividadIndependiente.value, ...d.actividadIndependiente }
+      if (d.datosFinancieros)       datosFinancieros.value       = { ...datosFinancieros.value,       ...d.datosFinancieros }
+      if (d.activosPasivos)         activosPasivos.value         = { ...activosPasivos.value,         ...d.activosPasivos }
+      if (d.datosConyuge)           datosConyuge.value           = { ...datosConyuge.value,           ...d.datosConyuge }
+      if (d.referencias)            referencias.value            = { ...referencias.value,            ...d.referencias }
+      if (d.declaraciones)          declaraciones.value          = { ...declaraciones.value,          ...d.declaraciones }
+      if (d.oficina)                oficina.value                = d.oficina
+
+      if (b.email && !emailInicial.value.trim()) {
+        emailInicial.value = String(b.email || '').trim()
+      }
+
+      datosPersonales.value.email = emailInicial.value.trim()
+      datosPersonales.value.cedula = numeroDocumentoInicial.value.trim() || datosPersonales.value.cedula
+      datosPersonales.value.tipo_identificacion =
+        tipoDocumentoInicial.value === 'cedula_ciudadania' ? 'CC' : 'CE'
+
+      borradorDisponible.value = null
+      paso.value = b.paso_actual ?? b.paso ?? 1
+      error.value = null
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch {
+      borradorDisponible.value = null
+    }
   }
 
   function descartarBorrador() {
