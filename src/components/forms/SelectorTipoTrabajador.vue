@@ -12,7 +12,7 @@ const opciones = [
   { value: 'independiente', label: 'Independiente',   icono: IconBuildingStore  },
   { value: 'pensionado',    label: 'Pensionado',      icono: IconHeartHandshake },
   { value: 'estudiante',    label: 'Estudiante',      icono: IconBook           },
-  { value: 'cuidado_hogar', label: 'Cuidado hogar', icono: IconHome         },
+  { value: 'cuidado_hogar', label: 'Cuidado del hogar', icono: IconHome         },
 ]
 </script>
 

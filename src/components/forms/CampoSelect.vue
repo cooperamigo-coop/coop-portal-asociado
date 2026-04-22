@@ -187,7 +187,7 @@ onUnmounted(() => {
 }
 
 .campo-field--disabled {
-  background-color: var(--color-bg-surface-alt);
+  background-color: var(--color-bg-card);
   cursor: not-allowed;
 }
 

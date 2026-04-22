@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onUnmounted } from 'vue'
+import { ref, watch, onUnmounted, computed } from 'vue'
 import { useCapturaDocumento } from '@/composables/useCapturaDocumento.js'
 import PortalButton from '@/components/ui/PortalButton.vue'
 import {
@@ -9,6 +9,7 @@ import {
 
 const props = defineProps({
   solicitudId: { type: String, default: null },
+  storageKey: { type: String, default: null },
   campo: { type: String, default: 'documento_identidad' },
   label: { type: String, default: 'Documento de identidad' },
   required: { type: Boolean, default: false },
@@ -28,6 +29,8 @@ const {
 const urlFinal = ref(props.initialUrl || null)
 watch(() => props.initialUrl, (v) => { if (v) urlFinal.value = v })
 const modalPreviewVisible = ref(false)
+
+const uploadKey = computed(() => props.storageKey || props.solicitudId)
 
 // ── Previews locales para upload directo ────────────────────────────────────
 const previewFrente  = ref(null)
@@ -51,7 +54,7 @@ onUnmounted(_revocarPreviews)
 // ── Notificar al padre cuando el PDF final está listo ──────────────────────
 async function onFinalizar() {
   try {
-    const url = await finalizarConPdf(props.solicitudId, props.campo)
+    const url = await finalizarConPdf(uploadKey.value, props.campo)
     urlFinal.value = url
     _revocarPreviews()
     emit('completado', url)
@@ -71,7 +74,7 @@ async function onPdfSeleccionado(e) {
   const archivo = e.target.files?.[0]
   if (!archivo) return
   try {
-    const url = await subirPdfDirecto(props.solicitudId, props.campo, archivo)
+    const url = await subirPdfDirecto(uploadKey.value, props.campo, archivo)
     urlFinal.value = url
     _revocarPreviews()
     emit('completado', url)
@@ -182,7 +185,7 @@ const LADOS = [
       <!-- Flujo QR/Móvil -->
       <div v-if="['esperando_qr', 'capturando_movil'].includes(estado)" :style="{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-lg)', alignItems: 'center' }">
         <div v-if="!esMovil && qrDataUrl" :style="{ flexShrink: '0', textAlign: 'center' }">
-          <img :src="qrDataUrl" alt="QR" :style="{ width: '100px', height: '100px', borderRadius: 'var(--r-lg)', border: '2px solid var(--color-primary)' }" />
+          <img :src="qrDataUrl" alt="QR" :style="{ width: '100px', height: '100px', borderRadius: 'var(--r-lg)' }" />
           <div :style="{ fontSize: '10px', color: 'var(--color-text-3)', marginTop: '4px' }">Escanee con el celular</div>
         </div>
 

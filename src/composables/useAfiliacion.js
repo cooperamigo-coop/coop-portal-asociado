@@ -21,8 +21,18 @@ import {
   verificarRateLimit,
   registrarIntento,
 } from '@/utils/seguridad'
+import { subirDocumentoSolicitud } from '@/services/documentos.service'
 
 export function useAfiliacion() {
+  const hoyIso = () => new Date().toISOString().slice(0, 10)
+  const conTimeout = (promesa, ms, etiqueta = 'operación') => {
+    return Promise.race([
+      promesa,
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`Timeout en ${etiqueta}`)), ms)
+      }),
+    ])
+  }
   const paso = ref(0)
   const loading = ref(false)
   const error = ref(null)
@@ -69,22 +79,33 @@ export function useAfiliacion() {
     tipo_vivienda: '',
     genero: '',
     nivel_academico: '',
-    administra_recursos_publicos: false,
-    persona_expuesta_publicamente: false,
+    canales_comunicacion: [],
+    administra_recursos_publicos: null,
+    persona_expuesta_publicamente: null,
+    lugar_nacimiento_ubicacion: { depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' },
+    direccion_residencia_modelo: {
+      depto_codigo: '', depto_nombre: '',
+      municipio_codigo: '', municipio_nombre: '',
+      via_principal: '', numero_via: '', letra_via: '', bis: false, cuadrante_via: '',
+      numero_cruce: '', letra_cruce: '', numero_placa: '', cuadrante_cruce: '',
+      complemento: '', barrio: '',
+    },
   })
 
-  // ── Sección 3: Información Laboral ────────────────────────────────────────
+  // ── Sección 3: Información Laboral y Financiera ───────────────────────────
   const datosLaborales = ref({
-    ocupacion: '',
-    empresa: '',
-    cargo: '',
+    tipo_trabajador: '',
+
+    nombre_empresa: '',
+    cargo_oficio: '',
     tipo_contrato: '',
-    fecha_ingreso_empresa: '',
-    direccion_empresa: '',
-    ciudad_empresa: '',
-    telefono_empresa: '',
-    email_corporativo: '',
-    salario: '',
+    tipo_contrato_otro: '',
+    fecha_ingreso: '',
+
+    entidad_pagadora: '',
+
+    institucion_educativa: '',
+    nivel_educativo: '',
   })
 
   // ── Sección 4: Actividad Independiente ────────────────────────────────────
@@ -92,24 +113,29 @@ export function useAfiliacion() {
     ciiu_1: '',
     descripcion_actividad_1: '',
     fecha_inicio_actividad_1: '',
-    nombre_establecimiento: '',
     ciiu_2: '',
     descripcion_actividad_2: '',
     fecha_inicio_actividad_2: '',
-    fecha_constitucion: '',
-    fecha_vigencia: '',
     direccion_negocio: '',
-    ciudad_negocio: '',
     telefono_negocio: '',
+    direccion_negocio_modelo: {
+      depto_codigo: '', depto_nombre: '',
+      municipio_codigo: '', municipio_nombre: '',
+      via_principal: '', numero_via: '', letra_via: '', bis: false, cuadrante_via: '',
+      numero_cruce: '', letra_cruce: '', numero_placa: '', cuadrante_cruce: '',
+      complemento: '', barrio: '',
+    },
   })
 
   // ── Sección 5: Información Financiera ─────────────────────────────────────
   const datosFinancieros = ref({
+    salario_ingresos_fijos: '',
+    ingresos_independiente: '',
     gastos_familiares: '',
-    otros_ingresos: '',
-    cuotas_credito: '',
-    total_ingresos: '',
-    total_egresos: '',
+    otros_gastos: '',
+    obligaciones_financieras: '',
+    fuente_ingresos: '',
+    mesada_pensional: '',
   })
 
   // ── Sección 6: Activos y Pasivos ──────────────────────────────────────────
@@ -134,68 +160,78 @@ export function useAfiliacion() {
   const datosConyuge = ref({
     tipo_identificacion: 'CC',
     numero_identificacion: '',
-    nombre: '',
+    nombres: '',
+    apellidos: '',
     fecha_expedicion: '',
-    nacionalidad: 'Colombiana',
-    fecha_nacimiento: '',
-    lugar_nacimiento: '',
-    direccion: '',
-    barrio: '',
-    ciudad: '',
+    lugar_expedicion: '',
+    lugar_expedicion_ubicacion: null,
+    nacionalidad: '',
     telefono: '',
-    celular: '',
-    email: '',
-    estado_civil: '',
-    tipo_vivienda: '',
-    genero: '',
-    nivel_academico: '',
-    ocupacion: '',
-    empresa: '',
-    cargo: '',
-    tipo_contrato: '',
-    telefono_empresa: '',
-    salario: '',
   })
 
   // ── Sección 8: Referencias ────────────────────────────────────────────────
   const referencias = ref({
-    personal:  { nombre: '', contacto: '', telefono: '' },
-    familiar:  { nombre: '', contacto: '', parentesco: '' },
-    comercial: { nombre_establecimiento: '', nombre_contacto: '', producto: '' },
+    personal:   { nombres: '', contacto: '' },
+    familiar:   { nombres: '', contacto: '', parentesco: '' },
+    financiera: { nombre_establecimiento: '', contacto: '', tipo_producto: '', numero_cuenta: '' },
+    comercial:  { nombre_establecimiento: '', contacto: '' },
   })
 
   // ── Secciones 9 y 10: Declaraciones ──────────────────────────────────────
   const declaraciones = ref({
-    invalidez_o_incapacidad: false,
-    cancer: false,
-    afecciones_cardiovasculares: false,
-    epoc: false,
-    sida: false,
-    insuficiencia_renal: false,
-    maneja_dinero_publico: false,
-    es_contratista_estado: false,
-    es_lider_politico: false,
-    autoriza_tratamiento_datos: false,
+    maneja_dinero_publico: null,
+    es_contratista_estado: null,
+    es_lider_politico: null,
+    autoriza_tratamiento_datos: null,
+  })
+
+  const documentos = ref({
+    doc_cedula_solicitante_url: '',
+    doc_soporte_ingresos_laboral_url: '',
   })
 
   // Sección 1 encabezado
   const oficina = ref('PRINCIPAL - MEDELLÍN')
+  const fechaSolicitud = ref(hoyIso())
+  const tipoSolicitud = ref('afiliacion')
 
   registrarInicioFormulario('afiliacion')
 
   // ── Computed ──────────────────────────────────────────────────────────────
-  const necesitaConyuge = computed(() =>
-    ['Casado', 'Union Libre'].includes(datosPersonales.value.estado_civil)
-  )
+  const necesitaConyuge = computed(() => {
+    const v = datosPersonales.value.estado_civil
+    return ['Casado(a)', 'Casado', 'Union Libre', 'Unión Libre', 'Separado(a)', 'Separado'].includes(v)
+  })
+
+  const vinculoConyuge = computed(() => {
+    const v = datosPersonales.value.estado_civil
+    if (v === 'Union Libre' || v === 'Unión Libre') return 'companero_permanente'
+    if (v === 'Casado(a)' || v === 'Casado' || v === 'Separado(a)' || v === 'Separado') return 'conyuge'
+    return ''
+  })
 
   const esIndependiente = computed(() =>
-    datosLaborales.value.ocupacion === 'Independiente'
+    datosLaborales.value.tipo_trabajador === 'independiente'
   )
 
+  const skipBloqueosLocal = computed(() => {
+    if (!import.meta.env.DEV) return false
+    try {
+      const qs = new URLSearchParams(window.location.search)
+      if (qs.get('skipValidacion') === '1') return true
+      return window.localStorage.getItem('AFILIACION_SKIP_VALIDACION') === '1'
+    } catch {
+      return false
+    }
+  })
+
   const pasoValido = computed(() => {
+    if (skipBloqueosLocal.value && paso.value !== 0) return true
     if (paso.value === 0) {
+      const email = emailInicial.value.trim()
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
       return !!(
-        emailInicial.value.trim() &&
+        emailOk &&
         !errorEmail.value &&
         tipoDocumentoInicial.value &&
         numeroDocumentoInicial.value.trim().length >= 5 &&
@@ -205,29 +241,109 @@ export function useAfiliacion() {
     if (paso.value === 1) {
       const dp = datosPersonales.value
       return !!(
+        fechaSolicitud.value &&
+        oficina.value &&
+        tipoSolicitud.value &&
         dp.cedula &&
         dp.nombres &&
         dp.apellidos &&
         dp.estado_civil &&
         dp.genero &&
-        dp.fecha_nacimiento
+        dp.fecha_nacimiento &&
+        dp.fecha_expedicion &&
+        dp.lugar_nacimiento &&
+        dp.tipo_vivienda &&
+        dp.rh &&
+        dp.nivel_academico &&
+        dp.personas_a_cargo !== '' &&
+        dp.personas_economicamente_activas !== '' &&
+        dp.direccion &&
+        dp.estrato !== '' &&
+        dp.tiempo_residencia_meses !== '' &&
+        dp.celular &&
+        dp.administra_recursos_publicos !== null &&
+        dp.persona_expuesta_publicamente !== null &&
+        Array.isArray(dp.canales_comunicacion) &&
+        dp.canales_comunicacion.length > 0
       )
     }
     if (paso.value === 2) {
-      return !!datosLaborales.value.ocupacion
+      const dl = datosLaborales.value
+      const df = datosFinancieros.value
+      if (!dl.tipo_trabajador) return false
+
+      if (dl.tipo_trabajador === 'empleado') {
+        const tipoContratoOk = dl.tipo_contrato && (dl.tipo_contrato !== 'otro' || dl.tipo_contrato_otro)
+        const laboralOk = !!(dl.nombre_empresa && dl.cargo_oficio && tipoContratoOk && dl.fecha_ingreso)
+        const financieroOk = df.salario_ingresos_fijos !== '' && df.gastos_familiares !== ''
+        return laboralOk && financieroOk
+      }
+
+      if (dl.tipo_trabajador === 'independiente') {
+        const ai = actividadIndependiente.value
+        const actividad2Parcial = !!(ai.ciiu_2 || ai.descripcion_actividad_2 || ai.fecha_inicio_actividad_2)
+        const actividad2Ok = !actividad2Parcial || !!(ai.ciiu_2 && ai.descripcion_actividad_2 && ai.fecha_inicio_actividad_2)
+        const laboralOk = !!(
+          ai.ciiu_1 &&
+          ai.descripcion_actividad_1 &&
+          ai.fecha_inicio_actividad_1 &&
+          ai.direccion_negocio &&
+          ai.telefono_negocio
+        ) && actividad2Ok
+        const financieroOk = df.ingresos_independiente !== '' && df.gastos_familiares !== ''
+        return laboralOk && financieroOk
+      }
+
+      if (dl.tipo_trabajador === 'pensionado') {
+        const laboralOk = !!dl.entidad_pagadora
+        const financieroOk = df.mesada_pensional !== ''
+        return laboralOk && financieroOk
+      }
+
+      if (dl.tipo_trabajador === 'estudiante') {
+        const laboralOk = !!(dl.institucion_educativa && dl.nivel_educativo)
+        const financieroOk = df.salario_ingresos_fijos !== '' && !!df.fuente_ingresos
+        return laboralOk && financieroOk
+      }
+
+      if (dl.tipo_trabajador === 'cuidado_hogar') {
+        const financieroOk = df.salario_ingresos_fijos !== '' && !!df.fuente_ingresos
+        return financieroOk
+      }
+
+      return false
     }
     if (paso.value === 3) {
-      return true
+      if (!necesitaConyuge.value) return true
+      const dc = datosConyuge.value
+      return !!(
+        dc.tipo_identificacion &&
+        dc.numero_identificacion &&
+        dc.nombres &&
+        dc.apellidos &&
+        dc.fecha_expedicion &&
+        dc.lugar_expedicion &&
+        dc.nacionalidad &&
+        dc.telefono
+      )
     }
     if (paso.value === 4) {
-      if (!necesitaConyuge.value) return true
-      return !!datosConyuge.value.nombre
+      const r = referencias.value
+      const filled = (v) => String(v ?? '').trim().length > 0
+      return (
+        filled(r.personal?.nombres) &&
+        filled(r.personal?.contacto) &&
+        filled(r.familiar?.nombres) &&
+        filled(r.familiar?.parentesco) &&
+        filled(r.familiar?.contacto)
+      )
     }
     if (paso.value === 5) {
-      return true
-    }
-    if (paso.value === 6) {
-      return declaraciones.value.autoriza_tratamiento_datos
+      return (
+        declaraciones.value.autoriza_tratamiento_datos === true &&
+        String(documentos.value.doc_cedula_solicitante_url || '').trim().length > 0 &&
+        String(documentos.value.doc_soporte_ingresos_laboral_url || '').trim().length > 0
+      )
     }
     return true
   })
@@ -259,17 +375,31 @@ export function useAfiliacion() {
 
     loadingVerificacion.value = true
     try {
-      const existente = await buscarAsociadoPorCedula(numDoc)
+      const existente = await conTimeout(
+        buscarAsociadoPorCedula(numDoc),
+        12000,
+        'verificación de asociado'
+      )
       if (existente) {
         mostrarModalYaAsociado.value = true
         return
       }
-      const borrador = await buscarBorrador(email, 'afiliacion')
-      if (borrador) {
-        borradorDisponible.value = Array.isArray(borrador) ? borrador[0] : borrador
-      } else {
-        _prepararPaso1(email, numDoc)
+      const borrador = await conTimeout(
+        buscarBorrador(email, 'afiliacion'),
+        12000,
+        'búsqueda de borrador'
+      )
+      const b = Array.isArray(borrador)
+        ? (borrador.find(x => x && typeof x === 'object') ?? null)
+        : (borrador && typeof borrador === 'object' ? borrador : null)
+
+      if (b) {
+        borradorDisponible.value = b
+        return
       }
+
+      borradorDisponible.value = null
+      _prepararPaso1(email, numDoc)
     } catch {
       _prepararPaso1(email, numDoc)
     } finally {
@@ -305,9 +435,28 @@ export function useAfiliacion() {
       if (d.datosFinancieros)       datosFinancieros.value       = { ...datosFinancieros.value,       ...d.datosFinancieros }
       if (d.activosPasivos)         activosPasivos.value         = { ...activosPasivos.value,         ...d.activosPasivos }
       if (d.datosConyuge)           datosConyuge.value           = { ...datosConyuge.value,           ...d.datosConyuge }
-      if (d.referencias)            referencias.value            = { ...referencias.value,            ...d.referencias }
+      if (d.referencias) {
+        const r = d.referencias
+        referencias.value = { ...referencias.value, ...r }
+        if (r?.personal && typeof r.personal === 'object') {
+          if (!referencias.value.personal.nombres && r.personal.nombre) referencias.value.personal.nombres = r.personal.nombre
+          if (!referencias.value.personal.contacto && (r.personal.telefono || r.personal.contacto)) referencias.value.personal.contacto = r.personal.telefono || r.personal.contacto
+        }
+        if (r?.familiar && typeof r.familiar === 'object') {
+          if (!referencias.value.familiar.nombres && r.familiar.nombre) referencias.value.familiar.nombres = r.familiar.nombre
+          if (!referencias.value.familiar.contacto && (r.familiar.telefono || r.familiar.contacto)) referencias.value.familiar.contacto = r.familiar.telefono || r.familiar.contacto
+          if (!referencias.value.familiar.parentesco && r.familiar.parentesco) referencias.value.familiar.parentesco = r.familiar.parentesco
+        }
+        if (r?.comercial && typeof r.comercial === 'object') {
+          if (!referencias.value.comercial.nombre_establecimiento && r.comercial.nombre_establecimiento) referencias.value.comercial.nombre_establecimiento = r.comercial.nombre_establecimiento
+          if (!referencias.value.comercial.contacto && (r.comercial.nombre_contacto || r.comercial.contacto)) referencias.value.comercial.contacto = r.comercial.nombre_contacto || r.comercial.contacto
+        }
+      }
       if (d.declaraciones)          declaraciones.value          = { ...declaraciones.value,          ...d.declaraciones }
+      if (d.documentos)            documentos.value             = { ...documentos.value,             ...d.documentos }
       if (d.oficina)                oficina.value                = d.oficina
+      if (d.fechaSolicitud)         fechaSolicitud.value         = d.fechaSolicitud
+      if (d.tipoSolicitud)          tipoSolicitud.value          = d.tipoSolicitud
 
       if (b.email && !emailInicial.value.trim()) {
         emailInicial.value = String(b.email || '').trim()
@@ -317,6 +466,37 @@ export function useAfiliacion() {
       datosPersonales.value.cedula = numeroDocumentoInicial.value.trim() || datosPersonales.value.cedula
       datosPersonales.value.tipo_identificacion =
         tipoDocumentoInicial.value === 'cedula_ciudadania' ? 'CC' : 'CE'
+
+      if (!datosLaborales.value.tipo_trabajador) {
+        const o = d?.datosLaborales?.ocupacion
+        const map = {
+          Empleado: 'empleado',
+          Independiente: 'independiente',
+          Pensionado: 'pensionado',
+          Jubilado: 'pensionado',
+        }
+        if (o && map[o]) datosLaborales.value.tipo_trabajador = map[o]
+      }
+      if (datosLaborales.value.tipo_trabajador === 'empleado') {
+        if (!datosLaborales.value.nombre_empresa && d?.datosLaborales?.empresa) datosLaborales.value.nombre_empresa = d.datosLaborales.empresa
+        if (!datosLaborales.value.cargo_oficio && d?.datosLaborales?.cargo) datosLaborales.value.cargo_oficio = d.datosLaborales.cargo
+        if (!datosLaborales.value.fecha_ingreso && d?.datosLaborales?.fecha_ingreso_empresa) datosLaborales.value.fecha_ingreso = d.datosLaborales.fecha_ingreso_empresa
+      }
+      if (datosLaborales.value.tipo_trabajador === 'pensionado' && !datosLaborales.value.entidad_pagadora && d?.datosLaborales?.entidad_pagadora) {
+        datosLaborales.value.entidad_pagadora = d.datosLaborales.entidad_pagadora
+      }
+      if (!datosFinancieros.value.salario_ingresos_fijos && d?.datosLaborales?.salario) {
+        datosFinancieros.value.salario_ingresos_fijos = d.datosLaborales.salario
+      }
+      if (!datosFinancieros.value.gastos_familiares && d?.datosFinancieros?.gastos_familiares) {
+        datosFinancieros.value.gastos_familiares = d.datosFinancieros.gastos_familiares
+      }
+      if (!datosFinancieros.value.ingresos_independiente && d?.datosFinancieros?.otros_ingresos) {
+        datosFinancieros.value.ingresos_independiente = d.datosFinancieros.otros_ingresos
+      }
+      if (!datosFinancieros.value.obligaciones_financieras && d?.datosFinancieros?.cuotas_credito) {
+        datosFinancieros.value.obligaciones_financieras = d.datosFinancieros.cuotas_credito
+      }
 
       borradorDisponible.value = null
       paso.value = b.paso_actual ?? b.paso ?? 1
@@ -349,7 +529,10 @@ export function useAfiliacion() {
         datosConyuge:           datosConyuge.value,
         referencias:            referencias.value,
         declaraciones:          declaraciones.value,
+        documentos:             documentos.value,
         oficina:                oficina.value,
+        fechaSolicitud:         fechaSolicitud.value,
+        tipoSolicitud:          tipoSolicitud.value,
       })
     } catch {
       // silencioso — no interrumpir el flujo
@@ -374,6 +557,9 @@ export function useAfiliacion() {
       if (existente) {
         datosPersonales.value.nombres   = existente.nombres
         datosPersonales.value.apellidos = existente.apellidos
+        if (!datosPersonales.value.titulo && existente.titulo) {
+          datosPersonales.value.titulo = existente.titulo
+        }
       }
     } catch {
       asociadoExistente.value = null
@@ -382,10 +568,6 @@ export function useAfiliacion() {
 
   // ── Navegación ────────────────────────────────────────────────────────────
   function irAPaso(n) {
-    // Saltar cónyuge si no aplica
-    if (n === 4 && !necesitaConyuge.value) {
-      n = n > paso.value ? 5 : 3
-    }
     if (n > paso.value) {
       _guardarProgreso(n)
     }
@@ -410,6 +592,15 @@ export function useAfiliacion() {
       return
     }
 
+    if (!String(documentos.value.doc_cedula_solicitante_url || '').trim()) {
+      error.value = 'Debe cargar la cédula de ciudadanía para continuar.'
+      return
+    }
+    if (!String(documentos.value.doc_soporte_ingresos_laboral_url || '').trim()) {
+      error.value = 'Debe cargar la certificación laboral o la certificación de ingresos para continuar.'
+      return
+    }
+
     const permitido = await verificarRateLimit(supabase, datosPersonales.value.cedula, 'afiliacion')
     if (!permitido) {
       error.value = 'Ha alcanzado el límite de solicitudes para este documento. Intente después de 24 horas.'
@@ -426,6 +617,16 @@ export function useAfiliacion() {
         const dp = datosPersonales.value
         const dl = datosLaborales.value
         const df = datosFinancieros.value
+
+        const tipoContratoFinal = dl.tipo_contrato === 'otro'
+          ? (dl.tipo_contrato_otro || null)
+          : (dl.tipo_contrato || null)
+
+        const salarioLegacy = (() => {
+          if (dl.tipo_trabajador === 'pensionado') return df.mesada_pensional !== '' ? Number(df.mesada_pensional) : null
+          if (dl.tipo_trabajador === 'independiente') return df.ingresos_independiente !== '' ? Number(df.ingresos_independiente) : null
+          return df.salario_ingresos_fijos !== '' ? Number(df.salario_ingresos_fijos) : null
+        })()
 
         const datosAsociado = sanitizarObjeto({
           // Personal
@@ -454,29 +655,55 @@ export function useAfiliacion() {
           tipo_vivienda:                   dp.tipo_vivienda        || null,
           genero:                          dp.genero               || null,
           nivel_academico:                 dp.nivel_academico      || null,
-          administra_recursos_publicos:    dp.administra_recursos_publicos,
-          persona_expuesta_publicamente:   dp.persona_expuesta_publicamente,
-          // Laboral
-          ocupacion:                       dl.ocupacion            || null,
-          empresa:                         dl.empresa              || null,
-          cargo:                           dl.cargo                || null,
-          tipo_contrato:                   dl.tipo_contrato        || null,
-          fecha_ingreso_empresa:           dl.fecha_ingreso_empresa || null,
-          direccion_empresa:               dl.direccion_empresa    || null,
-          ciudad_empresa:                  dl.ciudad_empresa       || null,
-          telefono_empresa:                dl.telefono_empresa     || null,
-          email_corporativo:               dl.email_corporativo    || null,
-          salario:                         dl.salario !== '' ? Number(dl.salario) : null,
-          // Financiero
+          administra_recursos_publicos:    dp.administra_recursos_publicos === true,
+          persona_expuesta_publicamente:   dp.persona_expuesta_publicamente === true,
+          // Laboral (nuevo + legacy)
+          tipo_trabajador:                 dl.tipo_trabajador || null,
+          empresa:                         dl.tipo_trabajador === 'empleado' ? (dl.nombre_empresa || null) : null,
+          cargo:                           dl.tipo_trabajador === 'empleado' ? (dl.cargo_oficio || null) : null,
+          tipo_contrato:                   dl.tipo_trabajador === 'empleado' ? tipoContratoFinal : null,
+          fecha_ingreso_empresa:           dl.tipo_trabajador === 'empleado' ? (dl.fecha_ingreso || null) : null,
+          entidad_pagadora:                dl.tipo_trabajador === 'pensionado' ? (dl.entidad_pagadora || null) : null,
+          institucion_educativa:           dl.tipo_trabajador === 'estudiante' ? (dl.institucion_educativa || null) : null,
+          nivel_educativo:                 dl.tipo_trabajador === 'estudiante' ? (dl.nivel_educativo || null) : null,
+          // Financiero (nuevo + legacy)
+          salario_ingresos_fijos:          df.salario_ingresos_fijos !== '' ? Number(df.salario_ingresos_fijos) : null,
+          ingresos_independiente:          df.ingresos_independiente !== '' ? Number(df.ingresos_independiente) : null,
           gastos_familiares:               df.gastos_familiares !== '' ? Number(df.gastos_familiares) : null,
-          otros_ingresos:                  df.otros_ingresos !== '' ? Number(df.otros_ingresos) : null,
-          cuotas_credito:                  df.cuotas_credito !== '' ? Number(df.cuotas_credito) : null,
-          total_ingresos:                  df.total_ingresos !== '' ? Number(df.total_ingresos) : null,
-          total_egresos:                   df.total_egresos !== '' ? Number(df.total_egresos) : null,
+          otros_gastos:                    df.otros_gastos !== '' ? Number(df.otros_gastos) : null,
+          obligaciones_financieras:        df.obligaciones_financieras !== '' ? Number(df.obligaciones_financieras) : null,
+          fuente_ingresos:                 df.fuente_ingresos || null,
+          mesada_pensional:                df.mesada_pensional !== '' ? Number(df.mesada_pensional) : null,
+          salario:                         salarioLegacy,
+          otros_ingresos:                  df.ingresos_independiente !== '' ? Number(df.ingresos_independiente) : null,
+          cuotas_credito:                  df.obligaciones_financieras !== '' ? Number(df.obligaciones_financieras) : null,
           // JSONB
-          actividad_independiente:         esIndependiente.value ? actividadIndependiente.value : null,
+          actividad_independiente:         esIndependiente.value
+            ? {
+              ciiu_1: actividadIndependiente.value.ciiu_1,
+              descripcion_actividad_1: actividadIndependiente.value.descripcion_actividad_1,
+              fecha_inicio_actividad_1: actividadIndependiente.value.fecha_inicio_actividad_1,
+              ciiu_2: actividadIndependiente.value.ciiu_2,
+              descripcion_actividad_2: actividadIndependiente.value.descripcion_actividad_2,
+              fecha_inicio_actividad_2: actividadIndependiente.value.fecha_inicio_actividad_2,
+              direccion_negocio: actividadIndependiente.value.direccion_negocio,
+              telefono_negocio: actividadIndependiente.value.telefono_negocio,
+              direccion_negocio_modelo: actividadIndependiente.value.direccion_negocio_modelo,
+            }
+            : null,
           activos_pasivos:                 activosPasivos.value,
-          info_conyuge:                    necesitaConyuge.value ? datosConyuge.value : null,
+        info_conyuge:                    necesitaConyuge.value ? {
+          vinculo: vinculoConyuge.value,
+          tipo_identificacion: datosConyuge.value.tipo_identificacion,
+          numero_identificacion: datosConyuge.value.numero_identificacion,
+          nombres: datosConyuge.value.nombres,
+          apellidos: datosConyuge.value.apellidos,
+          fecha_expedicion: datosConyuge.value.fecha_expedicion,
+          lugar_expedicion: datosConyuge.value.lugar_expedicion,
+          lugar_expedicion_ubicacion: datosConyuge.value.lugar_expedicion_ubicacion,
+          nacionalidad: datosConyuge.value.nacionalidad,
+          telefono: datosConyuge.value.telefono,
+        } : null,
           referencias:                     referencias.value,
         })
         const nuevo = await crearAsociadoAfiliacion(datosAsociado)
@@ -491,6 +718,11 @@ export function useAfiliacion() {
       const solicitud = await crearSolicitudAfiliacion({
         asociado_id: asociadoId,
         oficina:     oficina.value,
+        fecha_solicitud: fechaSolicitud.value || null,
+        tipo_solicitud:  tipoSolicitud.value || null,
+        canales_comunicacion: (Array.isArray(dp.canales_comunicacion) && dp.canales_comunicacion.length)
+          ? dp.canales_comunicacion
+          : null,
         // Snapshot personal
         tipo_identificacion:             dp.tipo_identificacion,
         fecha_expedicion:                dp.fecha_expedicion || null,
@@ -509,45 +741,105 @@ export function useAfiliacion() {
         tipo_vivienda:                   dp.tipo_vivienda || null,
         genero:                          dp.genero || null,
         nivel_academico:                 dp.nivel_academico || null,
-        administra_recursos_publicos:    dp.administra_recursos_publicos,
-        persona_expuesta_publicamente:   dp.persona_expuesta_publicamente,
+        administra_recursos_publicos:    dp.administra_recursos_publicos === true,
+        persona_expuesta_publicamente:   dp.persona_expuesta_publicamente === true,
         // Snapshot laboral
-        ocupacion:                       dl.ocupacion || null,
-        direccion_empresa:               dl.direccion_empresa || null,
-        ciudad_empresa:                  dl.ciudad_empresa || null,
-        telefono_empresa:                dl.telefono_empresa || null,
-        email_corporativo:               dl.email_corporativo || null,
+        tipo_trabajador:                 dl.tipo_trabajador || null,
+        empresa:                         dl.tipo_trabajador === 'empleado' ? (dl.nombre_empresa || null) : null,
+        cargo:                           dl.tipo_trabajador === 'empleado' ? (dl.cargo_oficio || null) : null,
+        tipo_contrato:                   dl.tipo_trabajador === 'empleado'
+          ? (dl.tipo_contrato === 'otro' ? (dl.tipo_contrato_otro || null) : (dl.tipo_contrato || null))
+          : null,
+        fecha_ingreso:                   dl.tipo_trabajador === 'empleado' ? (dl.fecha_ingreso || null) : null,
+        entidad_pagadora:                dl.tipo_trabajador === 'pensionado' ? (dl.entidad_pagadora || null) : null,
+        institucion_educativa:           dl.tipo_trabajador === 'estudiante' ? (dl.institucion_educativa || null) : null,
+        nivel_educativo:                 dl.tipo_trabajador === 'estudiante' ? (dl.nivel_educativo || null) : null,
         // Snapshot financiero
-        salario_basico:                  dl.salario !== '' ? Number(dl.salario) : null,
+        salario_ingresos_fijos:          df.salario_ingresos_fijos !== '' ? Number(df.salario_ingresos_fijos) : null,
+        ingresos_independiente:          df.ingresos_independiente !== '' ? Number(df.ingresos_independiente) : null,
         gastos_familiares:               df.gastos_familiares !== '' ? Number(df.gastos_familiares) : null,
-        otros_ingresos:                  df.otros_ingresos !== '' ? Number(df.otros_ingresos) : null,
-        cuotas_credito:                  df.cuotas_credito !== '' ? Number(df.cuotas_credito) : null,
-        total_ingresos:                  df.total_ingresos !== '' ? Number(df.total_ingresos) : null,
-        total_egresos:                   df.total_egresos !== '' ? Number(df.total_egresos) : null,
+        otros_gastos:                    df.otros_gastos !== '' ? Number(df.otros_gastos) : null,
+        obligaciones_financieras:        df.obligaciones_financieras !== '' ? Number(df.obligaciones_financieras) : null,
+        fuente_ingresos:                 df.fuente_ingresos || null,
+        mesada_pensional:                df.mesada_pensional !== '' ? Number(df.mesada_pensional) : null,
         // JSONB
-        actividad_independiente:         esIndependiente.value ? actividadIndependiente.value : null,
+        actividad_independiente:         esIndependiente.value
+          ? {
+            ciiu_1: actividadIndependiente.value.ciiu_1,
+            descripcion_actividad_1: actividadIndependiente.value.descripcion_actividad_1,
+            fecha_inicio_actividad_1: actividadIndependiente.value.fecha_inicio_actividad_1,
+            ciiu_2: actividadIndependiente.value.ciiu_2,
+            descripcion_actividad_2: actividadIndependiente.value.descripcion_actividad_2,
+            fecha_inicio_actividad_2: actividadIndependiente.value.fecha_inicio_actividad_2,
+            direccion_negocio: actividadIndependiente.value.direccion_negocio,
+            telefono_negocio: actividadIndependiente.value.telefono_negocio,
+            direccion_negocio_modelo: actividadIndependiente.value.direccion_negocio_modelo,
+          }
+          : null,
         activos_pasivos:                 activosPasivos.value,
-        info_conyuge:                    necesitaConyuge.value ? datosConyuge.value : null,
+        info_conyuge:                    necesitaConyuge.value ? {
+          vinculo: vinculoConyuge.value,
+          tipo_identificacion: datosConyuge.value.tipo_identificacion,
+          numero_identificacion: datosConyuge.value.numero_identificacion,
+          nombres: datosConyuge.value.nombres,
+          apellidos: datosConyuge.value.apellidos,
+          fecha_expedicion: datosConyuge.value.fecha_expedicion,
+          lugar_expedicion: datosConyuge.value.lugar_expedicion,
+          lugar_expedicion_ubicacion: datosConyuge.value.lugar_expedicion_ubicacion,
+          nacionalidad: datosConyuge.value.nacionalidad,
+          telefono: datosConyuge.value.telefono,
+        } : null,
         referencias:                     referencias.value,
-        // Declaraciones asegurabilidad
-        decl_invalidez_incapacidad:       dc.invalidez_o_incapacidad,
-        decl_cancer:                      dc.cancer,
-        decl_afecciones_cardiovasculares: dc.afecciones_cardiovasculares,
-        decl_epoc:                        dc.epoc,
-        decl_sida:                        dc.sida,
-        decl_insuficiencia_renal:         dc.insuficiencia_renal,
         // Declaraciones SARLAFT
-        maneja_dinero_publico:            dc.maneja_dinero_publico,
-        es_contratista_estado:            dc.es_contratista_estado,
-        es_lider_politico:                dc.es_lider_politico,
-        autoriza_tratamiento_datos:       dc.autoriza_tratamiento_datos,
+        maneja_dinero_publico:            dc.maneja_dinero_publico === true,
+        es_contratista_estado:            dc.es_contratista_estado === true,
+        es_lider_politico:                dc.es_lider_politico === true,
+        autoriza_tratamiento_datos:       dc.autoriza_tratamiento_datos === true,
       })
+
+      async function duplicarUrlDocumentoPublico(urlPublica, solicitudId, tipo) {
+        const resp = await fetch(urlPublica)
+        if (!resp.ok) throw new Error('No se pudo leer el documento cargado.')
+        const blob = await resp.blob()
+        const archivo = new File([blob], `${tipo}.pdf`, { type: blob.type || 'application/pdf' })
+        return await subirDocumentoSolicitud(solicitudId, tipo, archivo)
+      }
+
+      try {
+        const cedulaFinal = await duplicarUrlDocumentoPublico(
+          documentos.value.doc_cedula_solicitante_url,
+          solicitud.id,
+          'afiliacion_cedula'
+        )
+        const soporteFinal = await duplicarUrlDocumentoPublico(
+          documentos.value.doc_soporte_ingresos_laboral_url,
+          solicitud.id,
+          'afiliacion_soporte_ingresos'
+        )
+        documentos.value = {
+          ...documentos.value,
+          doc_cedula_solicitante_url: cedulaFinal,
+          doc_soporte_ingresos_laboral_url: soporteFinal,
+        }
+
+        try {
+          await supabase
+            .from('solicitudes_afiliacion')
+            .update({
+              documentos: {
+                cedula_url: cedulaFinal,
+                soporte_ingresos_laboral_url: soporteFinal,
+              },
+            })
+            .eq('id', solicitud.id)
+        } catch {}
+      } catch {}
 
       await registrarIntento(supabase, datosPersonales.value.cedula, 'afiliacion')
       await eliminarBorrador(emailInicial.value, 'afiliacion').catch(() => {})
 
       solicitudCreada.value = solicitud
-      paso.value = 7
+      paso.value = 6
     } catch (e) {
       if (e.message?.includes('duplicate') || e.message?.includes('unique')) {
         error.value = 'Ya existe una solicitud de afiliación para este documento.'
@@ -580,33 +872,80 @@ export function useAfiliacion() {
     erroresCampos.value = {}
     honeypot.value = ''
     oficina.value = 'PRINCIPAL - MEDELLÍN'
+    fechaSolicitud.value = hoyIso()
+    tipoSolicitud.value = 'afiliacion'
     registrarInicioFormulario('afiliacion')
 
     datosPersonales.value = {
-      tipo_identificacion: 'CC', cedula: '', nombres: '', apellidos: '', email: '',
-      fecha_expedicion: '', nacionalidad: 'Colombiana', fecha_nacimiento: '',
-      lugar_nacimiento: '', rh: '', titulo: '',
-      personas_a_cargo: '', personas_economicamente_activas: '',
-      telefono: '', celular: '', otro_email: '',
-      direccion: '', barrio: '', ciudad: '',
-      estrato: '', tiempo_residencia_meses: '',
-      estado_civil: '', tipo_vivienda: '', genero: '', nivel_academico: '',
-      administra_recursos_publicos: false, persona_expuesta_publicamente: false,
+      tipo_identificacion: 'CC',
+      cedula: '',
+      nombres: '',
+      apellidos: '',
+      email: '',
+      fecha_expedicion: '',
+      nacionalidad: 'Colombiana',
+      fecha_nacimiento: '',
+      lugar_nacimiento: '',
+      rh: '',
+      titulo: '',
+      personas_a_cargo: '',
+      personas_economicamente_activas: '',
+      telefono: '',
+      celular: '',
+      otro_email: '',
+      direccion: '',
+      barrio: '',
+      ciudad: '',
+      estrato: '',
+      tiempo_residencia_meses: '',
+      estado_civil: '',
+      tipo_vivienda: '',
+      genero: '',
+      nivel_academico: '',
+      canales_comunicacion: [],
+      administra_recursos_publicos: null,
+      persona_expuesta_publicamente: null,
+      lugar_nacimiento_ubicacion: { depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' },
+      direccion_residencia_modelo: {
+        depto_codigo: '', depto_nombre: '',
+        municipio_codigo: '', municipio_nombre: '',
+        via_principal: '', numero_via: '', letra_via: '', bis: false, cuadrante_via: '',
+        numero_cruce: '', letra_cruce: '', numero_placa: '', cuadrante_cruce: '',
+        complemento: '', barrio: '',
+      },
     }
     datosLaborales.value = {
-      ocupacion: '', empresa: '', cargo: '', tipo_contrato: '',
-      fecha_ingreso_empresa: '', direccion_empresa: '',
-      ciudad_empresa: '', telefono_empresa: '', email_corporativo: '', salario: '',
+      tipo_trabajador: '',
+      nombre_empresa: '',
+      cargo_oficio: '',
+      tipo_contrato: '',
+      tipo_contrato_otro: '',
+      fecha_ingreso: '',
+      entidad_pagadora: '',
+      institucion_educativa: '',
+      nivel_educativo: '',
     }
     actividadIndependiente.value = {
       ciiu_1: '', descripcion_actividad_1: '', fecha_inicio_actividad_1: '',
-      nombre_establecimiento: '', ciiu_2: '', descripcion_actividad_2: '',
-      fecha_inicio_actividad_2: '', fecha_constitucion: '', fecha_vigencia: '',
-      direccion_negocio: '', ciudad_negocio: '', telefono_negocio: '',
+      ciiu_2: '', descripcion_actividad_2: '',
+      fecha_inicio_actividad_2: '',
+      direccion_negocio: '', telefono_negocio: '',
+      direccion_negocio_modelo: {
+        depto_codigo: '', depto_nombre: '',
+        municipio_codigo: '', municipio_nombre: '',
+        via_principal: '', numero_via: '', letra_via: '', bis: false, cuadrante_via: '',
+        numero_cruce: '', letra_cruce: '', numero_placa: '', cuadrante_cruce: '',
+        complemento: '', barrio: '',
+      },
     }
     datosFinancieros.value = {
-      gastos_familiares: '', otros_ingresos: '', cuotas_credito: '',
-      total_ingresos: '', total_egresos: '',
+      salario_ingresos_fijos: '',
+      ingresos_independiente: '',
+      gastos_familiares: '',
+      otros_gastos: '',
+      obligaciones_financieras: '',
+      fuente_ingresos: '',
+      mesada_pensional: '',
     }
     activosPasivos.value = {
       tipo_propiedad_raiz: '', matricula_inmobiliaria: '',
@@ -618,26 +957,31 @@ export function useAfiliacion() {
       valor_comercial_pignorado: '', total_pasivos: '',
     }
     datosConyuge.value = {
-      tipo_identificacion: 'CC', numero_identificacion: '',
-      nombre: '', fecha_expedicion: '', nacionalidad: 'Colombiana',
-      fecha_nacimiento: '', lugar_nacimiento: '',
-      direccion: '', barrio: '', ciudad: '',
-      telefono: '', celular: '', email: '',
-      estado_civil: '', tipo_vivienda: '', genero: '', nivel_academico: '',
-      ocupacion: '', empresa: '', cargo: '', tipo_contrato: '',
-      telefono_empresa: '', salario: '',
+      tipo_identificacion: 'CC',
+      numero_identificacion: '',
+      nombres: '',
+      apellidos: '',
+      fecha_expedicion: '',
+      lugar_expedicion: '',
+      lugar_expedicion_ubicacion: null,
+      nacionalidad: '',
+      telefono: '',
     }
     referencias.value = {
-      personal:  { nombre: '', contacto: '', telefono: '' },
-      familiar:  { nombre: '', contacto: '', parentesco: '' },
-      comercial: { nombre_establecimiento: '', nombre_contacto: '', producto: '' },
+      personal:   { nombres: '', contacto: '' },
+      familiar:   { nombres: '', contacto: '', parentesco: '' },
+      financiera: { nombre_establecimiento: '', contacto: '', tipo_producto: '', numero_cuenta: '' },
+      comercial:  { nombre_establecimiento: '', contacto: '' },
     }
     declaraciones.value = {
-      invalidez_o_incapacidad: false, cancer: false,
-      afecciones_cardiovasculares: false, epoc: false,
-      sida: false, insuficiencia_renal: false,
-      maneja_dinero_publico: false, es_contratista_estado: false,
-      es_lider_politico: false, autoriza_tratamiento_datos: false,
+      maneja_dinero_publico: null,
+      es_contratista_estado: null,
+      es_lider_politico: null,
+      autoriza_tratamiento_datos: null,
+    }
+    documentos.value = {
+      doc_cedula_solicitante_url: '',
+      doc_soporte_ingresos_laboral_url: '',
     }
   }
 
@@ -647,10 +991,11 @@ export function useAfiliacion() {
     emailInicial, errorEmail, borradorDisponible,
     tipoDocumentoInicial, numeroDocumentoInicial, errorNumeroDoc,
     aceptaAutorizacion, loadingVerificacion, mostrarModalYaAsociado,
-    oficina,
+    oficina, fechaSolicitud, tipoSolicitud,
     datosPersonales, datosLaborales,
     actividadIndependiente, datosFinancieros, activosPasivos,
     datosConyuge, referencias, declaraciones,
+    documentos,
     pasoValido, necesitaConyuge, esIndependiente,
     validarCampoActual, schemaPersonales,
     verificarYContinuar, restaurarBorrador, descartarBorrador,

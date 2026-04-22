@@ -8,6 +8,7 @@ const props = defineProps({
   titulo:           { type: String,  default: '' },
   salarioBloqueado: { type: Boolean, default: false },
   tipoTrabajador:   { type: String,  default: '' },
+  mostrarDependientes: { type: Boolean, default: true },
 })
 const emit = defineEmits(['update:modelValue'])
 
@@ -74,7 +75,7 @@ function claveFuente() {
       </div>
       <div :style="{
         display:             'grid',
-        gridTemplateColumns: '1fr 1fr 1fr',
+        gridTemplateColumns: mostrarDependientes ? '1fr 1fr 1fr' : '1fr 1fr',
         gap:                 'var(--sp-lg)',
       }">
         <CampoMoneda
@@ -91,6 +92,7 @@ function claveFuente() {
           @update:model-value="actualizar(clave('obligaciones_financieras'), $event)"
         />
         <CampoTexto
+          v-if="mostrarDependientes"
           :model-value="modelValue[clave('numero_dependientes')]"
           label="Personas a cargo"
           type="number"
@@ -127,7 +129,7 @@ function claveFuente() {
       </div>
       <div :style="{
         display:             'grid',
-        gridTemplateColumns: '1fr 1fr 1fr',
+        gridTemplateColumns: mostrarDependientes ? '1fr 1fr 1fr' : '1fr 1fr',
         gap:                 'var(--sp-lg)',
       }">
         <CampoMoneda
@@ -144,6 +146,7 @@ function claveFuente() {
           @update:model-value="actualizar(clave('obligaciones_financieras'), $event)"
         />
         <CampoTexto
+          v-if="mostrarDependientes"
           :model-value="modelValue[clave('numero_dependientes')]"
           label="Personas a cargo"
           type="number"
@@ -159,7 +162,7 @@ function claveFuente() {
     <template v-else-if="tipoTrabajador === 'pensionado'">
       <div :style="{
         display:             'grid',
-        gridTemplateColumns: '1fr 1fr',
+        gridTemplateColumns: mostrarDependientes ? '1fr 1fr' : '1fr',
         gap:                 'var(--sp-lg)',
       }">
         <CampoMoneda
@@ -170,6 +173,7 @@ function claveFuente() {
           @update:model-value="actualizar(clave('mesada_pensional'), $event)"
         />
         <CampoTexto
+          v-if="mostrarDependientes"
           :model-value="modelValue[clave('numero_dependientes')]"
           label="Personas a cargo"
           type="number"
@@ -185,7 +189,7 @@ function claveFuente() {
     <template v-else-if="tipoTrabajador === 'estudiante'">
       <div :style="{
         display:             'grid',
-        gridTemplateColumns: '1fr 1fr 1fr',
+        gridTemplateColumns: mostrarDependientes ? '1fr 1fr 1fr' : '1fr 1fr',
         gap:                 'var(--sp-lg)',
       }">
         <CampoMoneda
@@ -204,6 +208,7 @@ function claveFuente() {
           @update:model-value="actualizar(claveFuente(), $event ? $event.toUpperCase() : $event)"
         />
         <CampoTexto
+          v-if="mostrarDependientes"
           :model-value="modelValue[clave('numero_dependientes')]"
           label="Personas a cargo"
           type="number"
@@ -219,7 +224,7 @@ function claveFuente() {
     <template v-else-if="tipoTrabajador === 'cuidado_hogar'">
       <div :style="{
         display:             'grid',
-        gridTemplateColumns: '1fr 1fr 1fr',
+        gridTemplateColumns: mostrarDependientes ? '1fr 1fr 1fr' : '1fr 1fr',
         gap:                 'var(--sp-lg)',
       }">
         <CampoMoneda
@@ -238,6 +243,7 @@ function claveFuente() {
           @update:model-value="actualizar(claveFuente(), $event ? $event.toUpperCase() : $event)"
         />
         <CampoTexto
+          v-if="mostrarDependientes"
           :model-value="modelValue[clave('numero_dependientes')]"
           label="Personas a cargo"
           type="number"

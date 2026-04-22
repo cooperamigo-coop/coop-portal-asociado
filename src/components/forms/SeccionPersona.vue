@@ -181,7 +181,7 @@ const nivelEducativoOpciones = [
 
       <SelectorFecha
         :model-value="modelValue[clave('fecha_nacimiento')]"
-        label="Fecha de nacimiento"
+        label="Fecha nacimiento"
         required
         :error="errores[clave('fecha_nacimiento')]"
         :max-year="new Date().getFullYear() - 18"
