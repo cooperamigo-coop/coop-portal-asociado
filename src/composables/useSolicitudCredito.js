@@ -522,13 +522,15 @@ export function useSolicitudCredito() {
 
     loadingVerificacion.value = true
     try {
-      const tiposQueVerifican = ['cedula_ciudadania', 'cedula_extranjeria']
+      const TIPO_DOC_A_CODIGO = { cedula_ciudadania: 'CC', cedula_extranjeria: 'CE' }
+      const tiposQueVerifican = Object.keys(TIPO_DOC_A_CODIGO)
       const debeVerificar = tiposQueVerifican.includes(verificacion.value.tipo_documento)
 
       if (debeVerificar) {
+        const tipoParaRpc = TIPO_DOC_A_CODIGO[verificacion.value.tipo_documento]
         const resultado = await verificarAsociado(
           verificacion.value.numero_documento,
-          verificacion.value.tipo_documento
+          tipoParaRpc
         )
         if (!resultado.existe) {
           mostrarModalNoAsociado.value = true
