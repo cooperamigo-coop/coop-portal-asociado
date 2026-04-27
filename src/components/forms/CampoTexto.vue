@@ -2,17 +2,21 @@
 import { ref, computed, getCurrentInstance } from 'vue'
 
 const props = defineProps({
-  modelValue:   { type: [String, Number], default: '' },
-  label:        { type: String, required: true },
-  placeholder:  { type: String, default: '' },
-  type:         { type: String, default: 'text' },
-  required:     { type: Boolean, default: false },
-  disabled:     { type: Boolean, default: false },
-  error:        { type: String, default: null },
-  maxlength:    { type: Number, default: null },
-  helper:       { type: String, default: null },
-  soloNumeros:  { type: Boolean, default: false },
-  uppercase:    { type: Boolean, default: false },
+  modelValue:        { type: [String, Number], default: '' },
+  label:             { type: String, required: true },
+  placeholder:       { type: String, default: '' },
+  type:              { type: String, default: 'text' },
+  required:          { type: Boolean, default: false },
+  disabled:          { type: Boolean, default: false },
+  error:             { type: String, default: null },
+  maxlength:         { type: Number, default: null },
+  helper:            { type: String, default: null },
+  soloNumeros:       { type: Boolean, default: false },
+  uppercase:         { type: Boolean, default: false },
+  // solo letras, espacios y guion — para nombres y apellidos
+  soloLetras:        { type: Boolean, default: false },
+  // letras, números, espacios, guion, punto, coma — para campos laborales
+  soloTextoLaboral:  { type: Boolean, default: false },
 })
 const emit = defineEmits(['update:modelValue', 'blur'])
 
@@ -27,6 +31,14 @@ function onInput(e) {
   let val = e.target.value
   if (props.soloNumeros) {
     val = val.replace(/\D/g, '')
+    e.target.value = val
+  }
+  if (props.soloLetras) {
+    val = val.replace(/[^a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s\-]/g, '')
+    e.target.value = val
+  }
+  if (props.soloTextoLaboral) {
+    val = val.replace(/[*\[\]{}|^~#@$%!?;=+<>\\/"'`]/g, '')
     e.target.value = val
   }
   if (props.uppercase) {

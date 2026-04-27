@@ -144,6 +144,7 @@ const nivelEducativoOpciones = [
         label="Nombres"
         placeholder="NOMBRES COMPLETOS"
         required
+        solo-letras
         :error="errores[clave('nombres')]"
         @update:model-value="actualizar(clave('nombres'), $event ? $event.toUpperCase() : $event)"
         @blur="actualizarUpper(clave('nombres'), modelValue[clave('nombres')])"
@@ -155,6 +156,7 @@ const nivelEducativoOpciones = [
         label="Apellidos"
         placeholder="APELLIDOS COMPLETOS"
         required
+        solo-letras
         :error="errores[clave('apellidos')]"
         @update:model-value="actualizar(clave('apellidos'), $event ? $event.toUpperCase() : $event)"
         @blur="actualizarUpper(clave('apellidos'), modelValue[clave('apellidos')])"

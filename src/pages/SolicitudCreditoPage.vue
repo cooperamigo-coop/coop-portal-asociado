@@ -1913,8 +1913,8 @@ function onOtpValidado() {
                 <!-- Empleado -->
                 <template v-if="laboral.tipo_trabajador === 'empleado'">
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
-                    <CampoTexto :model-value="laboral.nombre_empresa" label="Nombre de la empresa" required @update:model-value="actualizarLaboral('nombre_empresa', $event ? $event.toUpperCase() : $event)" />
-                    <CampoTexto :model-value="laboral.cargo_oficio" label="Cargo u oficio" required @update:model-value="actualizarLaboral('cargo_oficio', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboral.nombre_empresa" label="Nombre de la empresa" required solo-texto-laboral @update:model-value="actualizarLaboral('nombre_empresa', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboral.cargo_oficio" label="Cargo u oficio" required solo-texto-laboral @update:model-value="actualizarLaboral('cargo_oficio', $event ? $event.toUpperCase() : $event)" />
                   </div>
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <CampoSelectBuscable :model-value="laboral.tipo_contrato" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboral('tipo_contrato', $event)" />
@@ -1925,11 +1925,11 @@ function onOtpValidado() {
                 <!-- Independiente -->
                 <template v-if="laboral.tipo_trabajador === 'independiente'">
                   <div :style="{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--sp-lg)' }">
-                    <CampoTexto :model-value="laboral.actividad_comercial" label="Actividad comercial" required :maxlength="50" @update:model-value="actualizarLaboral('actividad_comercial', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboral.actividad_comercial" label="Actividad comercial" required solo-texto-laboral :maxlength="50" @update:model-value="actualizarLaboral('actividad_comercial', $event ? $event.toUpperCase() : $event)" />
                   </div>
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <SelectorFecha :model-value="laboral.fecha_inicio_actividad" label="Fecha de inicio" required @update:model-value="actualizarLaboral('fecha_inicio_actividad', $event)" />
-                    <CampoTexto :model-value="laboral.ocupacion" label="Ocupación" required :maxlength="50" @update:model-value="actualizarLaboral('ocupacion', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboral.ocupacion" label="Ocupación" required solo-texto-laboral :maxlength="50" @update:model-value="actualizarLaboral('ocupacion', $event ? $event.toUpperCase() : $event)" />
                   </div>
                 </template>
 
@@ -2234,8 +2234,8 @@ function onOtpValidado() {
                 <!-- Empleado -->
                 <template v-if="laboralCod1.tipo_trabajador_codeudor === 'empleado'">
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
-                    <CampoTexto :model-value="laboralCod1.nombre_empresa_codeudor" label="Nombre de la empresa" required @update:model-value="actualizarLaboralCod1('nombre_empresa_codeudor', $event ? $event.toUpperCase() : $event)" />
-                    <CampoTexto :model-value="laboralCod1.cargo_oficio_codeudor" label="Cargo u oficio" required @update:model-value="actualizarLaboralCod1('cargo_oficio_codeudor', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboralCod1.nombre_empresa_codeudor" label="Nombre de la empresa" required solo-texto-laboral @update:model-value="actualizarLaboralCod1('nombre_empresa_codeudor', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboralCod1.cargo_oficio_codeudor" label="Cargo u oficio" required solo-texto-laboral @update:model-value="actualizarLaboralCod1('cargo_oficio_codeudor', $event ? $event.toUpperCase() : $event)" />
                   </div>
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <CampoSelectBuscable :model-value="laboralCod1.tipo_contrato_codeudor" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboralCod1('tipo_contrato_codeudor', $event)" />
@@ -2245,11 +2245,11 @@ function onOtpValidado() {
                 <!-- Independiente -->
                 <template v-if="laboralCod1.tipo_trabajador_codeudor === 'independiente'">
                   <div :style="{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--sp-lg)' }">
-                    <CampoTexto :model-value="laboralCod1.actividad_comercial_codeudor" label="Actividad comercial" required :maxlength="50" @update:model-value="actualizarLaboralCod1('actividad_comercial_codeudor', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboralCod1.actividad_comercial_codeudor" label="Actividad comercial" required solo-texto-laboral :maxlength="50" @update:model-value="actualizarLaboralCod1('actividad_comercial_codeudor', $event ? $event.toUpperCase() : $event)" />
                   </div>
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <SelectorFecha :model-value="laboralCod1.fecha_inicio_actividad_codeudor" label="Fecha de inicio" required @update:model-value="actualizarLaboralCod1('fecha_inicio_actividad_codeudor', $event)" />
-                    <CampoTexto :model-value="laboralCod1.ocupacion_codeudor" label="Ocupación" required :maxlength="50" @update:model-value="actualizarLaboralCod1('ocupacion_codeudor', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboralCod1.ocupacion_codeudor" label="Ocupación" required solo-texto-laboral :maxlength="50" @update:model-value="actualizarLaboralCod1('ocupacion_codeudor', $event ? $event.toUpperCase() : $event)" />
                   </div>
                 </template>
                 <!-- Pensionado -->
@@ -2324,8 +2324,8 @@ function onOtpValidado() {
                 <!-- Empleado -->
                 <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'empleado'">
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
-                    <CampoTexto :model-value="laboralCod2.nombre_empresa_codeudor2" label="Nombre de la empresa" required @update:model-value="actualizarLaboralCod2('nombre_empresa_codeudor2', $event ? $event.toUpperCase() : $event)" />
-                    <CampoTexto :model-value="laboralCod2.cargo_oficio_codeudor2" label="Cargo u oficio" required @update:model-value="actualizarLaboralCod2('cargo_oficio_codeudor2', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboralCod2.nombre_empresa_codeudor2" label="Nombre de la empresa" required solo-texto-laboral @update:model-value="actualizarLaboralCod2('nombre_empresa_codeudor2', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboralCod2.cargo_oficio_codeudor2" label="Cargo u oficio" required solo-texto-laboral @update:model-value="actualizarLaboralCod2('cargo_oficio_codeudor2', $event ? $event.toUpperCase() : $event)" />
                   </div>
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <CampoSelectBuscable :model-value="laboralCod2.tipo_contrato_codeudor2" label="Tipo de contrato" required :opciones="opsTipoContrato" @update:model-value="actualizarLaboralCod2('tipo_contrato_codeudor2', $event)" />
@@ -2335,11 +2335,11 @@ function onOtpValidado() {
                 <!-- Independiente -->
                 <template v-if="laboralCod2.tipo_trabajador_codeudor2 === 'independiente'">
                   <div :style="{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--sp-lg)' }">
-                    <CampoTexto :model-value="laboralCod2.actividad_comercial_codeudor2" label="Actividad comercial" required :maxlength="50" @update:model-value="actualizarLaboralCod2('actividad_comercial_codeudor2', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboralCod2.actividad_comercial_codeudor2" label="Actividad comercial" required solo-texto-laboral :maxlength="50" @update:model-value="actualizarLaboralCod2('actividad_comercial_codeudor2', $event ? $event.toUpperCase() : $event)" />
                   </div>
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <SelectorFecha :model-value="laboralCod2.fecha_inicio_actividad_codeudor2" label="Fecha de inicio" required @update:model-value="actualizarLaboralCod2('fecha_inicio_actividad_codeudor2', $event)" />
-                    <CampoTexto :model-value="laboralCod2.ocupacion_codeudor2" label="Ocupación" required :maxlength="50" @update:model-value="actualizarLaboralCod2('ocupacion_codeudor2', $event ? $event.toUpperCase() : $event)" />
+                    <CampoTexto :model-value="laboralCod2.ocupacion_codeudor2" label="Ocupación" required solo-texto-laboral :maxlength="50" @update:model-value="actualizarLaboralCod2('ocupacion_codeudor2', $event ? $event.toUpperCase() : $event)" />
                   </div>
                 </template>
                 <!-- Pensionado -->

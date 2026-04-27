@@ -3,10 +3,11 @@ import { z } from 'zod'
 // ─── Sanitizador base ─────────────────────────────────────────────────────────
 const sanitizar = (val) =>
   val
-    .replace(/<[^>]*>/g, '')           // quita tags HTML
-    .replace(/[<>"'`\\]/g, '')         // quita chars peligrosos
-    .replace(/javascript:/gi, '')      // quita protocolo JS
-    .replace(/on\w+\s*=/gi, '')        // quita event handlers
+    .replace(/<[^>]*>/g, '')
+    .replace(/[<>"'`\\*\/\[\]{}|^~]/g, '')
+    .replace(/--+/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+\s*=/gi, '')
     .trim()
 
 // ─── Helpers de campo ────────────────────────────────────────────────────────
@@ -31,8 +32,8 @@ export const schemaPersonales = z.object({
     .min(2, 'Mínimo 2 caracteres')
     .max(100, 'Máximo 100 caracteres')
     .regex(
-      /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$/,
-      'Solo se permiten letras y espacios'
+      /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s\-]+$/,
+      'Solo se permiten letras, espacios y guion'
     )
     .transform(sanitizar),
 
@@ -41,8 +42,8 @@ export const schemaPersonales = z.object({
     .min(2, 'Mínimo 2 caracteres')
     .max(100, 'Máximo 100 caracteres')
     .regex(
-      /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$/,
-      'Solo se permiten letras y espacios'
+      /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s\-]+$/,
+      'Solo se permiten letras, espacios y guion'
     )
     .transform(sanitizar),
 
@@ -83,9 +84,25 @@ export const schemaPersonales = z.object({
 
 // ─── Schema: Datos laborales ─────────────────────────────────────────────────
 export const schemaLaborales = z.object({
-  empresa: textoSeguro(200),
+  empresa: z
+    .string()
+    .min(2, 'Mínimo 2 caracteres')
+    .max(200, 'Máximo 200 caracteres')
+    .regex(
+      /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ0-9\s\-.,&()]+$/,
+      'Nombre de empresa inválido'
+    )
+    .transform(sanitizar),
 
-  cargo: textoSeguroOpcional(100),
+  cargo: z
+    .string()
+    .max(100, 'Máximo 100 caracteres')
+    .regex(
+      /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ0-9\s\-.,&()]*$/,
+      'Cargo inválido'
+    )
+    .transform(sanitizar)
+    .optional(),
 
   tipo_contrato: z
     .union([

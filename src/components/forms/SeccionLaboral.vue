@@ -47,6 +47,7 @@ const opsTipoContrato = [
         label="Cargo u oficio"
         placeholder="Ej: Contador, Docente"
         required
+        solo-texto-laboral
         :error="errores[clave('cargo_oficio')]"
         @update:model-value="actualizar(clave('cargo_oficio'), $event)"
       />
@@ -55,6 +56,7 @@ const opsTipoContrato = [
         label="Nombre de la empresa"
         placeholder="Empresa donde trabaja"
         required
+        solo-texto-laboral
         :error="errores[clave('nombre_empresa')]"
         @update:model-value="actualizar(clave('nombre_empresa'), $event)"
       />
