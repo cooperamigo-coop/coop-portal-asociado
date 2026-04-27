@@ -51,8 +51,8 @@ function limpiarEntradasAntiguas() {
       if (!key.startsWith(PREFIJO)) continue
       try {
         const payload = JSON.parse(localStorage.getItem(key) || '{}')
-        const hace7Dias = Date.now() - 7 * 24 * 60 * 60 * 1000
-        if (new Date(payload.guardadoEn).getTime() < hace7Dias) {
+        const hace1Dia = Date.now() - 1 * 24 * 60 * 60 * 1000
+        if (new Date(payload.guardadoEn).getTime() < hace1Dia) {
           localStorage.removeItem(key)
         }
       } catch {
@@ -121,7 +121,7 @@ export function recuperarBorradorLocal(correo) {
     const diasTranscurridos =
       (new Date() - new Date(payload.guardadoEn)) / (1000 * 60 * 60 * 24)
 
-    if (diasTranscurridos > 7) {
+    if (diasTranscurridos > 1) {
       localStorage.removeItem(claveStorage(correo))
       return null
     }

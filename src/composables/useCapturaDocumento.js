@@ -1,12 +1,16 @@
 import { ref, onUnmounted } from 'vue'
+import QRCode from 'qrcode'
 import { supabase } from '@/services/supabase'
 import { crearSesionCaptura, subirFotoCaptura, vincularSolicitudCaptura } from '@/services/captura.service'
 import { generarPdfCedula } from '@/utils/pdfGenerator'
 import { subirDocumentoSolicitud } from '@/services/documentos.service'
 
-function generarUrlQR(texto) {
-  const encoded = encodeURIComponent(texto)
-  return `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encoded}&bgcolor=ffffff&color=172B36&margin=10`
+async function generarDataUrlQR(texto) {
+  return await QRCode.toDataURL(texto, {
+    width: 280,
+    margin: 1,
+    color: { dark: '#172B36', light: '#ffffff' },
+  })
 }
 
 export function useCapturaDocumento() {
@@ -47,7 +51,7 @@ export function useCapturaDocumento() {
       token.value      = data.token
       urlCaptura.value = data.url_captura
 
-      qrDataUrl.value = generarUrlQR(data.url_captura)
+      qrDataUrl.value = await generarDataUrlQR(data.url_captura)
       estado.value    = 'esperando_qr'
       suscribirRealtime(data.sesion_id)
       iniciarPolling(data.sesion_id)
@@ -86,42 +90,47 @@ export function useCapturaDocumento() {
     }
   }
 
-  // ── Polling fallback cada 3 s ─────────────────────────────────────────────
+  // ── Polling fallback (arranca tras 5 s para dar tiempo a Realtime) ─────────
+  let _pollDelay = 3000
+  let _pollTimeout = null
+
   function iniciarPolling(sId) {
     detenerPolling()
-    pollingInterval = setInterval(async () => {
-      if (!['esperando_qr', 'capturando_movil'].includes(estado.value)) {
-        detenerPolling()
-        return
-      }
-      try {
-        const { data, error: err } = await supabase
-          .from('sesiones_captura_documento')
-          .select('estado, url_frente, url_reverso')
-          .eq('id', sId)
-          .single()
+    _pollDelay = 3000
 
-        if (err || !data) return
+    function programarSiguiente() {
+      _pollTimeout = setTimeout(async () => {
+        if (!['esperando_qr', 'capturando_movil'].includes(estado.value)) return
+        try {
+          const { data, error: err } = await supabase
+            .from('sesiones_captura_documento')
+            .select('estado, url_frente, url_reverso')
+            .eq('id', sId)
+            .single()
 
-        if (data.url_frente && !urlFrente.value) {
-          console.log('[Polling] Frente detectado')
-        }
-        if (data.url_reverso && !urlReverso.value) {
-          console.log('[Polling] Reverso detectado')
-        }
-        aplicarActualizacion(data)
+          if (!err && data) {
+            aplicarActualizacion(data)
+            if (data.estado === 'completado') {
+              desuscribir()
+              return
+            }
+          }
+        } catch { /* ignorar */ }
 
-        if (data.estado === 'completado') {
-          detenerPolling()
-          desuscribir()
-        }
-      } catch (e) {
-        console.warn('[Polling] Error:', e.message)
-      }
-    }, 3000)
+        _pollDelay = Math.min(_pollDelay * 1.5, 30000)
+        programarSiguiente()
+      }, _pollDelay)
+    }
+
+    // Esperar 5 s antes del primer poll para que Realtime se conecte primero
+    _pollTimeout = setTimeout(programarSiguiente, 5000)
   }
 
   function detenerPolling() {
+    if (_pollTimeout) {
+      clearTimeout(_pollTimeout)
+      _pollTimeout = null
+    }
     if (pollingInterval) {
       clearInterval(pollingInterval)
       pollingInterval = null

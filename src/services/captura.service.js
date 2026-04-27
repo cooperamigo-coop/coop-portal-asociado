@@ -32,15 +32,15 @@ export async function crearSesionCaptura(solicitudId, campo = 'documento_identid
     paso:              'documento_identidad',
     campo,
   }
-  console.log('[captura.service] POST', url, body)
-
   const res = await fetch(url, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(body),
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify(body),
   })
   const data = await leerRespuesta(res)
-  console.log('[captura.service] sesión creada:', data)
   return data // { sesion_id, token, url_captura }
 }
 
@@ -59,7 +59,11 @@ export async function subirFotoCaptura(token, lado, archivo) {
   const fd = new FormData()
   fd.append('lado', lado)
   fd.append('foto', archivo)
-  const res = await fetch(`${EF_BASE}/subir/${token}`, { method: 'POST', body: fd })
+  const res = await fetch(`${EF_BASE}/subir/${token}`, {
+    method:  'POST',
+    headers: { 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
+    body:    fd,
+  })
   return leerRespuesta(res) // { url, estado }
 }
 
@@ -70,8 +74,11 @@ export async function vincularSolicitudCaptura(token, solicitudId) {
   if (!token || !solicitudId) return
   const res = await fetch(`${EF_BASE}/vincular/${token}`, {
     method:  'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ solicitud_id: solicitudId }),
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({ solicitud_id: solicitudId }),
   })
   if (!res.ok) await leerRespuesta(res) // solo para lanzar el error
 }

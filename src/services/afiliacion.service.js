@@ -19,17 +19,15 @@ export async function actualizarCamposAsociado(id, campos) {
 }
 
 export async function crearAsociadoAfiliacion(payload) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('asociados')
     .insert({ ...payload, activo: false })
+    .select('id, cedula, nombres, apellidos, email, nivel_academico, titulo, fecha_nacimiento, fecha_expedicion, direccion, ciudad_expedicion, tipo_identificacion, ciudad, barrio, empresa, cargo, tipo_contrato, fecha_ingreso_empresa, ocupacion, salario, gastos_familiares, otros_ingresos, cuotas_credito, total_ingresos, total_egresos, activos_pasivos')
+    .single()
 
-  // Si ya existe (reintento tras error parcial), devolver el existente
-  if (error?.code === '23505') {
-    return buscarAsociadoPorCedula(payload.cedula)
-  }
-
+  if (error?.code === '23505') return buscarAsociadoPorCedula(payload.cedula)
   if (error) throw error
-  return buscarAsociadoPorCedula(payload.cedula)
+  return data
 }
 
 export async function crearSolicitudAfiliacion(payload) {

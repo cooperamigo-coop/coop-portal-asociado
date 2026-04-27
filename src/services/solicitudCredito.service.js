@@ -69,8 +69,14 @@ export async function notificarTitularSolicitudRadicada({
     'Desembolso (si aplica) y notificación de resultado.',
   ]
 
+  function escaparHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  }
+
   const asunto = 'Solicitud de crédito radicada exitosamente'
-  const saludo = nombreTitular ? `Hola, ${nombreTitular}.` : 'Hola.'
+  const saludo = nombreTitular ? `Hola, ${escaparHtml(nombreTitular)}.` : 'Hola.'
   const textoCodeudores = requiereCodeudores
     ? `Se registró la firma de los codeudores (${numCodeudores || 0}).`
     : 'No se registraron codeudores para esta solicitud.'

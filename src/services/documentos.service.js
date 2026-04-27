@@ -9,27 +9,37 @@ const BUCKETS_CANDIDATOS = [
   'documentos-solicitud',
 ].filter(Boolean)
 
-/**
- * Sube un documento de soporte al bucket de Supabase Storage.
- * @param {string} solicitudId  - ID de la solicitud en BD
- * @param {string} tipo         - Identificador del documento (ej. 'soporte_laboral', 'liquidacion_matricula')
- * @param {File}   archivo      - Archivo seleccionado por el usuario
- * @returns {Promise<string>}   - URL pública del archivo subido
- */
+const MIME_PERMITIDOS = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+const EXT_PERMITIDAS  = new Set(['jpg', 'jpeg', 'png', 'webp', 'pdf'])
+
+let _bucketConfirmado = null
+
 export async function subirDocumentoSolicitud(solicitudId, tipo, archivo) {
-  const ext  = archivo.name.split('.').pop().toLowerCase()
+  const ext = archivo.name.split('.').pop().toLowerCase()
+  if (!EXT_PERMITIDAS.has(ext) || !MIME_PERMITIDOS.has(archivo.type)) {
+    throw new Error('Solo se permiten imágenes (JPG, PNG, WebP) y PDF.')
+  }
+
   const ruta = `${solicitudId}/${tipo}_${Date.now()}.${ext}`
 
-  let ultimoError = null
-  let bucketUsado = null
+  if (_bucketConfirmado) {
+    const { error } = await supabase.storage
+      .from(_bucketConfirmado)
+      .upload(ruta, archivo, { upsert: true })
+    if (error) throw error
+    const { data } = supabase.storage.from(_bucketConfirmado).getPublicUrl(ruta)
+    return data.publicUrl
+  }
 
+  let ultimoError = null
   for (const bucket of BUCKETS_CANDIDATOS) {
     const { error } = await supabase.storage
       .from(bucket)
       .upload(ruta, archivo, { upsert: true })
     if (!error) {
-      bucketUsado = bucket
-      break
+      _bucketConfirmado = bucket
+      const { data } = supabase.storage.from(bucket).getPublicUrl(ruta)
+      return data.publicUrl
     }
     const msg = String(error?.message || '')
     if (msg.includes('Bucket not found')) {
@@ -39,12 +49,7 @@ export async function subirDocumentoSolicitud(solicitudId, tipo, archivo) {
     throw error
   }
 
-  if (!bucketUsado) {
-    throw ultimoError || new Error('Bucket de Storage no encontrado.')
-  }
-
-  const { data } = supabase.storage.from(bucketUsado).getPublicUrl(ruta)
-  return data.publicUrl
+  throw ultimoError || new Error('Bucket de Storage no encontrado.')
 }
 
 export function obtenerMensajeErrorSubidaDocumento(error) {

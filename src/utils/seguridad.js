@@ -3,41 +3,30 @@ export function sanitizarTexto(valor) {
   if (!valor || typeof valor !== 'string') return valor
   return valor
     .replace(/<[^>]*>/g, '')
-    .replace(/[<>"'`\\]/g, '')
+    .replace(/[<>"'`\\*\/\[\]{}|^~]/g, '')
+    .replace(/--+/g, '')
     .replace(/javascript:/gi, '')
     .replace(/on\w+\s*=/gi, '')
     .trim()
 }
 
-// ─── Sanitizar objeto completo ────────────────────────────────────────────────
+// ─── Sanitizar objeto completo (recursivo) ───────────────────────────────────
 export function sanitizarObjeto(obj) {
+  if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return obj
   const resultado = {}
   for (const [clave, valor] of Object.entries(obj)) {
     if (typeof valor === 'string') {
-      const limpio = sanitizarTexto(valor)
       const k = clave.toLowerCase()
-      const esUrlDoc = k.startsWith('doc_') || k.endsWith('_url')
-      const esNumeroDocOCuenta = k.includes('numero_identificacion') || k.includes('numero_documento') || k.includes('numero_doc') || k.includes('numero_cuenta')
-      const esTelefono = k.includes('celular') || k.includes('telefono')
-      const pareceNumerico =
-        k.includes('valor_') ||
-        k.includes('salario') ||
-        k.includes('ingresos') ||
-        k.includes('gastos') ||
-        k.includes('obligaciones') ||
-        k.includes('mesada') ||
-        k.includes('dependientes') ||
-        k.includes('plazo') ||
-        k.includes('monto') ||
-        k.includes('cuota') ||
-        k.includes('total_') ||
-        k.includes('tasa')
-
-      if (limpio === '' && !esUrlDoc) {
-        resultado[clave] = null
+      const esUrl = k.startsWith('doc_') || k.endsWith('_url')
+      if (esUrl) {
+        // Las URLs de Storage no se sanitizan con la regex de caracteres especiales
+        resultado[clave] = valor.trim() === '' ? null : valor.trim()
       } else {
-        resultado[clave] = limpio
+        const limpio = sanitizarTexto(valor)
+        resultado[clave] = limpio === '' ? null : limpio
       }
+    } else if (typeof valor === 'object' && valor !== null && !Array.isArray(valor)) {
+      resultado[clave] = sanitizarObjeto(valor)
     } else {
       resultado[clave] = valor
     }
@@ -84,7 +73,10 @@ export async function verificarRateLimit(supabase, cedula, accion) {
         p_limite: 3,
         p_ventana_horas: 24,
       })
-    if (error) return false // si la RPC no existe aún, dejar pasar
+    if (error) {
+      console.error('[RateLimit] RPC error — dejar pasar:', error.message)
+      return false
+    }
     return data === true
   } catch {
     return false // en caso de error de red, no bloquear

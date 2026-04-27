@@ -797,42 +797,16 @@ export function useAfiliacion() {
         autoriza_tratamiento_datos:       dc.autoriza_tratamiento_datos === true,
       })
 
-      async function duplicarUrlDocumentoPublico(urlPublica, solicitudId, tipo) {
-        const resp = await fetch(urlPublica)
-        if (!resp.ok) throw new Error('No se pudo leer el documento cargado.')
-        const blob = await resp.blob()
-        const archivo = new File([blob], `${tipo}.pdf`, { type: blob.type || 'application/pdf' })
-        return await subirDocumentoSolicitud(solicitudId, tipo, archivo)
-      }
-
       try {
-        const cedulaFinal = await duplicarUrlDocumentoPublico(
-          documentos.value.doc_cedula_solicitante_url,
-          solicitud.id,
-          'afiliacion_cedula'
-        )
-        const soporteFinal = await duplicarUrlDocumentoPublico(
-          documentos.value.doc_soporte_ingresos_laboral_url,
-          solicitud.id,
-          'afiliacion_soporte_ingresos'
-        )
-        documentos.value = {
-          ...documentos.value,
-          doc_cedula_solicitante_url: cedulaFinal,
-          doc_soporte_ingresos_laboral_url: soporteFinal,
-        }
-
-        try {
-          await supabase
-            .from('solicitudes_afiliacion')
-            .update({
-              documentos: {
-                cedula_url: cedulaFinal,
-                soporte_ingresos_laboral_url: soporteFinal,
-              },
-            })
-            .eq('id', solicitud.id)
-        } catch {}
+        await supabase
+          .from('solicitudes_afiliacion')
+          .update({
+            documentos: {
+              cedula_url:                    documentos.value.doc_cedula_solicitante_url,
+              soporte_ingresos_laboral_url:  documentos.value.doc_soporte_ingresos_laboral_url,
+            },
+          })
+          .eq('id', solicitud.id)
       } catch {}
 
       await registrarIntento(supabase, datosPersonales.value.cedula, 'afiliacion')

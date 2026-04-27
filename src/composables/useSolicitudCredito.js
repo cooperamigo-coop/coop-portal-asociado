@@ -686,7 +686,7 @@ export function useSolicitudCredito() {
   }
 
   // ── Sincronización de campos con tabla asociados ──────────────
-  let _syncTimer = null
+  const _syncTimers = {}
 
   async function _sincronizarCampoAsociado(columnaAsociado, nuevoValor) {
     if (!asociadoVerificado.value?.id) return
@@ -704,8 +704,8 @@ export function useSolicitudCredito() {
   }
 
   function _syncDebounced(columnaAsociado, nuevoValor) {
-    clearTimeout(_syncTimer)
-    _syncTimer = setTimeout(() => _sincronizarCampoAsociado(columnaAsociado, nuevoValor), 800)
+    clearTimeout(_syncTimers[columnaAsociado])
+    _syncTimers[columnaAsociado] = setTimeout(() => _sincronizarCampoAsociado(columnaAsociado, nuevoValor), 800)
   }
 
   // persona
@@ -822,8 +822,8 @@ export function useSolicitudCredito() {
       ocupacion: l.ocupacion || null,
       fecha_inicio_actividad: l.fecha_inicio_actividad || null,
     }
-    clearTimeout(_syncTimer)
-    _syncTimer = setTimeout(() => _sincronizarCampoAsociado('actividad_independiente', actividad), 800)
+    clearTimeout(_syncTimers['actividad_independiente'])
+    _syncTimers['actividad_independiente'] = setTimeout(() => _sincronizarCampoAsociado('actividad_independiente', actividad), 800)
   }, { deep: true })
 
   // financiera — campos individuales
@@ -836,8 +836,8 @@ export function useSolicitudCredito() {
   watch(financiera, f => {
     const totalIngresos = (Number(f.salario_ingresos_fijos) || 0) + (Number(f.ingresos_independiente) || 0)
     const totalEgresos = (Number(f.gastos_familiares) || 0) + (Number(f.otros_gastos) || 0) + (Number(f.obligaciones_financieras) || 0)
-    clearTimeout(_syncTimer)
-    _syncTimer = setTimeout(() => {
+    clearTimeout(_syncTimers['totales'])
+    _syncTimers['totales'] = setTimeout(() => {
       if (totalIngresos) _sincronizarCampoAsociado('total_ingresos', totalIngresos)
       if (totalEgresos) _sincronizarCampoAsociado('total_egresos', totalEgresos)
     }, 800)
@@ -851,8 +851,8 @@ export function useSolicitudCredito() {
       tiene_vehiculo: p.tiene_vehiculo,
       valor_vehiculo: Number(p.valor_vehiculo) || 0,
     }
-    clearTimeout(_syncTimer)
-    _syncTimer = setTimeout(() => _sincronizarCampoAsociado('activos_pasivos', activos), 800)
+    clearTimeout(_syncTimers['activos_pasivos'])
+    _syncTimers['activos_pasivos'] = setTimeout(() => _sincronizarCampoAsociado('activos_pasivos', activos), 800)
   }, { deep: true })
 
   // ── Auto-guardado en localStorage mientras el usuario escribe ─
@@ -893,7 +893,7 @@ export function useSolicitudCredito() {
   }, { deep: true })
 
   onUnmounted(() => {
-    clearTimeout(_syncTimer)
+    Object.values(_syncTimers).forEach(clearTimeout)
     clearTimeout(_debounceTimer)
   })
 
