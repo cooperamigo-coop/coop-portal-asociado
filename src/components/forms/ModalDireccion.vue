@@ -235,8 +235,8 @@ function cerrar() { emit('update:visible', false) }
 
             <!-- Complemento y Barrio -->
             <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-md)' }">
-              <CampoTexto v-model="local.complemento" label="Complemento" placeholder="Ej: Apto 301" />
-              <CampoTexto v-model="local.barrio" label="Barrio" placeholder="Nombre del barrio" />
+              <CampoTexto v-model="local.complemento" label="Complemento" placeholder="Ej: APTO 301" :maxlength="20" uppercase />
+              <CampoTexto v-model="local.barrio" label="Barrio" placeholder="Nombre del barrio" :maxlength="20" uppercase />
             </div>
 
             <!-- Preview -->

@@ -3266,7 +3266,7 @@ function onOtpValidado() {
             <div :style="{ padding: 'var(--sp-xl)', background: 'white', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
 
               <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', lineHeight: '1.65', background: 'var(--color-bg-surface)', padding: 'var(--sp-md)', borderRadius: 'var(--r-md)', border: '1px solid var(--color-border-light)' }">
-                Al firmar, certifica que la información proporcionada es veraz y autoriza a <strong>Cooperamigo</strong> para realizar las validaciones correspondientes.
+                Al firmar, certifica que la información proporcionada es veraz y autoriza a <strong>Cooperamigó</strong> para realizar las validaciones correspondientes.
                 <template v-if="numCodudores > 0"> Una vez firmada, se notificará automáticamente a {{ numCodudores === 1 ? 'el codeudor' : 'los codeudores' }} para completar el proceso.</template>
               </div>
 
@@ -3308,11 +3308,15 @@ function onOtpValidado() {
                   <div :style="{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '180px' }">
                     <div :style="{ fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Archivo de firma</div>
                     <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: firmaArchivoNombre ? 'var(--color-text-1)' : 'var(--color-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? '100%' : '340px' }">
-                      {{ firmaArchivoNombre || 'PNG o JPG con fondo preferiblemente blanco' }}
+                      {{ firmaArchivoNombre || 'Cargue un archivo .png o .jpg con fondo preferiblemente blanco' }}
                     </div>
                   </div>
                   <PortalButton variant="secondary" @click="seleccionarFirmaArchivo()">Seleccionar archivo</PortalButton>
                   <input ref="firmaFileRef" type="file" accept="image/png,image/jpeg" :style="{ display: 'none' }" @change="cargarFirmaImagen" />
+                </div>
+                <div v-if="firmaImagen" :style="{ border: '1px solid var(--color-border)', borderRadius: 'var(--r-md)', padding: '10px', background: 'white', display: 'flex', flexDirection: 'column', gap: '6px' }">
+                  <div :style="{ fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Previsualización</div>
+                  <img :src="firmaImagen" alt="Previsualización de firma" :style="{ maxHeight: '140px', maxWidth: '100%', objectFit: 'contain', display: 'block', margin: '0 auto' }" />
                 </div>
               </div>
 
@@ -3404,16 +3408,15 @@ function onOtpValidado() {
                 fontWeight: 'var(--fw-extrabold)',
                 color: 'var(--color-text-1)',
                 marginBottom: 'var(--sp-sm)',
-              }">Aún no eres asociado</div>
+              }">¡Documento no encontrado!</div>
               <div :style="{
                 fontSize: 'var(--text-base)',
                 color: 'var(--color-text-2)',
-                fontWeight: 'var(--fw-medium)',
+                fontWeight: 'var(--fw-regular)',
                 lineHeight: '1.6',
               }">
                 El documento <strong :style="{ color: 'var(--color-text-1)' }">{{ verificacion.numero_documento || '—' }}</strong> no fue encontrado en nuestra base de datos.
-                <br><br>
-                Para iniciar trámites de crédito en el portal, debes estar afiliado como asociado activo.
+                Para acceder a los servicios de Cooperamigo, debes estar afiliado como asociado activo.
               </div>
             </div>
 

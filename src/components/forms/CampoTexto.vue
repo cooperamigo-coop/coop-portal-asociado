@@ -12,6 +12,7 @@ const props = defineProps({
   maxlength:    { type: Number, default: null },
   helper:       { type: String, default: null },
   soloNumeros:  { type: Boolean, default: false },
+  uppercase:    { type: Boolean, default: false },
 })
 const emit = defineEmits(['update:modelValue', 'blur'])
 
@@ -26,6 +27,10 @@ function onInput(e) {
   let val = e.target.value
   if (props.soloNumeros) {
     val = val.replace(/\D/g, '')
+    e.target.value = val
+  }
+  if (props.uppercase) {
+    val = val.toUpperCase()
     e.target.value = val
   }
   emit('update:modelValue', val)
@@ -46,9 +51,10 @@ function onBlur()  { focused.value = false; emit('blur') }
         :inputmode="soloNumeros ? 'numeric' : undefined"
         class="campo-input"
         :class="{
-          'campo-input--error':    error,
-          'campo-input--disabled': disabled,
-          'campo-input--focused':  focused && !error,
+          'campo-input--error':     error,
+          'campo-input--disabled':  disabled,
+          'campo-input--focused':   focused && !error,
+          'campo-input--uppercase': uppercase,
         }"
         @input="onInput"
         @focus="onFocus"
@@ -106,6 +112,7 @@ function onBlur()  { focused.value = false; emit('blur') }
   color: var(--color-text-3);
   cursor: not-allowed;
 }
+.campo-input--uppercase { text-transform: uppercase; }
 
 /* ── Label — arranca dentro del input como placeholder ── */
 .campo-label {
