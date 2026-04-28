@@ -809,7 +809,7 @@ export function useAfiliacion() {
         es_contratista_estado:            dc.es_contratista_estado === true,
         es_lider_politico:                dc.es_lider_politico === true,
         autoriza_tratamiento_datos:       dc.autoriza_tratamiento_datos === true,
-        tuvo_asesoria:                    dc.tuvo_asesoria === true,
+        tuvo_acompanamiento_asesor:       dc.tuvo_asesoria === true,
         codigo_asesor:                    dc.tuvo_asesoria === true ? dc.codigo_asesor : null,
       })
 

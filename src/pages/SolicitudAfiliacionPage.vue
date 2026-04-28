@@ -960,6 +960,7 @@ async function onVerificarYContinuarClick() {
                     label="Teléfono"
                     placeholder="Ej. 6044456789"
                     solo-numeros
+                    :maxlength="10"
                     required
                   />
                   <CampoTexto
@@ -967,6 +968,7 @@ async function onVerificarYContinuarClick() {
                     label="Celular"
                     placeholder="Ej. 3001234567"
                     solo-numeros
+                    :maxlength="10"
                     required
                   />
                 </div>
@@ -1434,8 +1436,8 @@ async function onVerificarYContinuarClick() {
                 <div v-if="activosPasivos.tiene_vehiculo" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 'var(--sp-md)' }">
                     <CampoTexto v-model="activosPasivos.marca_vehiculo" label="Marca" placeholder="Ej. Chevrolet" required uppercase />
-                    <CampoTexto v-model="activosPasivos.modelo_vehiculo" label="Modelo" placeholder="Ej. 2024" required uppercase />
-                    <CampoTexto v-model="activosPasivos.placa_vehiculo" label="Placa" placeholder="ABC 123" uppercase />
+                    <CampoTexto v-model="activosPasivos.modelo_vehiculo" label="Modelo" placeholder="Modelo/año" required uppercase />
+                    <CampoTexto v-model="activosPasivos.placa_vehiculo" label="Placa" placeholder="ABC 123" required uppercase />
                   </div>
                   
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '4fr 6fr', gap: 'var(--sp-md)', alignItems: 'end' }">
@@ -1556,14 +1558,14 @@ async function onVerificarYContinuarClick() {
                   label="Nombres completos"
                   placeholder="Nombres"
                   required
-                  @update:model-value="datosConyuge.nombres = normalizarTextoUpper($event)"
+                  @update:model-value="datosConyuge.nombres = $event.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').toUpperCase()"
                 />
                 <CampoTexto
                   :model-value="datosConyuge.apellidos"
                   label="Apellidos completos"
                   placeholder="Apellidos"
                   required
-                  @update:model-value="datosConyuge.apellidos = normalizarTextoUpper($event)"
+                  @update:model-value="datosConyuge.apellidos = $event.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').toUpperCase()"
                 />
               </div>
             </div>
