@@ -2515,6 +2515,49 @@ function onOtpValidado() {
 
         <ModalAutorizaciones v-model:visible="modalAutorizacionesVisible" :aceptado="autorizaciones.autorizacion_aceptada" @aceptar="autorizaciones.autorizacion_aceptada = true" @rechazar="autorizaciones.autorizacion_aceptada = false" />
 
+        <!-- Acompañamiento de asesor -->
+        <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
+          <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <IconUserCheck :size="20" /> Acompañamiento de asesor
+          </div>
+          <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+            <div :style="{ 
+              display: 'grid', 
+              gridTemplateColumns: isMobile ? '1fr' : (asesoria.tuvo_asesoria === true ? '1fr 70px 70px 140px' : '1fr 70px 70px'), 
+              gap: 'var(--sp-md)', 
+              alignItems: 'center' 
+            }">
+              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)' }">
+                ¿Tuvo acompañamiento de un asesor para diligenciar la solicitud? *
+              </div>
+              <div :style="{ minWidth: '0' }">
+                <CampoCheck
+                  :model-value="asesoria.tuvo_asesoria === true"
+                  label="Sí"
+                  @update:model-value="(v) => { asesoria.tuvo_asesoria = v ? true : null; if (!v) asesoria.codigo_asesor = '' }"
+                />
+              </div>
+              <div :style="{ minWidth: '0' }">
+                <CampoCheck
+                  :model-value="asesoria.tuvo_asesoria === false"
+                  label="No"
+                  @update:model-value="(v) => { asesoria.tuvo_asesoria = v ? false : null; if (v) asesoria.codigo_asesor = '' }"
+                />
+              </div>
+              <div v-if="asesoria.tuvo_asesoria === true" :style="{ minWidth: '0' }">
+                <CampoTexto
+                  v-model="asesoria.codigo_asesor"
+                  label="Código del asesor"
+                  placeholder="00000"
+                  required
+                  solo-numeros
+                  :maxlength="5"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- ── PASO 5: Revisión y firma ─────────────────── -->

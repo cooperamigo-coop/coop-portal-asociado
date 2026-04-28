@@ -181,7 +181,11 @@ function onBlur()  { focused.value = false; emit('blur') }
 .campo-label--error   { color: var(--color-error-text); }
 .campo-required       { color: var(--color-error); }
 
-.campo-msg { font-size: var(--text-xs); font-weight: var(--fw-medium); }
+.campo-msg { 
+  font-size: var(--text-xs); 
+  font-weight: var(--fw-medium); 
+  padding-left: 12px;
+}
 .campo-msg--error  { color: var(--color-error-text); }
 .campo-msg--helper { color: var(--color-text-3); }
 </style>

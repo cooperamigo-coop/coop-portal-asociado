@@ -258,6 +258,11 @@ export function useSolicitudCredito() {
     autorizacion_aceptada: false,
     autorizacion_desembolso_directo_educativo: false,
   })
+  
+  const asesoria = ref({
+    tuvo_asesoria: null,
+    codigo_asesor: '',
+  })
 
   // ── Documentos capturados ─────────────────────────────────
   const documentos = ref({
@@ -416,6 +421,12 @@ export function useSolicitudCredito() {
       }
     }
 
+    // 6. Asesoría
+    if (asesoria.value.tuvo_asesoria === null) list.push('¿Tuvo acompañamiento de un asesor?')
+    if (asesoria.value.tuvo_asesoria === true && String(asesoria.value.codigo_asesor).length !== 5) {
+      list.push('Código del asesor (5 dígitos)')
+    }
+
     return list
   })
 
@@ -474,6 +485,7 @@ export function useSolicitudCredito() {
     if (borrador.ubicacionCod1) ubicacionCod1.value = { ...ubicacionCod1.value, ...borrador.ubicacionCod1 }
     if (borrador.ubicacionCod2) ubicacionCod2.value = { ...ubicacionCod2.value, ...borrador.ubicacionCod2 }
     if (borrador.autorizaciones) autorizaciones.value = { ...autorizaciones.value, ...borrador.autorizaciones }
+    if (borrador.asesoria) asesoria.value = { ...asesoria.value, ...borrador.asesoria }
     if (borrador.firma) firma.value = { ...firma.value, ...borrador.firma }
 
     // Navegar al paso guardado
@@ -654,6 +666,9 @@ export function useSolicitudCredito() {
       ...(({ value: _value, ...docs }) => docs)(documentos.value),
       // Autorizaciones
       ...autorizaciones.value,
+      // Asesoría
+      tuvo_asesoria: asesoria.value.tuvo_asesoria === true,
+      codigo_asesor: asesoria.value.tuvo_asesoria === true ? asesoria.value.codigo_asesor : null,
       // Firma
       ...(firma.value?.nombre_firma ? { nombre_firma: firma.value.nombre_firma } : {}),
       paso_actual: paso.value,
@@ -688,6 +703,7 @@ export function useSolicitudCredito() {
       ubicacionCod1: toRaw(ubicacionCod1.value),
       ubicacionCod2: toRaw(ubicacionCod2.value),
       autorizaciones: toRaw(autorizaciones.value),
+      asesoria: toRaw(asesoria.value),
       firma: toRaw(firma.value),
       paso: paso.value,
     }
@@ -1069,7 +1085,7 @@ export function useSolicitudCredito() {
     personaCod2, laboralCod2, financieraCod2, patrimonioCod2,
     ubicacionResidencia,
     ubicacionCod1, ubicacionCod2,
-    autorizaciones, firma,
+    autorizaciones, asesoria, firma,
     documentos,
     // Computeds
     mostrarTipoOperacion, mostrarValorCredito,

@@ -180,6 +180,7 @@ function onBlur()  { focused.value = false; emit('blur') }
 .campo-msg { 
   font-size: var(--text-xs); 
   font-weight: var(--fw-medium); 
+  padding-left: 12px;
   padding-top: 2px; 
 }
 .campo-msg--error  { color: var(--color-error-text); }

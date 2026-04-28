@@ -36,10 +36,20 @@ function calcularPosicion() {
   if (!containerRef.value) return
   const rect = containerRef.value.getBoundingClientRect()
   const viewportHeight = window.innerHeight
-  const pickerHeight = 320 // Altura total con cabecera y botón confirmar
-
-  let top = rect.bottom + 4
   
+  const pickerHeight = 340 // Altura real con botones
+  const pickerWidth  = Math.max(280, rect.width) // Mínimo 280px para que no se vea "mocho"
+
+  let top  = rect.bottom + 4
+  let left = rect.left
+
+  // Ajuste horizontal si se sale por la derecha
+  if (left + pickerWidth > window.innerWidth) {
+    left = window.innerWidth - pickerWidth - 16
+  }
+  // Si sigue siendo menor a 0, lo dejamos en un margen pequeño
+  if (left < 16) left = 16
+
   // Si no cabe abajo, abrir arriba
   if (top + pickerHeight > viewportHeight && rect.top > pickerHeight) {
     top = rect.top - pickerHeight - 4
@@ -48,8 +58,8 @@ function calcularPosicion() {
   dropdownStyle.value = {
     position: 'fixed',
     top: `${top}px`,
-    left: `${rect.left}px`,
-    width: `${rect.width}px`,
+    left: `${left}px`,
+    width: `${pickerWidth}px`,
     zIndex: '9999',
   }
 }
@@ -250,15 +260,16 @@ const valorFormateado = computed(() => {
           <!-- Cabecera -->
           <div :style="{
             display:             'grid',
-            gridTemplateColumns: '1fr 2fr 2fr',
+            gridTemplateColumns: '0.8fr 1.2fr 1fr',
             textAlign:           'center',
-            padding:             'var(--sp-sm) 0',
+            padding:             'var(--sp-md) 0',
             borderBottom:        '1px solid var(--color-border-light)',
-            fontSize:            'var(--text-xs)',
-            fontWeight:          'var(--fw-bold)',
+            fontSize:            '11px',
+            fontWeight:          'var(--fw-extrabold)',
             color:               'var(--color-text-3)',
             textTransform:       'uppercase',
-            letterSpacing:       '0.06em',
+            letterSpacing:       '0.1em',
+            background:          'var(--color-bg-surface-alt)',
           }">
             <span>Día</span>
             <span>Mes</span>
@@ -268,8 +279,8 @@ const valorFormateado = computed(() => {
           <!-- Tambores -->
           <div :style="{
             display:             'grid',
-            gridTemplateColumns: '1fr 2fr 2fr',
-            height:              '200px',
+            gridTemplateColumns: '0.8fr 1.2fr 1fr',
+            height:              '210px',
             position:            'relative',
             background:          'var(--color-bg-card)',
           }">
@@ -385,6 +396,15 @@ const valorFormateado = computed(() => {
                 }"
               >{{ a }}</div>
             </div>
+
+            <!-- Degradados de desvanecimiento superior e inferior -->
+            <div :style="{
+              position: 'absolute',
+              inset: '0',
+              pointerEvents: 'none',
+              zIndex: '2',
+              background: 'linear-gradient(to bottom, var(--color-bg-card) 0%, transparent 25%, transparent 75%, var(--color-bg-card) 100%)',
+            }" />
           </div>
 
           <!-- Pie: Botón confirmar -->

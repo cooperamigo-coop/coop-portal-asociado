@@ -69,17 +69,11 @@ const textoResidencia = computed(() => {
 })
 
 const nivelEducativoOpciones = [
-  { value: 'ninguno',               label: 'Ninguno'                   },
-  { value: 'primaria_incompleta',   label: 'Primaria incompleta'       },
-  { value: 'primaria_completa',     label: 'Primaria completa'         },
-  { value: 'secundaria_incompleta', label: 'Bachillerato incompleto'   },
-  { value: 'secundaria_completa',   label: 'Bachillerato completo'     },
-  { value: 'tecnico',               label: 'Técnico / Técnico laboral' },
-  { value: 'tecnologo',             label: 'Tecnólogo'                 },
-  { value: 'universitario',         label: 'Universitario / Pregrado'  },
-  { value: 'especializacion',       label: 'Especialización'           },
-  { value: 'maestria',              label: 'Maestría'                  },
-  { value: 'doctorado',             label: 'Doctorado'                 },
+  { value: 'Primaria',          label: 'Primaria / Bachillerato incompleto' },
+  { value: 'Bachiller',         label: 'Bachiller'                          },
+  { value: 'Tecnico Tecnologo', label: 'Técnico / Tecnológico'              },
+  { value: 'Universitario',     label: 'Universitario / Pregrado'           },
+  { value: 'Otro',              label: 'Especialización / Posgrado'         },
 ]
 </script>
 
@@ -115,7 +109,8 @@ const nivelEducativoOpciones = [
         label="Número de documento"
         placeholder="Ej: 1023456789"
         required
-        :maxlength="15"
+        :maxlength="esCodeudor ? 10 : 15"
+        :solo-numeros="esCodeudor"
         :disabled="bloquearDocumento"
         :helper="null"
         :error="errores[clave('numero_identificacion')]"

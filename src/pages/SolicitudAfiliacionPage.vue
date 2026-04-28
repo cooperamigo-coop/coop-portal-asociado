@@ -20,11 +20,42 @@ import CapturaDocumento from '@/components/forms/CapturaDocumento.vue'
 import { useAfiliacion }  from '@/composables/useAfiliacion'
 import { useBreakpoint }  from '@/composables/useBreakpoint'
 import { subirDocumentoSolicitud, obtenerMensajeErrorSubidaDocumento } from '@/services/documentos.service'
-import { IconCircleCheck, IconUserCheck, IconCheck, IconMapPin, IconX, IconUpload, IconEye, IconRefresh, IconFileDescription, IconLoader2, IconRotateClockwise2 } from '@tabler/icons-vue'
+import { IconCircleCheck, IconUserCheck, IconCheck, IconMapPin, IconX, IconUpload, IconEye, IconRefresh, IconFileDescription, IconLoader2, IconRotateClockwise2, IconHome, IconCar } from '@tabler/icons-vue'
 import { ENTIDADES_PENSIONES, TIPOS_CONTRATO } from '@/data/formularioCredito'
 
 const router = useRouter()
 const { isMobile } = useBreakpoint()
+
+const opsPropiedadRaiz = [
+  { value: 'Casa',            label: 'Casa'            },
+  { value: 'Apartamento',     label: 'Apartamento'     },
+  { value: 'Local Comercial', label: 'Local Comercial' },
+  { value: 'Oficina',         label: 'Oficina'         },
+  { value: 'Bodega',          label: 'Bodega'          },
+  { value: 'Lote / Terreno',  label: 'Lote / Terreno'  },
+]
+const opsTipoProductoReferencia = [
+  { value: 'Cta. Ahorros',    label: 'Cta. Ahorros'    },
+  { value: 'Cta. Corriente',  label: 'Cta. Corriente'  },
+  { value: 'CDT',             label: 'CDT'             },
+  { value: 'Tarjeta Crédito', label: 'Tarjeta Crédito' },
+  { value: 'Créditos',        label: 'Créditos'        },
+]
+const opsParentesco = [
+  { value: 'Padre',         label: 'Padre'         },
+  { value: 'Madre',         label: 'Madre'         },
+  { value: 'Hijo(a)',       label: 'Hijo(a)'       },
+  { value: 'Hermano(a)',    label: 'Hermano(a)'    },
+  { value: 'Cónyuge',       label: 'Cónyuge'       },
+  { value: 'Compañero(a)',  label: 'Compañero(a)'  },
+  { value: 'Abuelo(a)',     label: 'Abuelo(a)'     },
+  { value: 'Tío(a)',        label: 'Tío(a)'        },
+  { value: 'Sobrino(a)',    label: 'Sobrino(a)'    },
+  { value: 'Primo(a)',      label: 'Primo(a)'      },
+  { value: 'Suegro(a)',     label: 'Suegro(a)'     },
+  { value: 'Cuñado(a)',     label: 'Cuñado(a)'     },
+  { value: 'Otro',          label: 'Otro'          },
+]
 
 const {
   paso, loading, error, solicitudCreada, asociadoExistente,
@@ -115,10 +146,11 @@ const opsTipoDocumento = [
   { value: 'CE', label: 'Cédula de extranjería' },
 ]
 const opsEstadoCivil = [
-  { value: 'Soltero(a)',   label: 'Soltero(a)'   },
-  { value: 'Casado(a)',    label: 'Casado(a)'    },
-  { value: 'Viudo(a)',     label: 'Viudo(a)'     },
-  { value: 'Separado(a)',  label: 'Separado(a)'  },
+  { value: 'Soltero',     label: 'Soltero(a)'   },
+  { value: 'Casado',      label: 'Casado(a)'    },
+  { value: 'Union Libre', label: 'Unión libre'  },
+  { value: 'Viudo',       label: 'Viudo(a)'     },
+  { value: 'Separado',    label: 'Separado(a)'  },
 ]
 const opsTipoVivienda = [
   { value: 'Propia',    label: 'Propia'    },
@@ -130,12 +162,11 @@ const opsGenero = [
   { value: 'Femenino',  label: 'Femenino'  },
 ]
 const opsNivelAcademico = [
-  { value: 'tecnico',         label: 'Técnico'                  },
-  { value: 'tecnologico',     label: 'Tecnológico'              },
-  { value: 'pregrado',        label: 'Pregrado / Universitario' },
-  { value: 'especializacion', label: 'Especialización'          },
-  { value: 'maestria',        label: 'Maestría'                 },
-  { value: 'doctorado',       label: 'Doctorado'                },
+  { value: 'Primaria',          label: 'Primaria'                   },
+  { value: 'Bachiller',         label: 'Bachiller'                  },
+  { value: 'Tecnico Tecnologo', label: 'Técnico / Tecnológico'      },
+  { value: 'Universitario',     label: 'Universitario / Pregrado'   },
+  { value: 'Otro',              label: 'Especialización / Posgrado' },
 ]
 const opsOcupacion = [
   { value: 'Empleado',      label: 'Empleado'      },
@@ -186,7 +217,7 @@ const opsCanalesComunicacion = [
 const pasos = computed(() => ([
   { label: 'Información general' },
   { label: 'Laboral y financiera' },
-  { label: 'Cónyuge o', label2: necesitaConyuge ? 'compañero(a) permanente' : 'compañero(a) permanente — Omitido' },
+  { label: 'Cónyuge o', label2: necesitaConyuge ? 'compañero(a) permanente' : 'compañero(a) permanente — Omitido', headerJoin: true },
   { label: 'Referencias' },
   { label: 'Declaraciones y', label2: 'autorizaciones', noWrapLabel: true, headerJoin: true },
 ]))
@@ -984,7 +1015,7 @@ async function onVerificarYContinuarClick() {
 
             <div :style="estiloBloque">
               <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Canales de comunicación de preferencia</div>
-              <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-md)' }">
+              <div :style="grid3(isMobile)">
                 <CampoCheck
                   v-for="op in opsCanalesComunicacion"
                   :key="op.value"
@@ -1316,82 +1347,127 @@ async function onVerificarYContinuarClick() {
                 />
               </div>
 
-              <div :style="estiloBloque">
-                <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Propiedad raíz</div>
-                <div :style="grid3(isMobile)">
-                  <CampoTexto
-                    v-model="activosPasivos.tipo_propiedad_raiz"
-                    label="Tipo de propiedad raíz"
-                    placeholder="Ej. Casa, Apartamento, Lote"
-                  />
-                  <CampoTexto
-                    v-model="activosPasivos.matricula_inmobiliaria"
-                    label="Matrícula inmobiliaria"
-                    placeholder="Número de matrícula"
-                  />
-                  <CampoMoneda
-                    v-model="activosPasivos.deuda_cooperativa"
-                    label="Deuda con la cooperativa"
-                  />
-                  <CampoMoneda
-                    v-model="activosPasivos.cuota_mensual_cooperativa"
-                    label="Cuota mensual cooperativa"
-                  />
-                  <CampoMoneda
-                    v-model="activosPasivos.valor_comercial_hipoteca"
-                    label="Valor comercial / hipoteca"
-                  />
-                  <CampoMoneda
-                    v-model="activosPasivos.deuda_otras_entidades"
-                    label="Deuda con otras entidades"
-                  />
-                  <CampoMoneda
-                    v-model="activosPasivos.cuota_mensual_otras_deudas"
-                    label="Cuota mensual otras deudas"
-                  />
+              <!-- ── Propiedad Raíz ─────────────────── -->
+              <div :style="{ ...estiloBloque, background: 'var(--color-bg-card)', padding: 'var(--sp-xl)', borderRadius: 'var(--r-xl)' }">
+                <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', marginBottom: 'var(--sp-lg)' }">
+                  <div :style="{ width: '40px', height: '40px', borderRadius: 'var(--r-md)', background: 'var(--color-bg-surface-alt)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
+                    <IconHome :size="20" :style="{ color: activosPasivos.tiene_propiedad_raiz ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
+                  </div>
+                  <div :style="{ flex: 1 }">
+                    <div :style="{ fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">Propiedad raíz</div>
+                    <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)' }">Casa, apartamento, lote, finca o local.</div>
+                  </div>
+                  <label :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', cursor: 'pointer', userSelect: 'none' }">
+                    <input type="checkbox" :checked="activosPasivos.tiene_propiedad_raiz" :style="{ display: 'none' }" @change="activosPasivos.tiene_propiedad_raiz = !activosPasivos.tiene_propiedad_raiz" />
+                    <span :style="{ width: '42px', height: '24px', borderRadius: '999px', background: activosPasivos.tiene_propiedad_raiz ? 'var(--color-primary)' : 'var(--color-border)', position: 'relative', transition: 'background var(--transition-fast)' }">
+                      <span :style="{ position: 'absolute', top: '3px', left: activosPasivos.tiene_propiedad_raiz ? '21px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'left var(--transition-fast)' }" />
+                    </span>
+                    <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: activosPasivos.tiene_propiedad_raiz ? 'var(--color-primary)' : 'var(--color-text-3)' }">{{ activosPasivos.tiene_propiedad_raiz ? 'Sí' : 'No' }}</span>
+                  </label>
+                </div>
+
+                <div v-if="activosPasivos.tiene_propiedad_raiz" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+                  <!-- Fila 1: Tipo y Matrícula -->
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-md)' }">
+                    <CampoSelectBuscable
+                      v-model="activosPasivos.tipo_propiedad_raiz"
+                      label="Tipo de propiedad"
+                      :opciones="opsPropiedadRaiz"
+                      required
+                    />
+                    <CampoTexto
+                      v-model="activosPasivos.matricula_inmobiliaria"
+                      label="Matrícula inmobiliaria"
+                      placeholder="Número de matrícula"
+                    />
+                  </div>
+
+                  <!-- Fila 2: Hipoteca (40%) y Valor (60%) -->
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '4fr 6fr', gap: 'var(--sp-md)', alignItems: 'end' }">
+                    <div :style="{ display: 'flex', flexDirection: 'column', gap: '8px' }">
+                      <label :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: '4px', marginLeft: '16px' }">
+                        ¿Tiene hipoteca? <span :style="{ color: 'var(--color-error)' }">*</span>
+                      </label>
+                      <div :style="{ display: 'flex', gap: 'var(--sp-sm)', alignItems: 'center' }">
+                        <CampoCheck
+                          :model-value="activosPasivos.tiene_hipoteca === true"
+                          label="Sí"
+                          :style="{ flex: 1, height: '48px', justifyContent: 'center' }"
+                          @update:model-value="activosPasivos.tiene_hipoteca = true"
+                        />
+                        <CampoCheck
+                          :model-value="activosPasivos.tiene_hipoteca === false"
+                          label="No"
+                          :style="{ flex: 1, height: '48px', justifyContent: 'center' }"
+                          @update:model-value="activosPasivos.tiene_hipoteca = false"
+                        />
+                      </div>
+                    </div>
+                    <CampoMoneda
+                      v-model="activosPasivos.valor_propiedad_raiz"
+                      label="Valor comercial"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div :style="estiloBloque">
-                <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Vehículo</div>
-                <div :style="grid3(isMobile)">
-                  <CampoTexto
-                    v-model="activosPasivos.marca_vehiculo"
-                    label="Marca"
-                    placeholder="Ej. Chevrolet"
-                  />
-                  <CampoTexto
-                    v-model="activosPasivos.modelo_vehiculo"
-                    label="Modelo / Año"
-                    placeholder="Ej. Spark 2020"
-                  />
-                  <CampoTexto
-                    v-model="activosPasivos.placa_vehiculo"
-                    label="Placa"
-                    placeholder="ABC 123"
-                  />
-                  <CampoMoneda
-                    v-model="activosPasivos.valor_comercial_pignorado"
-                    label="Valor comercial / pignoraciones"
-                  />
+              <!-- ── Vehículo ─────────────────── -->
+              <div :style="{ ...estiloBloque, background: 'var(--color-bg-card)', padding: 'var(--sp-xl)', borderRadius: 'var(--r-xl)', marginTop: 'var(--sp-lg)' }">
+                <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', marginBottom: 'var(--sp-lg)' }">
+                  <div :style="{ width: '40px', height: '40px', borderRadius: 'var(--r-md)', background: 'var(--color-bg-surface-alt)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
+                    <IconCar :size="20" :style="{ color: activosPasivos.tiene_vehiculo ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
+                  </div>
+                  <div :style="{ flex: 1 }">
+                    <div :style="{ fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">Vehículo</div>
+                    <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)' }">Carro, moto o maquinaria.</div>
+                  </div>
+                  <label :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', cursor: 'pointer', userSelect: 'none' }">
+                    <input type="checkbox" :checked="activosPasivos.tiene_vehiculo" :style="{ display: 'none' }" @change="activosPasivos.tiene_vehiculo = !activosPasivos.tiene_vehiculo" />
+                    <span :style="{ width: '42px', height: '24px', borderRadius: '999px', background: activosPasivos.tiene_vehiculo ? 'var(--color-primary)' : 'var(--color-border)', position: 'relative', transition: 'background var(--transition-fast)' }">
+                      <span :style="{ position: 'absolute', top: '3px', left: activosPasivos.tiene_vehiculo ? '21px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'left var(--transition-fast)' }" />
+                    </span>
+                    <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: activosPasivos.tiene_vehiculo ? 'var(--color-primary)' : 'var(--color-text-3)' }">{{ activosPasivos.tiene_vehiculo ? 'Sí' : 'No' }}</span>
+                  </label>
+                </div>
+
+                <div v-if="activosPasivos.tiene_vehiculo" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 'var(--sp-md)' }">
+                    <CampoTexto v-model="activosPasivos.marca_vehiculo" label="Marca" placeholder="Ej. Chevrolet" required uppercase />
+                    <CampoTexto v-model="activosPasivos.modelo_vehiculo" label="Modelo" placeholder="Ej. 2024" required uppercase />
+                    <CampoTexto v-model="activosPasivos.placa_vehiculo" label="Placa" placeholder="ABC 123" uppercase />
+                  </div>
+                  
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '4fr 6fr', gap: 'var(--sp-md)', alignItems: 'end' }">
+                    <div :style="{ display: 'flex', flexDirection: 'column', gap: '8px' }">
+                      <label :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: '4px', marginLeft: '16px' }">
+                        ¿Está pignorado? <span :style="{ color: 'var(--color-error)' }">*</span>
+                      </label>
+                      <div :style="{ display: 'flex', gap: 'var(--sp-sm)', alignItems: 'center' }">
+                        <CampoCheck
+                          :model-value="activosPasivos.esta_pignorado === true"
+                          label="Sí"
+                          :style="{ flex: 1, height: '48px', justifyContent: 'center' }"
+                          @update:model-value="activosPasivos.esta_pignorado = true"
+                        />
+                        <CampoCheck
+                          :model-value="activosPasivos.esta_pignorado === false"
+                          label="No"
+                          :style="{ flex: 1, height: '48px', justifyContent: 'center' }"
+                          @update:model-value="activosPasivos.esta_pignorado = false"
+                        />
+                      </div>
+                    </div>
+                    <CampoMoneda v-model="activosPasivos.valor_vehiculo" label="Valor comercial" required />
+                  </div>
                 </div>
               </div>
 
               <div :style="estiloBloque">
                 <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Otras deudas</div>
-                <div :style="grid3(isMobile)">
-                  <CampoMoneda
-                    v-model="activosPasivos.otras_deudas"
-                    label="Otras deudas"
-                  />
-                  <CampoMoneda
-                    v-model="activosPasivos.cuota_mensual_otras_deudas_2"
-                    label="Cuota mensual otras deudas"
-                  />
-                  <CampoMoneda
-                    v-model="activosPasivos.total_pasivos"
-                    label="Total pasivos"
-                  />
+                <div :style="grid2(isMobile)">
+                  <CampoMoneda v-model="activosPasivos.total_pasivos" label="Total pasivos (Deudas)" required />
+                  <CampoMoneda v-model="activosPasivos.cuota_mensual_deudas" label="Total cuota mensual" helper="¿Cuánto pagas por deudas cada mes?" required />
                 </div>
               </div>
             </template>
@@ -1418,6 +1494,7 @@ async function onVerificarYContinuarClick() {
                   label="Número de identificación"
                   placeholder="Sin puntos ni espacios"
                   solo-numeros
+                  :maxlength="10"
                   required
                 />
                 <SelectorFecha
@@ -1459,12 +1536,14 @@ async function onVerificarYContinuarClick() {
                   label="Nacionalidad"
                   placeholder="Ej. Colombiana"
                   required
+                  uppercase
                 />
                 <CampoTexto
                   v-model="datosConyuge.telefono"
                   label="Teléfono"
-                  placeholder="Ej. 3001234567"
+                  placeholder="Contacto/teléfono"
                   solo-numeros
+                  :maxlength="10"
                   required
                 />
               </div>
@@ -1493,7 +1572,7 @@ async function onVerificarYContinuarClick() {
               v-else
               :style="{
                 background: 'var(--color-bg-card)',
-                border: '1px solid var(--color-border)',
+                borderBottom: '1px solid var(--color-border)',
                 borderRadius: 'var(--r-md)',
                 padding: 'var(--sp-xl)',
                 textAlign: 'center',
@@ -1502,7 +1581,7 @@ async function onVerificarYContinuarClick() {
                 fontWeight: 'var(--fw-medium)',
               }"
             >
-              Usted ha indicado que su estado civil es ({{ datosPersonales.estado_civil || 'No informado' }}). Por lo tanto, puede omitir este paso y continuar.
+              Usted ha indicado que su estado civil es <span :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">{{ datosPersonales.estado_civil || 'No informado' }}</span>. Por lo tanto, puede omitir este paso y continuar.
             </div>
           </div>
 
@@ -1598,7 +1677,7 @@ async function onVerificarYContinuarClick() {
               <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
                 <div :style="{
                   display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '120px 1fr 160px',
+                  gridTemplateColumns: isMobile ? '1fr' : '100px 1fr 160px',
                   gap: 'var(--sp-lg)',
                   alignItems: 'start',
                 }">
@@ -1608,19 +1687,21 @@ async function onVerificarYContinuarClick() {
                     label="Nombres completos"
                     placeholder="Nombre completo"
                     required
+                    uppercase
                   />
                   <CampoTexto
                     v-model="referencias.personal.contacto"
                     label="Contacto"
                     placeholder="Ej. 3001234567"
                     solo-numeros
+                    :maxlength="10"
                     required
                   />
                 </div>
 
                 <div :style="{
                   display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '120px 1fr 0.7fr 160px',
+                  gridTemplateColumns: isMobile ? '1fr' : '100px 1fr 0.7fr 160px',
                   gap: 'var(--sp-lg)',
                   alignItems: 'start',
                 }">
@@ -1630,11 +1711,12 @@ async function onVerificarYContinuarClick() {
                     label="Nombres completos"
                     placeholder="Nombre completo"
                     required
+                    uppercase
                   />
-                  <CampoTexto
+                  <CampoSelect
                     v-model="referencias.familiar.parentesco"
                     label="Parentesco"
-                    placeholder="Ej. Hermano(a), Padre, Madre"
+                    :opciones="opsParentesco"
                     required
                   />
                   <CampoTexto
@@ -1642,59 +1724,81 @@ async function onVerificarYContinuarClick() {
                     label="Contacto"
                     placeholder="Ej. 3001234567"
                     solo-numeros
+                    :maxlength="10"
                     required
                   />
                 </div>
 
-                <div :style="{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '120px 1fr 0.8fr 160px 160px',
-                  gap: 'var(--sp-lg)',
-                  alignItems: 'start',
-                }">
-                  <CampoTexto :model-value="'Financiera'" label="Tipo" disabled />
-                  <CampoTexto
-                    v-model="referencias.financiera.nombre_establecimiento"
-                    label="Nombre establecimiento"
-                    placeholder="Nombre comercial"
-                  />
-                  <CampoTexto
-                    v-model="referencias.financiera.tipo_producto"
-                    label="Tipo producto"
-                    placeholder="Ej. Cuenta, crédito, tarjeta"
-                  />
-                  <CampoTexto
-                    v-model="referencias.financiera.numero_cuenta"
-                    label="No. cuenta"
-                    placeholder="Número"
-                    solo-numeros
-                  />
-                  <CampoTexto
-                    v-model="referencias.financiera.contacto"
-                    label="Contacto"
-                    placeholder="Ej. 3001234567"
-                    solo-numeros
-                  />
+                <!-- Referencia Financiera: Reorganizada en 2 filas para evitar amontonamiento -->
+                <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)' }">
+                  <!-- Fila 1: Tipo y Nombre -->
+                  <div :style="{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? '1fr' : '100px 1fr',
+                    gap: 'var(--sp-lg)',
+                    alignItems: 'start',
+                  }">
+                    <CampoTexto :model-value="'Financiera'" label="Tipo" disabled />
+                    <CampoTexto
+                      v-model="referencias.financiera.nombre_establecimiento"
+                      label="Nombre establecimiento"
+                      placeholder="Nombre comercial"
+                      uppercase
+                    />
+                  </div>
+                  <!-- Fila 2: Detalles (CDT, Cuenta, Contacto) -->
+                  <div :style="{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? '1fr' : '100px 1fr 1fr 1fr',
+                    gap: 'var(--sp-lg)',
+                    alignItems: 'start',
+                  }">
+                    <div v-if="!isMobile" style="width: 100px"></div>
+                    <CampoSelect
+                      v-model="referencias.financiera.tipo_producto"
+                      label="Tipo producto"
+                      :opciones="opsTipoProductoReferencia"
+                    />
+                    <CampoTexto
+                      v-model="referencias.financiera.numero_cuenta"
+                      label="No. cuenta"
+                      placeholder="Número"
+                      solo-numeros
+                      :maxlength="20"
+                    />
+                    <CampoTexto
+                      v-model="referencias.financiera.contacto"
+                      label="Contacto"
+                      placeholder="Ej. 3001234567"
+                      solo-numeros
+                      :maxlength="10"
+                    />
+                  </div>
                 </div>
 
-                <div :style="{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '120px 1fr 160px',
-                  gap: 'var(--sp-lg)',
-                  alignItems: 'start',
-                }">
-                  <CampoTexto :model-value="'Comercial'" label="Tipo" disabled />
-                  <CampoTexto
-                    v-model="referencias.comercial.nombre_establecimiento"
-                    label="Nombre establecimiento"
-                    placeholder="Nombre comercial"
-                  />
-                  <CampoTexto
-                    v-model="referencias.comercial.contacto"
-                    label="Contacto"
-                    placeholder="Ej. 3001234567"
-                    solo-numeros
-                  />
+                <!-- Referencia Comercial: Reorganizada -->
+                <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)' }">
+                  <div :style="{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? '1fr' : '100px 1fr 160px',
+                    gap: 'var(--sp-lg)',
+                    alignItems: 'start',
+                  }">
+                    <CampoTexto :model-value="'Comercial'" label="Tipo" disabled />
+                    <CampoTexto
+                      v-model="referencias.comercial.nombre_establecimiento"
+                      label="Nombre establecimiento"
+                      placeholder="Nombre comercial"
+                      uppercase
+                    />
+                    <CampoTexto
+                      v-model="referencias.comercial.contacto"
+                      label="Contacto"
+                      placeholder="Ej. 3001234567"
+                      solo-numeros
+                      :maxlength="10"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1828,6 +1932,53 @@ async function onVerificarYContinuarClick() {
 
               <div v-if="soporteError" :style="{ padding: '6px var(--sp-xl)', background: 'var(--color-error-bg)', color: 'var(--color-error-text)', fontSize: '10px', fontWeight: 'bold', borderTop: '1px solid var(--color-error)' }">
                 {{ soporteError }}
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Acompañamiento de asesor ─────────────────────── -->
+          <div :style="estiloSubtitulo">Acompañamiento de asesor</div>
+          <div :style="{
+            background: 'var(--color-bg-card)',
+            borderRadius: 'var(--r-xl)',
+            padding: 'var(--sp-xl)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--sp-lg)',
+            marginBottom: 'var(--sp-xl)',
+          }">
+            <div :style="{ 
+              display: 'grid', 
+              gridTemplateColumns: isMobile ? '1fr' : (declaraciones.tuvo_asesoria === true ? '1fr 70px 70px 140px' : '1fr 70px 70px'), 
+              gap: 'var(--sp-md)', 
+              alignItems: 'center' 
+            }">
+              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)' }">
+                ¿Tuvo acompañamiento de un asesor para diligenciar la solicitud? *
+              </div>
+              <div :style="{ minWidth: '0' }">
+                <CampoCheck
+                  :model-value="declaraciones.tuvo_asesoria === true"
+                  label="Sí"
+                  @update:model-value="(v) => { declaraciones.tuvo_asesoria = v ? true : null; if (!v) declaraciones.codigo_asesor = '' }"
+                />
+              </div>
+              <div :style="{ minWidth: '0' }">
+                <CampoCheck
+                  :model-value="declaraciones.tuvo_asesoria === false"
+                  label="No"
+                  @update:model-value="(v) => { declaraciones.tuvo_asesoria = v ? false : null; if (v) declaraciones.codigo_asesor = '' }"
+                />
+              </div>
+              <div v-if="declaraciones.tuvo_asesoria === true" :style="{ minWidth: '0' }">
+                <CampoTexto
+                  v-model="declaraciones.codigo_asesor"
+                  label="Código del asesor"
+                  placeholder="00000"
+                  required
+                  solo-numeros
+                  :maxlength="5"
+                />
               </div>
             </div>
           </div>

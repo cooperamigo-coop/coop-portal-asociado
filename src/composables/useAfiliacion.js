@@ -140,20 +140,21 @@ export function useAfiliacion() {
 
   // ── Sección 6: Activos y Pasivos ──────────────────────────────────────────
   const activosPasivos = ref({
+    tiene_propiedad_raiz: false,
     tipo_propiedad_raiz: '',
     matricula_inmobiliaria: '',
-    deuda_cooperativa: '',
-    cuota_mensual_cooperativa: '',
-    valor_comercial_hipoteca: '',
-    deuda_otras_entidades: '',
-    cuota_mensual_otras_deudas: '',
+    tiene_hipoteca: null,
+    valor_propiedad_raiz: '',
+    
+    tiene_vehiculo: false,
     marca_vehiculo: '',
     modelo_vehiculo: '',
     placa_vehiculo: '',
-    otras_deudas: '',
-    cuota_mensual_otras_deudas_2: '',
-    valor_comercial_pignorado: '',
+    esta_pignorado: null,
+    valor_vehiculo: '',
+    
     total_pasivos: '',
+    cuota_mensual_deudas: '',
   })
 
   // ── Sección 7: Cónyuge / Compañero ───────────────────────────────────────
@@ -183,6 +184,8 @@ export function useAfiliacion() {
     es_contratista_estado: null,
     es_lider_politico: null,
     autoriza_tratamiento_datos: null,
+    tuvo_asesoria: null,
+    codigo_asesor: '',
   })
 
   const documentos = ref({
@@ -200,13 +203,13 @@ export function useAfiliacion() {
   // ── Computed ──────────────────────────────────────────────────────────────
   const necesitaConyuge = computed(() => {
     const v = datosPersonales.value.estado_civil
-    return ['Casado(a)', 'Casado', 'Union Libre', 'Unión Libre', 'Separado(a)', 'Separado'].includes(v)
+    return ['Casado', 'Union Libre', 'Separado'].includes(v)
   })
 
   const vinculoConyuge = computed(() => {
     const v = datosPersonales.value.estado_civil
-    if (v === 'Union Libre' || v === 'Unión Libre') return 'companero_permanente'
-    if (v === 'Casado(a)' || v === 'Casado' || v === 'Separado(a)' || v === 'Separado') return 'conyuge'
+    if (v === 'Union Libre') return 'companero_permanente'
+    if (v === 'Casado' || v === 'Separado') return 'conyuge'
     return ''
   })
 
@@ -272,11 +275,18 @@ export function useAfiliacion() {
       const df = datosFinancieros.value
       if (!dl.tipo_trabajador) return false
 
+      const ap = activosPasivos.value
+      const activosOk = (
+        (!ap.tiene_propiedad_raiz || (ap.tipo_propiedad_raiz && ap.tiene_hipoteca !== null && ap.valor_propiedad_raiz !== '')) &&
+        (!ap.tiene_vehiculo || (ap.marca_vehiculo && ap.modelo_vehiculo && ap.esta_pignorado !== null && ap.valor_vehiculo !== '')) &&
+        (ap.total_pasivos !== '' && ap.cuota_mensual_deudas !== '')
+      )
+
       if (dl.tipo_trabajador === 'empleado') {
         const tipoContratoOk = dl.tipo_contrato && (dl.tipo_contrato !== 'otro' || dl.tipo_contrato_otro)
         const laboralOk = !!(dl.nombre_empresa && dl.cargo_oficio && tipoContratoOk && dl.fecha_ingreso)
         const financieroOk = df.salario_ingresos_fijos !== '' && df.gastos_familiares !== ''
-        return laboralOk && financieroOk
+        return laboralOk && financieroOk && activosOk
       }
 
       if (dl.tipo_trabajador === 'independiente') {
@@ -291,24 +301,24 @@ export function useAfiliacion() {
           ai.telefono_negocio
         ) && actividad2Ok
         const financieroOk = df.ingresos_independiente !== '' && df.gastos_familiares !== ''
-        return laboralOk && financieroOk
+        return laboralOk && financieroOk && activosOk
       }
 
       if (dl.tipo_trabajador === 'pensionado') {
         const laboralOk = !!dl.entidad_pagadora
         const financieroOk = df.mesada_pensional !== ''
-        return laboralOk && financieroOk
+        return laboralOk && financieroOk && activosOk
       }
 
       if (dl.tipo_trabajador === 'estudiante') {
         const laboralOk = !!(dl.institucion_educativa && dl.nivel_educativo)
         const financieroOk = df.salario_ingresos_fijos !== '' && !!df.fuente_ingresos
-        return laboralOk && financieroOk
+        return laboralOk && financieroOk && activosOk
       }
 
       if (dl.tipo_trabajador === 'cuidado_hogar') {
         const financieroOk = df.salario_ingresos_fijos !== '' && !!df.fuente_ingresos
-        return financieroOk
+        return financieroOk && activosOk
       }
 
       return false
@@ -339,8 +349,12 @@ export function useAfiliacion() {
       )
     }
     if (paso.value === 5) {
+      const d = declaraciones.value
+      const asesoriaValida = d.tuvo_asesoria === false || (d.tuvo_asesoria === true && String(d.codigo_asesor).length === 5)
+      
       return (
-        declaraciones.value.autoriza_tratamiento_datos === true &&
+        d.autoriza_tratamiento_datos === true &&
+        asesoriaValida &&
         String(documentos.value.doc_cedula_solicitante_url || '').trim().length > 0 &&
         String(documentos.value.doc_soporte_ingresos_laboral_url || '').trim().length > 0
       )
@@ -795,6 +809,8 @@ export function useAfiliacion() {
         es_contratista_estado:            dc.es_contratista_estado === true,
         es_lider_politico:                dc.es_lider_politico === true,
         autoriza_tratamiento_datos:       dc.autoriza_tratamiento_datos === true,
+        tuvo_asesoria:                    dc.tuvo_asesoria === true,
+        codigo_asesor:                    dc.tuvo_asesoria === true ? dc.codigo_asesor : null,
       })
 
       try {
@@ -922,13 +938,19 @@ export function useAfiliacion() {
       mesada_pensional: '',
     }
     activosPasivos.value = {
-      tipo_propiedad_raiz: '', matricula_inmobiliaria: '',
-      deuda_cooperativa: '', cuota_mensual_cooperativa: '',
-      valor_comercial_hipoteca: '', deuda_otras_entidades: '',
-      cuota_mensual_otras_deudas: '', marca_vehiculo: '',
-      modelo_vehiculo: '', placa_vehiculo: '',
-      otras_deudas: '', cuota_mensual_otras_deudas_2: '',
-      valor_comercial_pignorado: '', total_pasivos: '',
+      tiene_propiedad_raiz: false,
+      tipo_propiedad_raiz: '',
+      matricula_inmobiliaria: '',
+      tiene_hipoteca: null,
+      valor_propiedad_raiz: '',
+      tiene_vehiculo: false,
+      marca_vehiculo: '',
+      modelo_vehiculo: '',
+      placa_vehiculo: '',
+      esta_pignorado: null,
+      valor_vehiculo: '',
+      total_pasivos: '',
+      cuota_mensual_deudas: '',
     }
     datosConyuge.value = {
       tipo_identificacion: 'CC',
@@ -952,6 +974,8 @@ export function useAfiliacion() {
       es_contratista_estado: null,
       es_lider_politico: null,
       autoriza_tratamiento_datos: null,
+      tuvo_asesoria: null,
+      codigo_asesor: '',
     }
     documentos.value = {
       doc_cedula_solicitante_url: '',
