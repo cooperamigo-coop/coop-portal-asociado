@@ -312,28 +312,39 @@ onUnmounted(() => {
   position: relative;
 }
 
-/* ── Trigger / field ── */
+/* ── Trigger / field (Estilo Minimalista) ── */
 .csb-field {
   position: relative;
   display: flex;
   align-items: center;
   gap: var(--sp-sm);
-  padding: 0 16px;
-  border: 1px solid var(--color-border);
+  padding: 16px 12px 0 12px; /* Espacio superior para label y lateral suave */
+  border: none;
+  border-bottom: 1px solid var(--color-border);
   border-radius: var(--r-md);
-  background: var(--color-bg-card);
+  background: transparent;
   cursor: pointer;
   user-select: none;
-  transition: border-color var(--transition-fast);
+  transition: border-bottom-color var(--transition-fast), box-shadow var(--transition-fast);
   height: 54px;
   box-sizing: border-box;
 }
 
-.csb-field--floated  { padding: 0 16px; }
-.csb-field--open     { border-color: var(--color-primary); outline: 3px solid var(--color-primary-light); }
-.csb-field--error    { border-color: var(--color-error) !important; outline: none; }
-.csb-field--disabled { background: var(--color-bg-card); cursor: not-allowed; }
-.csb-field--disabled .csb-value { color: var(--color-text-1); opacity: 1; }
+.csb-field--open { 
+  border-bottom-color: var(--color-primary); 
+  box-shadow: 0 1px 0 0 var(--color-primary);
+}
+
+.csb-field--error { 
+  border-bottom-color: var(--color-error) !important; 
+  box-shadow: 0 1px 0 0 var(--color-error) !important;
+}
+
+.csb-field--disabled { 
+  background: transparent; 
+  border-bottom-style: dashed;
+  cursor: not-allowed; 
+}
 
 /* ── Valor ── */
 .csb-value {
@@ -352,39 +363,35 @@ onUnmounted(() => {
 .csb-label {
   position: absolute;
   left: 12px;
-  top: 50%;
+  top: 35px; /* Alineado con el centro del área de texto */
   transform: translateY(-50%);
   font-size: var(--text-base);
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-regular);
   color: var(--color-text-3);
   background: transparent;
-  padding: 0 2px;
   pointer-events: none;
   z-index: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: calc(100% - 50px);
+  max-width: calc(100% - 40px);
   transition:
     top var(--transition-fast),
     transform var(--transition-fast),
     font-size var(--transition-fast),
     font-weight var(--transition-fast),
-    color var(--transition-fast),
-    background var(--transition-fast),
-    padding var(--transition-fast);
+    color var(--transition-fast);
 }
 
-/* ── Flotado: incrustado sobre el borde superior ── */
+/* ── Flotado: dentro del contenedor ── */
 .csb-field--floated .csb-label {
-  top: 0;
-  transform: translateY(-50%);
-  font-size: 10px;
-  font-weight: var(--fw-semibold);
-  background: var(--color-bg-card);
-  padding: 0 3px;
+  top: 4px;
+  transform: translateY(0);
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  background: transparent;
+  padding: 0;
 }
-
 
 .csb-label--focused { color: var(--color-primary); }
 .csb-label--error   { color: var(--color-error-text); }
@@ -415,6 +422,7 @@ onUnmounted(() => {
 .csb-msg {
   font-size: var(--text-xs);
   font-weight: var(--fw-medium);
+  padding-top: 2px;
 }
 .csb-msg--error  { color: var(--color-error-text); }
 .csb-msg--helper { color: var(--color-text-3); }

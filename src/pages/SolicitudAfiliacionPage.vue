@@ -20,7 +20,7 @@ import CapturaDocumento from '@/components/forms/CapturaDocumento.vue'
 import { useAfiliacion }  from '@/composables/useAfiliacion'
 import { useBreakpoint }  from '@/composables/useBreakpoint'
 import { subirDocumentoSolicitud, obtenerMensajeErrorSubidaDocumento } from '@/services/documentos.service'
-import { IconCircleCheck, IconUserCheck, IconCheck, IconMapPin, IconX, IconUpload, IconEye, IconRefresh, IconFileDescription, IconLoader2 } from '@tabler/icons-vue'
+import { IconCircleCheck, IconUserCheck, IconCheck, IconMapPin, IconX, IconUpload, IconEye, IconRefresh, IconFileDescription, IconLoader2, IconRotateClockwise2 } from '@tabler/icons-vue'
 import { ENTIDADES_PENSIONES, TIPOS_CONTRATO } from '@/data/formularioCredito'
 
 const router = useRouter()
@@ -428,18 +428,65 @@ async function onVerificarYContinuarClick() {
 
       <!-- Borrador disponible -->
       <template v-if="borradorDisponible">
-        <AlertaBanner
-          tipo="info"
-          mensaje="Encontramos una solicitud de afiliación guardada para este correo. ¿Deseas continuar donde lo dejaste?"
-          :style="{ marginBottom: 'var(--sp-xl)' }"
-        />
-        <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
-          <PortalButton variant="primary" :full="true" @click="onRestaurarBorrador">
-            Continuar donde lo dejé
-          </PortalButton>
-          <PortalButton variant="secondary" :full="true" @click="descartarBorrador">
-            Iniciar solicitud nueva
-          </PortalButton>
+        <div :style="{
+          background: 'var(--color-bg-surface)',
+          border: '1px solid var(--color-p-light)',
+          borderRadius: 'var(--r-md)',
+          padding: 'var(--sp-xl)',
+          marginBottom: 'var(--sp-xl)',
+          textAlign: 'center',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.05)'
+        }">
+          <div :style="{
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            background: 'var(--color-p-light)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto var(--sp-md)',
+            color: 'var(--color-primary)'
+          }">
+            <IconRotateClockwise2 :size="24" />
+          </div>
+          <div :style="{
+            fontFamily: 'var(--font-display)',
+            fontWeight: 'var(--fw-bold)',
+            color: 'var(--color-primary)',
+            fontSize: 'var(--text-lg)',
+            marginBottom: '4px'
+          }">¡Hola de nuevo!</div>
+          <div :style="{
+            fontSize: 'var(--text-sm)',
+            color: 'var(--color-text-2)',
+            fontWeight: 'var(--fw-medium)',
+            marginBottom: 'var(--sp-xl)',
+            lineHeight: '1.5'
+          }">
+            Encontramos una solicitud que empezaste anteriormente.<br>
+            <strong>¿Te gustaría retomar desde donde quedaste?</strong>
+          </div>
+          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)' }">
+            <PortalButton variant="primary" :full="true" @click="onRestaurarBorrador">
+              Sí, continuar mi solicitud
+            </PortalButton>
+            <button 
+              @click="descartarBorrador"
+              :style="{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--color-text-3)',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 'var(--fw-semibold)',
+                cursor: 'pointer',
+                padding: 'var(--sp-sm)',
+                textDecoration: 'underline'
+              }"
+            >
+              No, prefiero empezar de cero
+            </button>
+          </div>
         </div>
       </template>
 
@@ -473,7 +520,7 @@ async function onVerificarYContinuarClick() {
             placeholder="Sin puntos ni espacios"
             required
             solo-numeros
-            :maxlength="11"
+            :maxlength="15"
             :error="errorNumeroDoc"
             @click="onDocumentoAreaClick"
           />
@@ -508,7 +555,7 @@ async function onVerificarYContinuarClick() {
               fontSize: 'var(--text-xs)', color: 'var(--color-text-2)',
               fontWeight: 'var(--fw-medium)', lineHeight: '1.7',
             }">
-              Autorizo a la Cooperativa Multiactiva Luis Amigó – cooperamigó para tratar mis datos personales con la finalidad de gestionar mi proceso de afiliación, contactarme y suministrarme información relacionada con los servicios y beneficios de la cooperativa.
+              Autorizo a la Cooperativa Multiactiva Luis Amigó para tratar mis datos personales con la finalidad de gestionar mi proceso de afiliación, contactarme y suministrarme información relacionada con los servicios y beneficios de la cooperativa.
               Asimismo, autorizo, cuando sea necesario, la consulta de mi información en operadores de información y riesgo, con el fin de validar mis datos.
               Declaro que conozco mis derechos como titular de la información. Igualmente, manifiesto que he leído y acepto los
               <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">Términos y condiciones</a>
@@ -726,7 +773,7 @@ async function onVerificarYContinuarClick() {
                   placeholder="Sin puntos ni espacios"
                   required
                   solo-numeros
-                  :maxlength="11"
+                  :maxlength="15"
                   disabled
                 />
                 <CampoTexto

@@ -391,6 +391,14 @@ export function useSolicitudCredito() {
       if (f.numero_dependientes === '') list.push('Personas a cargo')
     }
 
+    // 4.5 Patrimonio (Si se marca Sí, el valor es obligatorio)
+    const pat = patrimonio.value
+    if (pat.tiene_propiedad_raiz && !pat.valor_propiedad_raiz) list.push('Valor de propiedad raíz')
+    if (pat.tiene_vehiculo && !pat.valor_vehiculo) list.push('Valor del vehículo')
+    // Casos para codeudor
+    if (pat.tiene_propiedad_raiz_codeudor && !pat.valor_propiedad_raiz_codeudor) list.push('Valor de propiedad raíz (Codeudor)')
+    if (pat.tiene_vehiculo_codeudor && !pat.valor_vehiculo_codeudor) list.push('Valor del vehículo (Codeudor)')
+
     // 5. Cuenta
     if (d.tipo_operacion !== 'reestructura') {
       if (d.modalidad_credito === 'educativo') {

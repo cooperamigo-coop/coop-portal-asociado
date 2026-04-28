@@ -427,24 +427,26 @@ const valorFormateado = computed(() => {
 .fecha-field {
   position: relative;
   height: 54px;
-  border: 1px solid var(--color-border);
+  border: none;
+  border-bottom: 1px solid var(--color-border);
   border-radius: var(--r-md);
-  background: var(--color-bg-card);
+  background: transparent;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: border-bottom-color var(--transition-fast), box-shadow var(--transition-fast);
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  padding: 16px 12px 0 12px; /* Espacio superior para label y lateral suave */
   box-sizing: border-box;
 }
 
 .fecha-field--open {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
+  border-bottom-color: var(--color-primary);
+  box-shadow: 0 1px 0 0 var(--color-primary);
 }
 
 .fecha-field--error {
-  border-color: var(--color-error) !important;
+  border-bottom-color: var(--color-error) !important;
+  box-shadow: 0 1px 0 0 var(--color-error) !important;
 }
 
 .fecha-value {
@@ -463,40 +465,48 @@ const valorFormateado = computed(() => {
   margin-left: auto;
 }
 
-/* ── Label flotante (Igual que CampoSelectBuscable y CampoTexto) ── */
+/* ── Label flotante ── */
 .fecha-label {
   position: absolute;
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
   font-size: var(--text-base);
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-regular);
   color: var(--color-text-3);
   background: transparent;
-  padding: 0 2px;
   pointer-events: none;
   z-index: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: calc(100% - 40px);
-  transition: all var(--transition-fast);
+  max-width: calc(100% - 32px);
+  transition:
+    top var(--transition-fast),
+    transform var(--transition-fast),
+    font-size var(--transition-fast),
+    font-weight var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .fecha-field--floated .fecha-label {
-  top: 0;
-  transform: translateY(-50%);
-  font-size: 10px;
-  font-weight: var(--fw-semibold);
-  background: var(--color-bg-card);
-  padding: 0 3px;
+  top: 4px;
+  transform: translateY(0);
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  background: transparent;
+  padding: 0;
 }
 
 .fecha-label--focused { color: var(--color-primary); }
 .fecha-label--error   { color: var(--color-error-text); }
 .fecha-required       { color: var(--color-error); }
 
-.fecha-msg { font-size: var(--text-xs); font-weight: var(--fw-medium); }
+.fecha-msg { 
+  font-size: var(--text-xs); 
+  font-weight: var(--fw-medium); 
+  padding-top: 2px;
+}
 .fecha-msg--error { color: var(--color-error-text); }
 
 /* Ocultar scrollbars en los tambores */

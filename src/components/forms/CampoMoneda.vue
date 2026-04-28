@@ -43,25 +43,28 @@ function onBlur()  { focused.value = false; emit('blur') }
 <template>
   <div class="campo-wrapper">
     <div class="campo-field" :class="{ 'campo-field--floated': floated }">
-
-      <span class="campo-prefix">$</span>
-
-      <input
-        type="text"
-        inputmode="numeric"
-        :value="valorFormateado"
-        :disabled="disabled"
-        class="campo-input"
+      
+      <div 
+        class="campo-input-container"
         :class="{
-          'campo-input--error':    error,
-          'campo-input--disabled': disabled,
-          'campo-input--focused':  focused && !error,
+          'campo-input-container--focused': focused && !error,
+          'campo-input-container--error':   error,
+          'campo-input-container--disabled': disabled,
         }"
-        @keydown="onKeydown"
-        @input="onInput"
-        @focus="onFocus"
-        @blur="onBlur"
-      />
+      >
+        <span class="campo-prefix">$</span>
+        <input
+          type="text"
+          inputmode="numeric"
+          :value="valorFormateado"
+          :disabled="disabled"
+          class="campo-input"
+          @keydown="onKeydown"
+          @input="onInput"
+          @focus="onFocus"
+          @blur="onBlur"
+        />
+      </div>
 
       <label
         v-if="!sinLabel && label"
@@ -93,86 +96,85 @@ function onBlur()  { focused.value = false; emit('blur') }
   position: relative;
 }
 
-/* ── Símbolo $ ── */
-.campo-prefix {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: var(--text-base);
-  font-weight: var(--fw-semibold);
-  color: var(--color-text-3);
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* ── Input ── */
-.campo-input {
-  display: block;
+/* ── Contenedor del Input (Maneja la línea y el flex) ── */
+.campo-input-container {
+  display: flex;
+  align-items: baseline; /* Alineación por la base de la fuente */
   width: 100%;
   height: 54px;
-  padding: 0 16px 0 32px;
-  border: 1px solid var(--color-border);
+  padding: 22px 12px 6px 12px;
+  border-bottom: 1px solid var(--color-border);
   border-radius: var(--r-md);
-  font-size: var(--text-lg);
-  font-weight: var(--fw-bold);
-  font-family: var(--font-body);
-  background: var(--color-bg-card);
-  color: var(--color-text-1);
-  outline: none;
   box-sizing: border-box;
-  transition: border-color var(--transition-fast);
-  text-align: left;
+  background: transparent;
+  transition: border-bottom-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.campo-input--focused  { border-color: var(--color-primary); }
-.campo-input--error    { border-color: var(--color-error) !important; }
-.campo-input--disabled {
-  background: var(--color-bg-surface-alt);
-  color: var(--color-text-3);
+.campo-input-container--focused {
+  border-bottom-color: var(--color-primary);
+  box-shadow: 0 1px 0 0 var(--color-primary);
+}
+
+.campo-input-container--error {
+  border-bottom-color: var(--color-error) !important;
+  box-shadow: 0 1px 0 0 var(--color-error) !important;
+}
+
+.campo-input-container--disabled {
+  border-bottom-style: dashed;
   cursor: not-allowed;
 }
 
-/* ── Label: en reposo parte desde después del $ ── */
+/* ── Prefijo $ ── */
+.campo-prefix {
+  font-size: var(--text-base);
+  font-weight: var(--fw-bold);
+  color: var(--color-text-3);
+  margin-right: 4px;
+  user-select: none;
+}
+
+/* ── Input Real ── */
+.campo-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: var(--text-lg);
+  font-weight: var(--fw-bold);
+  font-family: var(--font-body);
+  color: var(--color-text-1);
+  padding: 0;
+  margin: 0;
+  line-height: 1; /* Para evitar saltos */
+}
+
+/* ── Label ── */
 .campo-label {
   position: absolute;
-  left: 28px;       /* después del símbolo $ */
-  top: 50%;
+  left: 28px; /* Ajustado para el $ */
+  top: 35px;  /* Bajado para alinear con el centro óptico del área de texto */
   transform: translateY(-50%);
   font-size: var(--text-base);
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-regular);
   color: var(--color-text-3);
-  background: transparent;
-  padding: 0 2px;
   pointer-events: none;
-  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: var(--sp-xs);
   white-space: nowrap;
-  max-width: calc(100% - 42px);
   overflow: hidden;
   text-overflow: ellipsis;
-  transition:
-    top var(--transition-fast),
-    left var(--transition-fast),
-    transform var(--transition-fast),
-    font-size var(--transition-fast),
-    font-weight var(--transition-fast),
-    color var(--transition-fast),
-    background var(--transition-fast),
-    padding var(--transition-fast);
+  max-width: calc(100% - 32px);
+  transition: all var(--transition-fast);
 }
 
-/* ── Flotado: incrustado sobre el borde superior ── */
 .campo-field--floated .campo-label {
-  left: 10px;
-  top: 0;
-  transform: translateY(-50%);
-  font-size: 10px;
-  font-weight: var(--fw-semibold);
-  background: var(--color-bg-card);
-  padding: 0 3px;
+  left: 12px;
+  top: 4px;
+  transform: translateY(0);
+  font-size: 11px;
+  font-weight: var(--fw-medium);
 }
 
 .campo-label--focused { color: var(--color-primary); }

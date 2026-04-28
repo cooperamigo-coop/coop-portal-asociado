@@ -46,10 +46,17 @@ function toggleActivo(tipo) {
       marginBottom: 'var(--sp-xs)',
     }">{{ titulo }}</div>
     <div :style="{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--sp-md)' }">
-      <div :style="{ borderRadius: 'var(--r-lg)', border: modelValue[clave('tiene_propiedad_raiz')] ? '1.5px solid var(--color-primary)' : '1px solid var(--color-border)', background: 'var(--color-bg-card)', padding: 'var(--sp-md)' }">
+      <!-- Card Propiedad Raíz -->
+      <div :style="{ 
+        borderRadius: 'var(--r-lg)', 
+        border: 'none',
+        background: 'var(--color-bg-card)', 
+        padding: 'var(--sp-md)',
+        transition: 'all var(--transition-fast)'
+      }">
         <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', marginBottom: 'var(--sp-sm)' }">
           <div :style="{ width: '34px', height: '34px', borderRadius: 'var(--r-md)', background: 'var(--color-bg-surface-alt)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
-            <IconHome :size="18" :style="{ color: 'var(--color-text-3)' }" />
+            <IconHome :size="18" :style="{ color: esActivo('tiene_propiedad_raiz') ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
           </div>
           <div :style="{ flex: 1 }">
             <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">Propiedad raíz</div>
@@ -64,14 +71,27 @@ function toggleActivo(tipo) {
           </label>
         </div>
         <div v-if="esActivo('tiene_propiedad_raiz')">
-          <CampoMoneda :model-value="modelValue[clave('valor_propiedad_raiz')]" label="Valor estimado de la propiedad" :error="errores[clave('valor_propiedad_raiz')]" @update:model-value="actualizar(clave('valor_propiedad_raiz'), $event)" />
+          <CampoMoneda 
+            :model-value="modelValue[clave('valor_propiedad_raiz')]" 
+            label="Valor estimado de la propiedad" 
+            required
+            :error="errores[clave('valor_propiedad_raiz')]" 
+            @update:model-value="actualizar(clave('valor_propiedad_raiz'), $event)" 
+          />
         </div>
       </div>
 
-      <div :style="{ borderRadius: 'var(--r-lg)', border: modelValue[clave('tiene_vehiculo')] ? '1.5px solid var(--color-primary)' : '1px solid var(--color-border)', background: 'var(--color-bg-card)', padding: 'var(--sp-md)' }">
+      <!-- Card Vehículo -->
+      <div :style="{ 
+        borderRadius: 'var(--r-lg)', 
+        border: 'none',
+        background: 'var(--color-bg-card)', 
+        padding: 'var(--sp-md)',
+        transition: 'all var(--transition-fast)'
+      }">
         <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', marginBottom: 'var(--sp-sm)' }">
           <div :style="{ width: '34px', height: '34px', borderRadius: 'var(--r-md)', background: 'var(--color-bg-surface-alt)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
-            <IconCar :size="18" :style="{ color: 'var(--color-text-3)' }" />
+            <IconCar :size="18" :style="{ color: esActivo('tiene_vehiculo') ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
           </div>
           <div :style="{ flex: 1 }">
             <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">Vehículo</div>
@@ -86,7 +106,13 @@ function toggleActivo(tipo) {
           </label>
         </div>
         <div v-if="esActivo('tiene_vehiculo')">
-          <CampoMoneda :model-value="modelValue[clave('valor_vehiculo')]" label="Valor estimado del vehículo" :error="errores[clave('valor_vehiculo')]" @update:model-value="actualizar(clave('valor_vehiculo'), $event)" />
+          <CampoMoneda 
+            :model-value="modelValue[clave('valor_vehiculo')]" 
+            label="Valor estimado del vehículo" 
+            required
+            :error="errores[clave('valor_vehiculo')]" 
+            @update:model-value="actualizar(clave('valor_vehiculo'), $event)" 
+          />
         </div>
       </div>
     </div>

@@ -115,6 +115,7 @@ const nivelEducativoOpciones = [
         label="Número de documento"
         placeholder="Ej: 1023456789"
         required
+        :maxlength="15"
         :disabled="bloquearDocumento"
         :helper="null"
         :error="errores[clave('numero_identificacion')]"
@@ -230,25 +231,39 @@ const nivelEducativoOpciones = [
             readonly
             placeholder="Diligenciar dirección"
             :style="{
-              width: '100%', padding: '0 14px',
+              width: '100%', 
+              padding: '22px 12px 6px 12px',
               height: '54px',
-              border: '1px solid var(--color-border)',
+              border: 'none',
+              borderBottom: '1px solid var(--color-border)',
               borderRadius: 'var(--r-md)',
-              fontSize: 'var(--text-base)', fontFamily: 'var(--font-body)',
-              background: 'var(--color-bg-card)',
+              fontSize: 'var(--text-base)', 
+              fontFamily: 'var(--font-body)',
+              background: 'transparent',
               color: 'var(--color-text-1)',
               textAlign: 'left',
-              cursor: 'pointer', outline: 'none', boxSizing: 'border-box',
+              cursor: 'pointer', 
+              outline: 'none', 
+              boxSizing: 'border-box',
+              transition: 'border-bottom-color var(--transition-fast), box-shadow var(--transition-fast)',
             }"
+            class="direccion-trigger"
           />
           <label :style="{
-            position: 'absolute', left: '12px', top: '0',
-            transform: 'translateY(-50%)',
-            fontSize: '10px', fontWeight: 'var(--fw-semibold)',
+            position: 'absolute', 
+            left: '12px', 
+            top: '4px',
+            transform: 'translateY(0)',
+            fontSize: '11px', 
+            fontWeight: 'var(--fw-medium)',
             color: 'var(--color-text-3)',
-            background: 'var(--color-bg-card)', padding: '0 3px',
-            pointerEvents: 'none', whiteSpace: 'nowrap',
-          }">Dirección residencia <span :style="{ color: 'var(--color-error)' }">*</span></label>
+            background: 'transparent', 
+            padding: '0',
+            pointerEvents: 'none', 
+            whiteSpace: 'nowrap',
+          }">
+            Dirección residencia <span :style="{ color: 'var(--color-error)' }">*</span>
+          </label>
         </div>
         <CampoTexto
           v-else
@@ -273,3 +288,10 @@ const nivelEducativoOpciones = [
     />
   </div>
 </template>
+
+<style scoped>
+.direccion-trigger:hover {
+  border-bottom-color: var(--color-primary) !important;
+  box-shadow: 0 1px 0 0 var(--color-primary);
+}
+</style>

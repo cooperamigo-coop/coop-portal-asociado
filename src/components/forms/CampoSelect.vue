@@ -167,27 +167,30 @@ onUnmounted(() => {
 .campo-field {
   position: relative;
   height: 54px;
-  border: 1px solid var(--color-border);
+  border: none;
+  border-bottom: 1px solid var(--color-border);
   border-radius: var(--r-md);
-  background: var(--color-bg-card);
+  background: transparent;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: border-bottom-color var(--transition-fast), box-shadow var(--transition-fast);
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  padding: 16px 12px 0 12px; /* Espacio superior para label y lateral suave */
 }
 
 .campo-field--open {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
+  border-bottom-color: var(--color-primary);
+  box-shadow: 0 1px 0 0 var(--color-primary);
 }
 
 .campo-field--error {
-  border-color: var(--color-error) !important;
+  border-bottom-color: var(--color-error) !important;
+  box-shadow: 0 1px 0 0 var(--color-error) !important;
 }
 
 .campo-field--disabled {
-  background-color: var(--color-bg-card);
+  background-color: transparent;
+  border-bottom-style: dashed;
   cursor: not-allowed;
 }
 
@@ -217,33 +220,36 @@ onUnmounted(() => {
   transform: rotate(180deg);
 }
 
-/* ── Label ── */
+/* ── Label Minimalista ── */
 .campo-label {
   position: absolute;
   left: 12px;
-  top: 50%;
+  top: 35px; /* Alineado con el centro óptico del área de texto */
   transform: translateY(-50%);
   font-size: var(--text-base);
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-regular);
   color: var(--color-text-3);
-  background: transparent;
-  padding: 0 2px;
   pointer-events: none;
   z-index: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: calc(100% - 40px);
-  transition: all var(--transition-fast);
+  max-width: calc(100% - 32px);
+  transition:
+    top var(--transition-fast),
+    transform var(--transition-fast),
+    font-size var(--transition-fast),
+    font-weight var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .campo-field--floated .campo-label {
-  top: 0;
-  transform: translateY(-50%);
-  font-size: 10px;
-  font-weight: var(--fw-semibold);
-  background: var(--color-bg-card);
-  padding: 0 3px;
+  top: 4px;
+  transform: translateY(0);
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  background: transparent;
+  padding: 0;
 }
 
 .campo-label--focused { color: var(--color-primary); }

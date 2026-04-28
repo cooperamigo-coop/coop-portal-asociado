@@ -40,7 +40,7 @@ const opciones = [
         fontSize:   'var(--text-base)',
         color:      'var(--color-text-2)',
         fontWeight: 'var(--fw-regular)',
-        lineHeight: '1.6',
+        lineHeight: '1.4',
         margin:     '0',
       }">¿Qué modalidad de crédito deseas solicitar?</p>
     </div>

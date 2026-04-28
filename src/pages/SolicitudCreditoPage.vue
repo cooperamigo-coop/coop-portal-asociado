@@ -1394,7 +1394,25 @@ function seleccionarModalidad(v) {
 }
 
 function actualizarGeneral(campo, valor) {
-  general.value = { ...general.value, [campo]: valor }
+  const nuevosDatos = { ...general.value, [campo]: valor }
+
+  // Limpiar montos si cambia el tipo de operación para evitar datos inconsistentes
+  if (campo === 'tipo_operacion') {
+    nuevosDatos.destino_credito = ''
+    nuevosDatos.plazo_solicitado = ''
+    
+    if (valor === 'credito_nuevo') {
+      nuevosDatos.valor_reestructura = ''
+      nuevosDatos.valor_desembolso = ''
+    } else if (valor === 'reestructura') {
+      nuevosDatos.valor_credito = ''
+      nuevosDatos.valor_desembolso = ''
+    } else if (valor === 'reestructura_desembolso') {
+      nuevosDatos.valor_credito = ''
+    }
+  }
+
+  general.value = nuevosDatos
 }
 
 const esEducativo = computed(() => general.value.modalidad_credito === 'educativo')
@@ -1630,6 +1648,7 @@ function onOtpValidado() {
             placeholder="Sin puntos ni espacios"
             required
             solo-numeros
+            :maxlength="15"
             @click="onDocumentoAreaClick"
           />
 
@@ -1675,7 +1694,7 @@ function onOtpValidado() {
               fontWeight: 'var(--fw-medium)',
               lineHeight: '1.7',
             }">
-              Autorizo a la Cooperativa Multiactiva Luis Amigó para tratar mis datos personales, incluyendo mi número de celular y correo electrónico, con la finalidad de contactarme, gestionar mi solicitud, realizar seguimiento y enviarme información relacionada con los productos y servicios ofrecidos por la cooperativa.
+              Autorizo a la Cooperativa Multiactiva Luis Amigó para tratar mis datos personales, incluyendo contacto y correo electrónico, con la finalidad de contactarme, gestionar mi solicitud, realizar seguimiento y enviarme información relacionada con los productos y servicios ofrecidos.
               Asimismo, autorizo la consulta, reporte y actualización de mi información en centrales de información financiera y crediticia, con el fin de verificar mis datos y evaluar mi comportamiento crediticio.
               <br><br>
               Declaro que conozco mis derechos como titular de la información y que puedo ejercerlos conforme a la ley. Igualmente, manifiesto que he leído y acepto los
@@ -1717,38 +1736,63 @@ function onOtpValidado() {
     <!-- ═══ FORMULARIO ACTIVO (3 pasos) ════════════════════ -->
     <div v-else :style="{ width: '100%', margin: '0 auto', paddingTop: 'var(--sp-xl)' }">
 
-      <!-- Banner: borrador encontrado — Continuar o Empezar de nuevo -->
+      <!-- Banner: borrador encontrado -->
       <div v-if="mostrarOpcionBorrador" :style="{
         background:   'var(--color-bg-card)',
+        border:       '1px solid var(--color-p-light)',
         borderRadius: 'var(--r-md)',
         padding:      'var(--sp-lg) var(--sp-xl)',
         marginBottom: 'var(--sp-xl)',
         display:      'flex',
         alignItems:   'center',
         gap:          'var(--sp-md)',
+        boxShadow:    '0 4px 12px rgba(0,0,0,0.03)'
       }">
+        <div :style="{
+          width: '40px',
+          height: '40px',
+          borderRadius: '50%',
+          background: 'var(--color-p-light)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: '0',
+          color: 'var(--color-primary)'
+        }">
+          <IconRotateClockwise2 :size="20" />
+        </div>
         <div :style="{ flex: '1' }">
           <div :style="{
             fontWeight:   'var(--fw-bold)',
             color:        'var(--color-primary)',
             fontSize:     'var(--text-base)',
             marginBottom: '2px',
-          }">Tiene una solicitud sin terminar</div>
+          }">Tienes una solicitud en curso</div>
           <div :style="{
             fontSize:   'var(--text-sm)',
             color:      'var(--color-text-2)',
             fontWeight: 'var(--fw-medium)',
           }">
-            Guardada el {{ formatearFecha(fechaBorrador) }}.
-            Puede continuar donde la dejó o empezar desde cero.
+            Guardamos tu progreso el {{ formatearFecha(fechaBorrador) }}.
           </div>
         </div>
-        <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)', flexShrink: '0' }">
+        <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)', flexShrink: '0' }">
+          <button 
+            @click="empezarDeNuevo"
+            :style="{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--color-text-3)',
+              fontSize: 'var(--text-xs)',
+              fontWeight: 'var(--fw-semibold)',
+              cursor: 'pointer',
+              textDecoration: 'underline'
+            }"
+          >
+            Empezar de nuevo
+          </button>
           <PortalButton variant="primary" small @click="continuarConBorrador">
             Continuar solicitud
-          </PortalButton>
-          <PortalButton variant="secondary" small @click="empezarDeNuevo">
-            Empezar de nuevo
           </PortalButton>
         </div>
       </div>
@@ -1825,20 +1869,44 @@ function onOtpValidado() {
             </div>
 
             <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-              <!-- Tipo de operación — solo para crédito ordinario -->
-              <CampoSelectBuscable
-                v-if="mostrarTipoOperacion"
-                :model-value="general.tipo_operacion"
-                label="Tipo de operación"
-                required
-                :opciones="opsTipoOperacion"
-                @update:model-value="actualizarGeneral('tipo_operacion', $event)"
-              />
-              <div v-if="mostrarValorReestructura && mostrarValorDesembolso" :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-md)' }">
-                <CampoMoneda :model-value="general.valor_reestructura" label="Valor reestructura" required @update:model-value="actualizarGeneral('valor_reestructura', $event)" />
-                <CampoMoneda :model-value="general.valor_desembolso" label="Valor desembolso" required @update:model-value="actualizarGeneral('valor_desembolso', $event)" />
+              
+              <!-- Fila: Tipo de operación y sus valores asociados -->
+              <div :style="{ 
+                display: 'grid', 
+                gridTemplateColumns: (mostrarTipoOperacion && general.tipo_operacion === 'reestructura_desembolso' && !isMobile) ? '1fr 1fr 1fr' : 
+                                     (mostrarTipoOperacion && mostrarValorReestructura && !isMobile) ? '1fr 1fr' : '1fr',
+                gap: 'var(--sp-md)' 
+              }">
+                <CampoSelectBuscable
+                  v-if="mostrarTipoOperacion"
+                  :model-value="general.tipo_operacion"
+                  label="Tipo de operación"
+                  required
+                  :opciones="opsTipoOperacion"
+                  @update:model-value="actualizarGeneral('tipo_operacion', $event)"
+                />
+                
+                <CampoMoneda 
+                  v-if="mostrarValorReestructura && mostrarTipoOperacion" 
+                  :model-value="general.valor_reestructura" 
+                  label="Valor reestructura" 
+                  required 
+                  @update:model-value="actualizarGeneral('valor_reestructura', $event)" 
+                />
+
+                <CampoMoneda 
+                  v-if="mostrarValorDesembolso && mostrarTipoOperacion" 
+                  :model-value="general.valor_desembolso" 
+                  label="Valor desembolso" 
+                  required 
+                  @update:model-value="actualizarGeneral('valor_desembolso', $event)" 
+                />
               </div>
-              <CampoMoneda v-if="mostrarValorReestructura && !mostrarValorDesembolso" :model-value="general.valor_reestructura" label="Valor de la reestructura" required @update:model-value="actualizarGeneral('valor_reestructura', $event)" />
+
+              <!-- Fallbacks para casos donde no se muestra el selector de operación -->
+              <div v-if="!mostrarTipoOperacion">
+                 <CampoMoneda v-if="mostrarValorReestructura" :model-value="general.valor_reestructura" label="Valor de la reestructura" required @update:model-value="actualizarGeneral('valor_reestructura', $event)" />
+              </div>
               <template v-if="!mostrarTipoOperacion || general.tipo_operacion">
                 <template v-if="esEducativo">
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
@@ -2166,7 +2234,8 @@ function onOtpValidado() {
                 :style="{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--sp-sm)',
                   padding: 'var(--sp-xl)', borderRadius: 'var(--r-md)', textAlign: 'center',
-                  border: numCodudores === opcion.num ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                  border: '1px solid var(--color-border)',
+                  boxShadow: numCodudores === opcion.num ? 'var(--shadow-card)' : 'none',
                   background: numCodudores === opcion.num ? 'var(--color-bg-card)' : 'var(--color-bg-surface)',
                   cursor: 'pointer', transition: 'all var(--transition-fast)',
                 }"

@@ -67,20 +67,28 @@ function onBlur()  { focused.value = false; emit('blur') }
 .campo-input {
   display: block;
   width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--r-lg);
+  height: 54px;
+  padding: 22px 12px 6px 12px;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--r-md);
   font-size: var(--text-base);
   font-family: var(--font-body);
-  background: var(--color-bg-card);
+  background: transparent;
   color: var(--color-text-1);
   outline: none;
   box-sizing: border-box;
-  transition: border-color var(--transition-fast);
+  transition: border-bottom-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.campo-input--focused { border-color: var(--color-primary); }
-.campo-input--error   { border-color: var(--color-error) !important; }
+.campo-input--focused { 
+  border-bottom-color: var(--color-primary);
+  box-shadow: 0 1px 0 0 var(--color-primary);
+}
+.campo-input--error   { 
+  border-bottom-color: var(--color-error) !important;
+  box-shadow: 0 1px 0 0 var(--color-error) !important;
+}
 
 /* ── Label: en reposo actúa como placeholder ── */
 .campo-label {
@@ -89,34 +97,30 @@ function onBlur()  { focused.value = false; emit('blur') }
   top: 50%;
   transform: translateY(-50%);
   font-size: var(--text-base);
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-regular);
   color: var(--color-text-3);
-  background: transparent;
-  padding: 0 2px;
   pointer-events: none;
   z-index: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: calc(100% - 28px);
+  max-width: calc(100% - 16px);
   transition:
     top var(--transition-fast),
     transform var(--transition-fast),
     font-size var(--transition-fast),
     font-weight var(--transition-fast),
-    color var(--transition-fast),
-    background var(--transition-fast),
-    padding var(--transition-fast);
+    color var(--transition-fast);
 }
 
-/* ── Flotado: incrustado sobre el borde superior ── */
+/* ── Flotado: Mueve el label hacia arriba ── */
 .campo-field--floated .campo-label {
-  top: 0;
-  transform: translateY(-50%);
-  font-size: 10px;
-  font-weight: var(--fw-semibold);
-  background: var(--color-bg-card);
-  padding: 0 3px;
+  top: 4px;
+  transform: translateY(0);
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  background: transparent;
+  padding: 0;
 }
 
 .campo-label--focused { color: var(--color-primary); }

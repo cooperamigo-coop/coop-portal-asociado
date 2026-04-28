@@ -99,48 +99,61 @@ function onBlur()  { focused.value = false; emit('blur') }
   position: relative;
 }
 
-/* ── Input ── */
+/* ── Input Minimalista (Solo línea inferior con puntas curvas) ── */
 .campo-input {
   display: block;
   width: 100%;
   height: 54px;
-  padding: 0 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--r-md);
+  padding: 22px 12px 6px 12px; /* Acomoda el texto y da un margen lateral suave */
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--r-md); /* Curvatura para que la línea suba en las puntas */
   font-size: var(--text-base);
   font-family: var(--font-body);
-  background: var(--color-bg-card);
+  background: transparent;
   color: var(--color-text-1);
   outline: none;
   box-sizing: border-box;
-  transition: border-color var(--transition-fast);
+  transition: border-bottom-color var(--transition-fast), box-shadow var(--transition-fast);
   text-align: left;
 }
 
-.campo-input--focused  { border-color: var(--color-primary); }
-.campo-input--error    { border-color: var(--color-error) !important; }
+/* Estado de foco: Transición suave, línea reforzada */
+.campo-input--focused  { 
+  border-bottom-color: var(--color-primary);
+  box-shadow: 0 1px 0 0 var(--color-primary);
+}
+
+/* Estado de error */
+.campo-input--error    { 
+  border-bottom-color: var(--color-error) !important;
+  box-shadow: 0 1px 0 0 var(--color-error) !important;
+}
+
+/* Estado deshabilitado */
 .campo-input--disabled {
-  background: var(--color-bg-card);
+  background: transparent;
   color: var(--color-text-3);
+  border-bottom-style: dashed;
   cursor: not-allowed;
 }
 .campo-input--uppercase { text-transform: uppercase; }
 
-/* ── Label — arranca dentro del input como placeholder ── */
+/* ── Label Minimalista ── */
 .campo-label {
   position: absolute;
-  left: 12px;
-  top: 50%;
+  left: 12px; /* Alineado con el padding del texto */
+  top: 35px; /* Alineado con el centro óptico del área de texto */
   transform: translateY(-50%);
   font-size: var(--text-base);
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-regular);
   color: var(--color-text-3);
   pointer-events: none;
   z-index: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: calc(100% - 28px);
+  max-width: calc(100% - 16px);
   transition:
     top var(--transition-fast),
     transform var(--transition-fast),
@@ -149,23 +162,26 @@ function onBlur()  { focused.value = false; emit('blur') }
     color var(--transition-fast);
 }
 
-/* ── Flotado: incrustado sobre el borde superior ── */
+/* ── Flotado: Mueve el label hacia arriba dentro del contenedor ── */
 .campo-field--floated .campo-label {
-  top: 0;
-  transform: translateY(-50%);
-  font-size: 10px;
-  font-weight: var(--fw-semibold);
-  background: var(--color-bg-card);
-  padding: 0 3px;
+  top: 4px; /* Sube pero se mantiene dentro del area del field */
+  transform: translateY(0);
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  background: transparent;
+  padding: 0;
 }
-
 
 .campo-label--focused { color: var(--color-primary); }
 .campo-label--error   { color: var(--color-error-text); }
 .campo-required       { color: var(--color-error); }
 
-/* ── Mensajes ── */
-.campo-msg { font-size: var(--text-xs); font-weight: var(--fw-medium); }
+/* ── Mensajes (Error / Helper) ── */
+.campo-msg { 
+  font-size: var(--text-xs); 
+  font-weight: var(--fw-medium); 
+  padding-top: 2px; 
+}
 .campo-msg--error  { color: var(--color-error-text); }
 .campo-msg--helper { color: var(--color-text-3); }
 </style>
