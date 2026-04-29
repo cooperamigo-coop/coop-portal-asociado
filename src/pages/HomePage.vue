@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { IconCreditCard, IconUserPlus, IconUserMinus, IconClipboardList, IconFileText, IconArrowRight, IconArrowLeft, IconClock, IconWorld } from '@tabler/icons-vue'
 import PortalFooter from '@/components/layout/PortalFooter.vue'
@@ -8,9 +8,8 @@ const router = useRouter()
 const route  = useRoute()
 const paso = ref('pregunta') // 'pregunta' | 'asociado' | 'no-asociado'
 
-const proximamente = computed(() =>
-  window.location.hostname === 'serviciosdigitales.cooperamigo.coop'
-)
+// Cambiar a true para bloquear el acceso con el mensaje "Pronto habilitaremos..."
+const proximamente = false
 
 onMounted(() => {
   if (route.query.vista === 'no-asociado') paso.value = 'no-asociado'
