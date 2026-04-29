@@ -1638,7 +1638,6 @@ function onOtpValidado() {
             label="Tipo de documento"
             required
             :opciones="opsTipoDocVerificacion"
-            @click="onDocumentoAreaClick"
           />
 
           <!-- Número de Documento -->
@@ -2234,9 +2233,9 @@ function onOtpValidado() {
                 :style="{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--sp-sm)',
                   padding: 'var(--sp-xl)', borderRadius: 'var(--r-md)', textAlign: 'center',
-                  border: '1px solid var(--color-border)',
+                  border: numCodudores === opcion.num ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
                   boxShadow: numCodudores === opcion.num ? 'var(--shadow-card)' : 'none',
-                  background: numCodudores === opcion.num ? 'var(--color-bg-card)' : 'var(--color-bg-surface)',
+                  background: numCodudores === opcion.num ? 'var(--color-p-light)' : 'var(--color-bg-surface)',
                   cursor: 'pointer', transition: 'all var(--transition-fast)',
                 }"
                 @click="numCodudores = opcion.num"

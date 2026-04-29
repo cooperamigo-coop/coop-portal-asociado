@@ -673,8 +673,8 @@ export function useSolicitudCredito() {
       ...(({ value: _value, ...docs }) => docs)(documentos.value),
       // Autorizaciones
       ...autorizaciones.value,
-      // Asesoría
-      tuvo_asesoria: asesoria.value.tuvo_asesoria === true,
+      // Asesoría — columna real en BD: tuvo_acompanamiento_asesor
+      tuvo_acompanamiento_asesor: asesoria.value.tuvo_asesoria === true,
       codigo_asesor: asesoria.value.tuvo_asesoria === true ? asesoria.value.codigo_asesor : null,
       // Firma
       ...(firma.value?.nombre_firma ? { nombre_firma: firma.value.nombre_firma } : {}),
