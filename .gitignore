@@ -1,3 +1,8 @@
+# Environment — nunca commitear claves
+.env
+.env.*
+!.env.example
+
 # Logs
 logs
 *.log

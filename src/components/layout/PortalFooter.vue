@@ -62,7 +62,7 @@
 <style scoped>
 .portal-footer {
   background: var(--color-primary);
-  padding: 44px 48px;
+  padding: 16px 48px;
   flex-shrink: 0;
 }
 
@@ -89,14 +89,14 @@
 .footer-logo-link:hover { opacity: 1; }
 
 .footer-logo {
-  height: 26px;
+  height: 24px;
   object-fit: contain;
   filter: brightness(0) invert(1);
 }
 
 @media (min-width: 961px) {
   .footer-logo {
-    height: 38px;
+    height: 34px;
   }
 }
 
@@ -173,7 +173,7 @@
 .footer-col-spacer { /* balance visual */ }
 
 @media (max-width: 960px) {
-  .portal-footer { padding: 20px 24px; }
+  .portal-footer { padding: 12px 24px; }
   .footer-inner   { display: flex; flex-direction: column; align-items: center; gap: 10px; }
   .footer-col-logo   { display: none; }
   .footer-col-spacer { display: none; }

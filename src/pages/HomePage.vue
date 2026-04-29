@@ -399,7 +399,6 @@ const SERVICIOS_NO_ASOCIADO = [
   align-items: center;
   gap: 6px;
   background: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
   border-radius: var(--r-pill);
   cursor: pointer;
   font-family: var(--font-body);
@@ -485,7 +484,7 @@ const SERVICIOS_NO_ASOCIADO = [
 .row-desc {
   font-size: var(--text-sm);
   color: var(--color-text-3);
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-regular);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

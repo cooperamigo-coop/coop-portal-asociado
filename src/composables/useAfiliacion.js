@@ -388,6 +388,7 @@ export function useAfiliacion() {
     if (errCedula) { errorNumeroDoc.value = errCedula; return }
 
     loadingVerificacion.value = true
+    await Promise.resolve()
     try {
       const existente = await conTimeout(
         buscarAsociadoPorCedula(numDoc),
