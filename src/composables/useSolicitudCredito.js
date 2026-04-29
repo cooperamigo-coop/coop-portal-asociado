@@ -421,7 +421,7 @@ export function useSolicitudCredito() {
       }
     }
 
-    // 6. Asesoría
+    // 6. Asesoría (solo se valida al final — el campo está en paso 4)
     if (asesoria.value.tuvo_asesoria === null) list.push('¿Tuvo acompañamiento de un asesor?')
     if (asesoria.value.tuvo_asesoria === true && String(asesoria.value.codigo_asesor).length !== 5) {
       list.push('Código del asesor (5 dígitos)')
@@ -429,6 +429,13 @@ export function useSolicitudCredito() {
 
     return list
   })
+
+  // Validación del gate de paso 2 → 3: excluye campos de pasos posteriores (asesoría está en paso 4)
+  const erroresPaso2 = computed(() =>
+    erroresCampos.value.filter(e =>
+      e !== '¿Tuvo acompañamiento de un asesor?' && e !== 'Código del asesor (5 dígitos)'
+    )
+  )
 
   const pasoSolicitudValido = computed(() => {
     return erroresCampos.value.length === 0
@@ -1094,6 +1101,6 @@ export function useSolicitudCredito() {
     montoTotalOperacion, pasoSolicitudValido,
     // Acciones
     siguiente, anterior, irAPaso, enviar, guardarPaso, formatMonto,
-    erroresCampos,
+    erroresCampos, erroresPaso2,
   }
 }

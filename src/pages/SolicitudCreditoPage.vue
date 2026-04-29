@@ -69,7 +69,7 @@ const {
   fechaSolicitud,
   mostrarTipoOperacion, mostrarValorCredito,
   mostrarValorReestructura, mostrarValorDesembolso, mostrarCuentaDesembolso,
-  salarioBloqueado, montoTotalOperacion, pasoSolicitudValido, erroresCampos,
+  salarioBloqueado, montoTotalOperacion, pasoSolicitudValido, erroresCampos, erroresPaso2,
   siguiente, anterior, irAPaso, enviar, guardarPaso, formatMonto,
 } = useSolicitudCredito()
 
@@ -206,7 +206,7 @@ function cerrarPreviewDoc() {
 }
 
 function continuar() {
-  if (paso.value === 2 && !pasoSolicitudValido.value) {
+  if (paso.value === 2 && erroresPaso2.value.length > 0) {
     intentoContinuarPaso2.value = true
     return
   }
@@ -2201,15 +2201,15 @@ function onOtpValidado() {
             </div>
           </div>
 
-          <div v-if="intentoContinuarPaso2 && !pasoSolicitudValido" :style="{ borderRadius: 'var(--r-md)', padding: 'var(--sp-md) var(--sp-lg)', background: '#fff8f0', display: 'flex', gap: 'var(--sp-md)' }">
+          <div v-if="intentoContinuarPaso2 && erroresPaso2.length > 0" :style="{ borderRadius: 'var(--r-md)', padding: 'var(--sp-md) var(--sp-lg)', background: '#fff8f0', display: 'flex', gap: 'var(--sp-md)' }">
             <IconAlertTriangle :size="20" style="color: var(--color-impulso); flex-shrink: 0; margin-top: 2px;" />
             <div>
               <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-impulso)', marginBottom: 'var(--sp-xs)' }">
-                No puede continuar: faltan {{ erroresCampos.length }} campo{{ erroresCampos.length > 1 ? 's' : '' }} obligatorio{{ erroresCampos.length > 1 ? 's' : '' }} por completar:
+                No puede continuar: faltan {{ erroresPaso2.length }} campo{{ erroresPaso2.length > 1 ? 's' : '' }} obligatorio{{ erroresPaso2.length > 1 ? 's' : '' }} por completar:
               </div>
               <div :style="{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-xs)' }">
                 <span
-                  v-for="err in erroresCampos"
+                  v-for="err in erroresPaso2"
                   :key="err"
                   :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-impulso)', background: 'rgba(254,153,50,0.12)', borderRadius: 'var(--r-sm)', padding: '2px 8px' }"
                 >{{ err }}</span>
