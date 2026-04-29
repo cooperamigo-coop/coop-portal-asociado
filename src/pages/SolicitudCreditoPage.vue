@@ -63,7 +63,7 @@ const {
   personaCod2, laboralCod2, financieraCod2, patrimonioCod2,
   ubicacionResidencia,
   ubicacionCod1, ubicacionCod2,
-  autorizaciones, firma,
+  autorizaciones, asesoria, firma,
   documentos,
   solicitudId,
   fechaSolicitud,

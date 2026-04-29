@@ -638,7 +638,7 @@ export function useSolicitudCredito() {
       ...(numCodudores.value >= 1 ? laboralCod1.value : {}),
       ...(numCodudores.value >= 1 ? financieraCod1.value : {}),
       numero_dependientes_codeudor: (numCodudores.value >= 1 && financieraCod1.value.numero_dependientes_codeudor)
-        ? Number(financieraCod1.value.numero_dependientes_codeudor) : 0,
+        ? Number(financieraCod1.value.numero_dependientes_codeudor) : null,
       ...(numCodudores.value >= 1 ? patrimonioCod1.value : {}),
       ...(numCodudores.value >= 1 ? {
         ciudad_codeudor: ubicacionCod1.value.municipio_nombre,
@@ -659,7 +659,7 @@ export function useSolicitudCredito() {
       ...(numCodudores.value >= 2 ? laboralCod2.value : {}),
       ...(numCodudores.value >= 2 ? financieraCod2.value : {}),
       numero_dependientes_codeudor2: (numCodudores.value >= 2 && financieraCod2.value.numero_dependientes_codeudor2)
-        ? Number(financieraCod2.value.numero_dependientes_codeudor2) : 0,
+        ? Number(financieraCod2.value.numero_dependientes_codeudor2) : null,
       ...(numCodudores.value >= 2 ? patrimonioCod2.value : {}),
       ...(numCodudores.value >= 2 ? {
         ciudad_codeudor2: ubicacionCod2.value.municipio_nombre,

@@ -7,4 +7,10 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Faltan variables VITE_SUPABASE_URL o VITE_SUPABASE_ANON_KEY')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+})
