@@ -1,4 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { PROXIMAMENTE } from '@/config/flags'
+
+// Rutas que requieren que el portal esté habilitado (PROXIMAMENTE = false)
+const RUTAS_BLOQUEADAS_EN_MODO_PROXIMAMENTE = ['solicitar-credito', 'solicitar-afiliacion']
 
 const routes = [
   {
@@ -34,7 +38,15 @@ const routes = [
   },
 ]
 
-export default createRouter({
+const router = createRouter({
   history: createWebHistory(),
   routes,
 })
+
+router.beforeEach((to) => {
+  if (PROXIMAMENTE && RUTAS_BLOQUEADAS_EN_MODO_PROXIMAMENTE.includes(to.name)) {
+    return { name: 'home' }
+  }
+})
+
+export default router

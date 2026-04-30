@@ -77,6 +77,7 @@ const modalAutorizacionesVisible = ref(false)
 const aceptaCondiciones = ref(false)
 const errorCorreo = ref(null)
 const errorPlazo   = ref(null)
+const documentosCompletos = ref(false)
 const plazoFocused = ref(false)
 
 // ── Tab activa en la sección de codeudores ─────────────────
@@ -211,6 +212,9 @@ function continuar() {
     return
   }
   if (paso.value === 3 && hayErroresDuplicidad.value) {
+    return
+  }
+  if (paso.value === 4 && !documentosCompletos.value) {
     return
   }
   if (paso.value === 4 && !autorizaciones.value.autorizacion_aceptada) {
@@ -2487,6 +2491,7 @@ function onOtpValidado() {
               :laboral-cod2="laboralCod2"
               titulo=""
               @update:model-value="actualizarDocumentos($event)"
+              @update:documentos-completos="documentosCompletos = $event"
               @sesion-creada="onSesionCapturaCreada"
             />
           </div>
@@ -3453,7 +3458,7 @@ function onOtpValidado() {
       <!-- Navegación -->
       <div :style="{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--sp-2xl)', gap: 'var(--sp-md)' }">
         <PortalButton variant="secondary" @click="paso === 1 ? router.push('/') : anterior()">{{ paso === 1 ? 'Cancelar' : 'Anterior' }}</PortalButton>
-        <PortalButton v-if="!esUltimoPaso && paso !== 1" variant="primary" :loading="loading" :disabled="paso === 4 && !autorizaciones.autorizacion_aceptada" @click="continuar()">Continuar</PortalButton>
+        <PortalButton v-if="!esUltimoPaso && paso !== 1" variant="primary" :loading="loading" :disabled="paso === 4 && (!documentosCompletos || !autorizaciones.autorizacion_aceptada)" @click="continuar()">Continuar</PortalButton>
       </div>
     </div>
 

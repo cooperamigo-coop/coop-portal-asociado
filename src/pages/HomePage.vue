@@ -3,14 +3,18 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { IconCreditCard, IconUserPlus, IconUserMinus, IconClipboardList, IconFileText, IconArrowRight, IconArrowLeft, IconClock, IconWorld } from '@tabler/icons-vue'
 import PortalFooter from '@/components/layout/PortalFooter.vue'
+import { PROXIMAMENTE as proximamente } from '@/config/flags'
 
 const router = useRouter()
 const route = useRoute()
 const paso = ref('pregunta') // 'pregunta' | 'asociado' | 'no-asociado'
 
+<<<<<<< HEAD
 // Cambiar a true para bloquear el acceso con el mensaje "Pronto habilitaremos..."
 const proximamente = false
 
+=======
+>>>>>>> 60754856f017f930abc74a45e4e397f3c97fae12
 onMounted(() => {
   if (route.query.vista === 'no-asociado') paso.value = 'no-asociado'
 })
