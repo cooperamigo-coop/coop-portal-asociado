@@ -124,8 +124,9 @@ async function confirmar() {
     console.log(`[confirmar] Enviando ${lado}, tamaño: ${fotoBlob.value.size} bytes`)
 
     const res = await fetch(`${EF_BASE}/subir/${token.value}`, {
-      method: 'POST',
-      body:   fd,
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
+      body:    fd,
     })
 
     console.log(`[confirmar] Respuesta: ${res.status}`)

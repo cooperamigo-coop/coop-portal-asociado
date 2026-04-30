@@ -1,10 +1,10 @@
 import { supabase } from './supabase'
 
-const DEFAULT_BUCKET = 'documentos'
+const DEFAULT_BUCKET = 'documentos-solicitudes'
 const BUCKETS_CANDIDATOS = [
   import.meta.env.VITE_SUPABASE_STORAGE_BUCKET,
   DEFAULT_BUCKET,
-  'documentos-solicitudes',
+  'documentos',
   'documentos_solicitudes',
   'documentos-solicitud',
 ].filter(Boolean)
@@ -25,24 +25,27 @@ export async function subirDocumentoSolicitud(solicitudId, tipo, archivo) {
   if (_bucketConfirmado) {
     const { error } = await supabase.storage
       .from(_bucketConfirmado)
-      .upload(ruta, archivo, { upsert: true })
-    if (error) throw error
-    const { data } = supabase.storage.from(_bucketConfirmado).getPublicUrl(ruta)
-    return data.publicUrl
+      .upload(ruta, archivo)
+    if (!error) {
+      const { data } = supabase.storage.from(_bucketConfirmado).getPublicUrl(ruta)
+      return data.publicUrl
+    }
+    // Reset on failure so the loop below can try other buckets
+    _bucketConfirmado = null
   }
 
   let ultimoError = null
   for (const bucket of BUCKETS_CANDIDATOS) {
     const { error } = await supabase.storage
       .from(bucket)
-      .upload(ruta, archivo, { upsert: true })
+      .upload(ruta, archivo)
     if (!error) {
       _bucketConfirmado = bucket
       const { data } = supabase.storage.from(bucket).getPublicUrl(ruta)
       return data.publicUrl
     }
     const msg = String(error?.message || '')
-    if (msg.includes('Bucket not found')) {
+    if (msg.includes('Bucket not found') || msg.includes('row-level security') || msg.includes('Unauthorized')) {
       ultimoError = error
       continue
     }

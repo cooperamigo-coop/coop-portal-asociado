@@ -1,7 +1,7 @@
 import { ref, onUnmounted } from 'vue'
 import QRCode from 'qrcode'
 import { supabase } from '@/services/supabase'
-import { crearSesionCaptura, subirFotoCaptura, vincularSolicitudCaptura } from '@/services/captura.service'
+import { crearSesionCaptura, subirFotoCaptura, vincularSolicitudCaptura, consultarEstadoCaptura } from '@/services/captura.service'
 import { generarPdfCedula } from '@/utils/pdfGenerator'
 import { subirDocumentoSolicitud } from '@/services/documentos.service'
 
@@ -102,13 +102,11 @@ export function useCapturaDocumento() {
       _pollTimeout = setTimeout(async () => {
         if (!['esperando_qr', 'capturando_movil'].includes(estado.value)) return
         try {
-          const { data, error: err } = await supabase
-            .from('sesiones_captura_documento')
-            .select('estado, url_frente, url_reverso')
-            .eq('id', sId)
-            .single()
-
-          if (!err && data) {
+          // Direct PostgREST query is blocked by RLS (requires x-capture-token header
+          // which PostgREST can't receive from a Realtime/trigger context).
+          // The Edge Function runs as service role and bypasses RLS.
+          const data = await consultarEstadoCaptura(token.value)
+          if (data) {
             aplicarActualizacion(data)
             if (data.estado === 'completado') {
               desuscribir()
