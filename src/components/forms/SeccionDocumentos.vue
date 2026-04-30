@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { IconUpload, IconCircleCheck, IconX, IconFileDescription, IconLoader2, IconRefresh, IconEye, IconUser, IconUsers } from '@tabler/icons-vue'
 import CapturaDocumento from '@/components/forms/CapturaDocumento.vue'
 import { subirDocumentoSolicitud, obtenerMensajeErrorSubidaDocumento } from '@/services/documentos.service'
@@ -18,6 +18,7 @@ const props = defineProps({
 const emit = defineEmits([
   'update:modelValue',
   'sesion-creada',
+  'update:documentosCompletos',
 ])
 
 // ── Helpers ────────────────────────────────────────────────
@@ -154,6 +155,33 @@ const docsAdicionalesCod2 = computed(() => {
     descripcion: `Cargue el ${info.desc.toLowerCase()} del segundo codeudor en PDF.`,
   }]
 })
+
+// ── Validación documentos obligatorios ─────────────────────
+const todosObligatoriosCompletos = computed(() => {
+  // Cédula titular
+  if (!props.modelValue.doc_cedula_solicitante_url) return false
+  // Docs adicionales titular (carta laboral, colillas, etc.)
+  for (const doc of docsAdicionalesTitular.value) {
+    if (!props.modelValue[doc.campo]) return false
+  }
+  // Codeudor 1
+  if (props.numCodeudores >= 1) {
+    if (!props.modelValue.doc_cedula_codeudor_url) return false
+    for (const doc of docsAdicionalesCod1.value) {
+      if (!props.modelValue[doc.campo]) return false
+    }
+  }
+  // Codeudor 2
+  if (props.numCodeudores >= 2) {
+    if (!props.modelValue.doc_cedula_codeudor2_url) return false
+    for (const doc of docsAdicionalesCod2.value) {
+      if (!props.modelValue[doc.campo]) return false
+    }
+  }
+  return true
+})
+
+watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', val), { immediate: true })
 </script>
 
 <template>

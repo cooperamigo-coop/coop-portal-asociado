@@ -305,7 +305,7 @@ const valorFormateado = computed(() => {
               :style="{
                 overflowY:      'scroll',
                 height:         '100%',
-                padding:        '80px 0',
+                padding:        `calc(50% - ${ITEM_H / 2}px) 0`,
                 scrollbarWidth: 'none',
                 msOverflowStyle:'none',
                 position:       'relative',
@@ -338,7 +338,7 @@ const valorFormateado = computed(() => {
               :style="{
                 overflowY:      'scroll',
                 height:         '100%',
-                padding:        '80px 0',
+                padding:        `calc(50% - ${ITEM_H / 2}px) 0`,
                 scrollbarWidth: 'none',
                 msOverflowStyle:'none',
                 position:       'relative',
@@ -371,7 +371,7 @@ const valorFormateado = computed(() => {
               :style="{
                 overflowY:      'scroll',
                 height:         '100%',
-                padding:        '80px 0',
+                padding:        `calc(50% - ${ITEM_H / 2}px) 0`,
                 scrollbarWidth: 'none',
                 msOverflowStyle:'none',
                 position:       'relative',
