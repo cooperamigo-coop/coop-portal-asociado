@@ -5,11 +5,11 @@ import { IconCreditCard, IconUserPlus, IconUserMinus, IconClipboardList, IconFil
 import PortalFooter from '@/components/layout/PortalFooter.vue'
 
 const router = useRouter()
-const route  = useRoute()
+const route = useRoute()
 const paso = ref('pregunta') // 'pregunta' | 'asociado' | 'no-asociado'
 
 // Cambiar a true para bloquear el acceso con el mensaje "Pronto habilitaremos..."
-const proximamente = true
+const proximamente = false
 
 onMounted(() => {
   if (route.query.vista === 'no-asociado') paso.value = 'no-asociado'
@@ -77,21 +77,13 @@ const SERVICIOS_NO_ASOCIADO = [
     <header class="portal-topbar">
       <!-- Desktop: Visitar sitio, izquierda -->
       <div class="topbar-desktop">
-        <a
-          href="https://cooperamigo.coop"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="topbar-visit"
-        ><IconWorld :size="14" />Cooperamigo.coop</a>
+        <a href="https://cooperamigo.coop" target="_blank" rel="noopener noreferrer" class="topbar-visit">
+          <IconWorld :size="14" />Cooperamigo.coop
+        </a>
       </div>
       <!-- Mobile: link a cooperamigo.coop -->
-      <a
-        href="https://cooperamigo.coop"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="topbar-back"
-        aria-label="Visitar cooperamigo.coop"
-      >
+      <a href="https://cooperamigo.coop" target="_blank" rel="noopener noreferrer" class="topbar-back"
+        aria-label="Visitar cooperamigo.coop">
         <IconArrowLeft :size="18" />
       </a>
       <!-- Mobile: logo centrado blanco -->
@@ -116,12 +108,12 @@ const SERVICIOS_NO_ASOCIADO = [
       <!-- Anillos decorativos -->
       <div class="deco-ring deco-ring--primary" aria-hidden="true">
         <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">
-          <circle cx="100" cy="100" r="80" fill="none" stroke="var(--color-primary)" stroke-width="30"/>
+          <circle cx="100" cy="100" r="80" fill="none" stroke="var(--color-primary)" stroke-width="30" />
         </svg>
       </div>
       <div class="deco-ring deco-ring--accent" aria-hidden="true">
         <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">
-          <circle cx="100" cy="100" r="80" fill="none" stroke="var(--color-accent)" stroke-width="30"/>
+          <circle cx="100" cy="100" r="80" fill="none" stroke="var(--color-accent)" stroke-width="30" />
         </svg>
       </div>
 
@@ -131,22 +123,15 @@ const SERVICIOS_NO_ASOCIADO = [
         <div v-if="paso === 'pregunta'" class="vista animate-in">
           <img src="/favicon.svg" alt="Cooperamigó" class="hero-favicon" />
           <h1 class="hero-title">¡Te damos la bienvenida!</h1>
-          <p class="hero-question">¿Ya haces parte de Cooperamigó?<br>Accede a los trámites digitales o inicia tu proceso de vinculación como asociado de la Cooperativa.</p>
+          <p class="hero-question">¿Ya haces parte de Cooperamigó?<br>Accede a los trámites digitales o inicia tu
+            proceso de vinculación como asociado de la Cooperativa.</p>
           <div class="opciones">
-            <button
-              class="btn-opcion btn-opcion--primary"
-              :class="{ 'btn-opcion--disabled': proximamente }"
-              :disabled="proximamente"
-              @click="!proximamente && (paso = 'asociado')"
-            >
+            <button class="btn-opcion btn-opcion--primary" :class="{ 'btn-opcion--disabled': proximamente }"
+              :disabled="proximamente" @click="!proximamente && (paso = 'asociado')">
               Soy asociado
             </button>
-            <button
-              class="btn-opcion btn-opcion--secondary"
-              :class="{ 'btn-opcion--disabled': proximamente }"
-              :disabled="proximamente"
-              @click="!proximamente && (paso = 'no-asociado')"
-            >
+            <button class="btn-opcion btn-opcion--secondary" :class="{ 'btn-opcion--disabled': proximamente }"
+              :disabled="proximamente" @click="!proximamente && (paso = 'no-asociado')">
               Quiero afiliarme
             </button>
           </div>
@@ -162,13 +147,9 @@ const SERVICIOS_NO_ASOCIADO = [
             Volver
           </button>
           <div class="services-list">
-            <div
-              v-for="srv in SERVICIOS_ASOCIADO.filter(s => s.id === 'credito' || s.id === 'retiro')"
-              :key="srv.id"
-              class="service-row"
-              :class="srv.disponible ? 'service-row--on' : 'service-row--off'"
-              @click="srv.disponible && router.push(srv.ruta)"
-            >
+            <div v-for="srv in SERVICIOS_ASOCIADO.filter(s => s.id === 'credito' || s.id === 'retiro')" :key="srv.id"
+              class="service-row" :class="srv.disponible ? 'service-row--on' : 'service-row--off'"
+              @click="srv.disponible && router.push(srv.ruta)">
               <div class="row-icon" :style="{ background: srv.iconoBg }">
                 <component :is="srv.icono" :size="20" :style="{ color: srv.iconoColor }" />
               </div>
@@ -196,12 +177,8 @@ const SERVICIOS_NO_ASOCIADO = [
             Volver
           </button>
           <div class="services-list">
-            <div
-              v-for="srv in SERVICIOS_NO_ASOCIADO"
-              :key="srv.id"
-              class="service-row service-row--on"
-              @click="router.push(srv.ruta)"
-            >
+            <div v-for="srv in SERVICIOS_NO_ASOCIADO" :key="srv.id" class="service-row service-row--on"
+              @click="router.push(srv.ruta)">
               <div class="row-icon" :style="{ background: srv.iconoBg }">
                 <component :is="srv.icono" :size="20" :style="{ color: srv.iconoColor }" />
               </div>
@@ -210,7 +187,9 @@ const SERVICIOS_NO_ASOCIADO = [
                 <div class="row-desc">{{ srv.descripcion }}</div>
               </div>
               <div class="row-action">
-                <span class="row-arrow"><IconArrowRight :size="16" /></span>
+                <span class="row-arrow">
+                  <IconArrowRight :size="16" />
+                </span>
               </div>
             </div>
           </div>
@@ -434,7 +413,7 @@ const SERVICIOS_NO_ASOCIADO = [
   transition: background var(--transition-fast);
 }
 
-.service-row + .service-row {
+.service-row+.service-row {
   border-top: 1px solid var(--color-border-card);
 }
 
@@ -489,7 +468,9 @@ const SERVICIOS_NO_ASOCIADO = [
   text-overflow: ellipsis;
 }
 
-.row-action { flex-shrink: 0; }
+.row-action {
+  flex-shrink: 0;
+}
 
 .row-arrow {
   display: flex;
@@ -518,8 +499,15 @@ const SERVICIOS_NO_ASOCIADO = [
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ─── Topbar ─── */
@@ -555,11 +543,20 @@ const SERVICIOS_NO_ASOCIADO = [
   text-decoration: none;
   transition: color var(--transition-fast);
 }
-.topbar-visit:hover { color: var(--color-primary-dark); text-decoration: underline; }
+
+.topbar-visit:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
 
 /* Mobile: ocultos en desktop */
-.topbar-back { display: none; }
-.topbar-logo { display: none; }
+.topbar-back {
+  display: none;
+}
+
+.topbar-logo {
+  display: none;
+}
 
 /* ─── Badge VIGILADA lateral (position fixed, solo desktop) ─── */
 .vigilada-badge {
@@ -620,8 +617,13 @@ const SERVICIOS_NO_ASOCIADO = [
   }
 
   /* Desktop elements: ocultos */
-  .topbar-desktop { display: none; }
-  .vigilada-badge { display: none; }
+  .topbar-desktop {
+    display: none;
+  }
+
+  .vigilada-badge {
+    display: none;
+  }
 
   /* Flecha: link a cooperamigo.com */
   .topbar-back {
@@ -636,6 +638,7 @@ const SERVICIOS_NO_ASOCIADO = [
     flex-shrink: 0;
     transition: background var(--transition-fast), color var(--transition-fast);
   }
+
   .topbar-back:hover {
     background: rgba(255, 255, 255, 0.12);
     color: #ffffff;
@@ -653,6 +656,9 @@ const SERVICIOS_NO_ASOCIADO = [
   }
 
   /* Main ocupa toda la pantalla → footer queda fuera del viewport (hay que hacer scroll) */
-  .home-main { min-height: calc(100vh - 52px); align-items: center; }
+  .home-main {
+    min-height: calc(100vh - 52px);
+    align-items: center;
+  }
 }
 </style>

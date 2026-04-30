@@ -39,7 +39,7 @@ export async function consultarEstadoSolicitud(consecutivo) {
       created_at, fecha_aprobacion, fecha_desembolso
     `)
     .eq('consecutivo', consecutivo)
-    .single()
+    .maybeSingle()
   if (error) throw error
-  return data
+  return data // null si no existe el consecutivo
 }

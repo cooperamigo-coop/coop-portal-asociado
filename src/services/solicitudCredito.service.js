@@ -12,13 +12,13 @@ export async function verificarAsociado(numeroDocumento, tipoDocumento) {
 }
 
 export async function crearBorrador(datos) {
-  const { data, error } = await supabase
+  // UUID generado en cliente para evitar PGRST116 cuando RLS bloquea el read-back del INSERT
+  const id = crypto.randomUUID()
+  const { error } = await supabase
     .from('solicitudes_credito_portal')
-    .insert({ ...datos, estado: 'borrador' })
-    .select('id')
-    .single()
+    .insert({ id, ...datos, estado: 'borrador' })
   if (error) throw error
-  return data
+  return { id }
 }
 
 export async function actualizarBorrador(id, datos) {
@@ -40,8 +40,9 @@ export async function enviarSolicitud(id) {
     .update({ estado: 'enviado' })
     .eq('id', id)
     .select()
-    .single()
+    .maybeSingle()
   if (error) throw error
+  if (!data) throw new Error('Solicitud no encontrada o ya fue enviada')
   return data
 }
 
