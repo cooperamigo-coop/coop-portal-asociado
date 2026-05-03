@@ -9,12 +9,7 @@ const router = useRouter()
 const route = useRoute()
 const paso = ref('pregunta') // 'pregunta' | 'asociado' | 'no-asociado'
 
-<<<<<<< HEAD
-// Cambiar a true para bloquear el acceso con el mensaje "Pronto habilitaremos..."
-const proximamente = false
 
-=======
->>>>>>> 60754856f017f930abc74a45e4e397f3c97fae12
 onMounted(() => {
   if (route.query.vista === 'no-asociado') paso.value = 'no-asociado'
 })
