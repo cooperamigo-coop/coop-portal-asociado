@@ -7,7 +7,7 @@ import {
   notificarCodudores,
   notificarTitularSolicitudRadicada,
 } from '@/services/solicitudCredito.service'
-import { actualizarCamposAsociado, buscarAsociadoPorCedula } from '@/services/afiliacion.service'
+import { actualizarCamposAsociado, buscarAsociadoPorCedula, actualizarEmailAsociado } from '@/services/afiliacion.service'
 import { supabase } from '@/services/supabase'
 import { sanitizarObjeto, verificarRateLimit, registrarIntento } from '@/utils/seguridad'
 import {
@@ -574,7 +574,12 @@ export function useSolicitudCredito() {
 
       persona.value.numero_identificacion = verificacion.value.numero_documento
       persona.value.tipo_documento = verificacion.value.tipo_documento
-      persona.value.correo_electronico = verificacion.value.correo
+
+      const correoVerificado = verificacion.value.correo.trim()
+      persona.value.correo_electronico = correoVerificado
+
+      // Actualizar email en asociados vía RPC (SECURITY DEFINER, no depende de id ni RLS)
+      actualizarEmailAsociado(verificacion.value.numero_documento, correoVerificado).catch(() => {})
 
       const borrador = recuperarBorradorLocal(verificacion.value.correo)
       if (borrador) {
@@ -725,7 +730,9 @@ export function useSolicitudCredito() {
     if (nuevoValor === undefined || nuevoValor === null || nuevoValor === '') return
 
     const valorActual = asociadoVerificado.value[columnaAsociado]
-    if (valorActual === nuevoValor) return
+    if (columnaAsociado === 'email') {
+      if ((valorActual ?? '').trim().toLowerCase() === nuevoValor.trim().toLowerCase()) return
+    } else if (valorActual === nuevoValor) return
     try {
       await actualizarCamposAsociado(asociadoVerificado.value.id, { [columnaAsociado]: nuevoValor })
       asociadoVerificado.value = { ...asociadoVerificado.value, [columnaAsociado]: nuevoValor }
@@ -742,7 +749,7 @@ export function useSolicitudCredito() {
   // persona
   watch(() => persona.value.nombres, v => _syncDebounced('nombres', v))
   watch(() => persona.value.apellidos, v => _syncDebounced('apellidos', v))
-  watch(() => persona.value.correo_electronico, v => _syncDebounced('email', v))
+  watch(() => persona.value.correo_electronico, v => _syncDebounced('email', v ? v.trim() : v))
   watch(() => persona.value.tipo_documento, v => _sincronizarCampoAsociado('tipo_identificacion', v))
   watch(() => persona.value.nivel_educativo_solicitante, v => _sincronizarCampoAsociado('nivel_academico', v))
   watch(() => persona.value.fecha_nacimiento, v => _sincronizarCampoAsociado('fecha_nacimiento', v))

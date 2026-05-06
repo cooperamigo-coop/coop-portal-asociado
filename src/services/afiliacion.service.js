@@ -18,6 +18,15 @@ export async function actualizarCamposAsociado(id, campos) {
   if (error) throw error
 }
 
+export async function actualizarEmailAsociado(cedula, email) {
+  const { data, error } = await supabase.rpc('actualizar_email_asociado_portal', {
+    p_cedula: cedula,
+    p_nuevo_email: email.trim(),
+  })
+  if (error) throw error
+  return data // true = actualizado, false = mismo correo o cedula no encontrada
+}
+
 export async function crearAsociadoAfiliacion(payload) {
   const { data, error } = await supabase
     .from('asociados')
