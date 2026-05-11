@@ -43,7 +43,7 @@ const CSP = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",  // unsafe-inline requerido por CSS custom properties
-  "img-src 'self' data: blob:",         // data: para QR; blob: para previews de archivos
+  `img-src 'self' data: blob: ${supabaseUrl}`,  // data: QR; blob: previews; supabase: storage
   `connect-src ${connectSrc}`,
   "font-src 'self'",
   "frame-ancestors 'none'",            // previene clickjacking (solo funciona como HTTP header)

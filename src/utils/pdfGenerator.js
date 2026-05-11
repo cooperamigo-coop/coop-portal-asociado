@@ -17,15 +17,19 @@ export async function generarPdfCedula(imagenFrente, imagenReverso) {
   const espacioVertical = pageHeight - (margin * 2) - separacion - (etiquetaH * 2)
   const maxHeightPorImagen = espacioVertical / 2
 
-  const cargarImagen = (src) => {
-    return new Promise((resolve, reject) => {
-      const img = new Image()
-      img.crossOrigin = 'Anonymous'
-      img.src = src
-      img.onload = () => resolve(img)
-      img.onerror = reject
-    })
-  }
+  const cargarImagen = (src) =>
+    fetch(src)
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status} al descargar imagen`)
+        return res.blob()
+      })
+      .then(blob => new Promise((resolve, reject) => {
+        const objectUrl = URL.createObjectURL(blob)
+        const img = new Image()
+        img.onload = () => resolve(img)
+        img.onerror = () => reject(new Error('No se pudo decodificar la imagen'))
+        img.src = objectUrl
+      }))
 
   try {
     const [imgF, imgR] = await Promise.all([
