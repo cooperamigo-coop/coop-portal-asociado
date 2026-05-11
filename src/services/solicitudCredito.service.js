@@ -46,6 +46,14 @@ export async function enviarSolicitud(id) {
   return data
 }
 
+export async function obtenerConsecutivoRadicado(solicitudId) {
+  const { data, error } = await supabase.rpc('obtener_consecutivo_radicado', {
+    p_id: solicitudId,
+  })
+  if (error) throw error
+  return data ?? 1
+}
+
 export async function notificarCodudores(solicitudId) {
   const { error } = await supabase.functions.invoke('notificar-codeudores', {
     body: { solicitud_id: solicitudId },

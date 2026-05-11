@@ -17,7 +17,9 @@ export function sanitizarObjeto(obj) {
   for (const [clave, valor] of Object.entries(obj)) {
     if (typeof valor === 'string') {
       const k = clave.toLowerCase()
+      // Campos que contienen URLs o base64 — no aplicar la regex de caracteres especiales
       const esUrl = k.startsWith('doc_') || k.endsWith('_url')
+        || k === 'firma_solicitante' || k === 'firma_codeudor_1' || k === 'firma_codeudor_2'
       if (esUrl) {
         // Las URLs de Storage no se sanitizan con la regex de caracteres especiales
         resultado[clave] = valor.trim() === '' ? null : valor.trim()

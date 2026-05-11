@@ -6,6 +6,7 @@ import {
   verificarAsociado,
   notificarCodudores,
   notificarTitularSolicitudRadicada,
+  obtenerConsecutivoRadicado,
 } from '@/services/solicitudCredito.service'
 import { actualizarCamposAsociado, buscarAsociadoPorCedula, actualizarEmailAsociado } from '@/services/afiliacion.service'
 import { supabase } from '@/services/supabase'
@@ -681,8 +682,9 @@ export function useSolicitudCredito() {
       // Asesoría — columna real en BD: tuvo_acompanamiento_asesor
       tuvo_acompanamiento_asesor: asesoria.value.tuvo_asesoria === true,
       codigo_asesor: asesoria.value.tuvo_asesoria === true ? asesoria.value.codigo_asesor : null,
-      // Firma
-      ...(firma.value?.nombre_firma ? { nombre_firma: firma.value.nombre_firma } : {}),
+      // Firma — nombre + imagen (base64 del dibujo o archivo subido)
+      ...(firma.value?.nombre_firma        ? { nombre_firma:       firma.value.nombre_firma }        : {}),
+      ...(firma.value?.firma_imagen_dataurl ? { firma_solicitante: firma.value.firma_imagen_dataurl } : {}),
       paso_actual: paso.value,
     }
   }
@@ -1037,7 +1039,7 @@ export function useSolicitudCredito() {
       // Guardar tokens en la BD antes de marcar como enviado
       await actualizarBorrador(solicitudId.value, datos)
 
-      await enviarSolicitud(solicitudId.value)
+      const solicitudEnviada = await enviarSolicitud(solicitudId.value)
 
       // Notificar codeudores por email (fire-and-forget)
       if (numCodudores.value >= 1) {
@@ -1045,9 +1047,10 @@ export function useSolicitudCredito() {
           console.warn('[SolicitudCredito] Error notificando codeudores:', e)
         )
       } else {
-        const radicado = solicitudId.value
-          ? `RAD-${String(fechaSolicitud.value || '').replaceAll('-', '')}-${String(solicitudId.value).slice(0, 8).toUpperCase()}`
-          : ''
+        const fechaEnvio = new Date(solicitudEnviada?.updated_at || Date.now())
+        const fechaStr = new Intl.DateTimeFormat('fr-CA', { timeZone: 'America/Bogota' }).format(fechaEnvio).replaceAll('-', '')
+        const consecutivo = await obtenerConsecutivoRadicado(solicitudId.value)
+        const radicado = `RAD-${fechaStr}-${String(consecutivo).padStart(3, '0')}`
         notificarTitularSolicitudRadicada({
           solicitudId: solicitudId.value,
           emailTitular: verificacion.value.correo,

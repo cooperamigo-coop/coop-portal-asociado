@@ -154,7 +154,9 @@ const refDias  = ref(null)
 const refMeses = ref(null)
 const refAnios = ref(null)
 
-const ITEM_H = 40
+const ITEM_H   = 40
+const DRUM_H   = 210                        // altura real del contenedor de tambores
+const DRUM_PAD = DRUM_H / 2 - ITEM_H / 2   // = 85px — padding fijo (no % de ancho)
 
 function scrollAIndex(el, index) {
   if (!el) return
@@ -305,7 +307,7 @@ const valorFormateado = computed(() => {
               :style="{
                 overflowY:      'scroll',
                 height:         '100%',
-                padding:        `calc(50% - ${ITEM_H / 2}px) 0`,
+                padding:        `${DRUM_PAD}px 0`,
                 scrollbarWidth: 'none',
                 msOverflowStyle:'none',
                 position:       'relative',
@@ -338,7 +340,7 @@ const valorFormateado = computed(() => {
               :style="{
                 overflowY:      'scroll',
                 height:         '100%',
-                padding:        `calc(50% - ${ITEM_H / 2}px) 0`,
+                padding:        `${DRUM_PAD}px 0`,
                 scrollbarWidth: 'none',
                 msOverflowStyle:'none',
                 position:       'relative',
@@ -371,7 +373,7 @@ const valorFormateado = computed(() => {
               :style="{
                 overflowY:      'scroll',
                 height:         '100%',
-                padding:        `calc(50% - ${ITEM_H / 2}px) 0`,
+                padding:        `${DRUM_PAD}px 0`,
                 scrollbarWidth: 'none',
                 msOverflowStyle:'none',
                 position:       'relative',
@@ -455,7 +457,7 @@ const valorFormateado = computed(() => {
   transition: border-bottom-color var(--transition-fast), box-shadow var(--transition-fast);
   display: flex;
   align-items: center;
-  padding: 16px 12px 0 12px; /* Espacio superior para label y lateral suave */
+  padding: 8px 12px 2px 12px; /* reducido: texto queda a ~30px sobre 54px (≈ centro visual) */
   box-sizing: border-box;
 }
 
@@ -510,7 +512,7 @@ const valorFormateado = computed(() => {
 }
 
 .fecha-field--floated .fecha-label {
-  top: 4px;
+  top: 3px;
   transform: translateY(0);
   font-size: 11px;
   font-weight: var(--fw-medium);
