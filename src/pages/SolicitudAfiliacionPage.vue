@@ -644,24 +644,6 @@ async function onVerificarYContinuarClick() {
       }">
         Su solicitud está en proceso de revisión. Le notificaremos por correo electrónico.
       </div>
-      <div v-if="solicitudCreada" :style="{
-          background: 'var(--color-bg-card)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--r-md)',
-          padding: 'var(--sp-lg) var(--sp-xl)',
-          marginBottom: 'var(--sp-xl)',
-          display: 'inline-block',
-        }">
-        <div :style="{
-          fontSize: 'var(--text-sm)', color: 'var(--color-text-3)',
-          fontWeight: 'var(--fw-semibold)', marginBottom: 'var(--sp-xs)',
-        }">Número de solicitud</div>
-        <div :style="{
-          fontFamily: 'var(--font-display)',
-          fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-extrabold)',
-          color: 'var(--color-primary)', letterSpacing: '0.05em',
-        }">{{ solicitudCreada.consecutivo ?? solicitudCreada.id }}</div>
-      </div>
       <PortalButton variant="primary" @click="router.push('/')">Volver al inicio</PortalButton>
     </div>
 

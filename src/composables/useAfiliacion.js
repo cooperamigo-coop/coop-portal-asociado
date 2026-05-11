@@ -814,18 +814,6 @@ export function useAfiliacion() {
         codigo_asesor:                    dc.tuvo_asesoria === true ? dc.codigo_asesor : null,
       })
 
-      try {
-        await supabase
-          .from('solicitudes_afiliacion')
-          .update({
-            documentos: {
-              cedula_url:                    documentos.value.doc_cedula_solicitante_url,
-              soporte_ingresos_laboral_url:  documentos.value.doc_soporte_ingresos_laboral_url,
-            },
-          })
-          .eq('id', solicitud.id)
-      } catch {}
-
       await registrarIntento(supabase, datosPersonales.value.cedula, 'afiliacion')
       await eliminarBorrador(emailInicial.value, 'afiliacion').catch(() => {})
 
