@@ -35,7 +35,7 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL ?? ''
 const supabaseWss = supabaseUrl.replace('https://', 'wss://')
 const apiBaseUrl  = process.env.VITE_API_BASE_URL ?? ''
 
-const connectSrc = ["'self'", supabaseUrl, supabaseWss, apiBaseUrl]
+const connectSrc = ["'self'", 'blob:', supabaseUrl, supabaseWss, apiBaseUrl]
   .filter(Boolean)
   .join(' ')
 
@@ -46,6 +46,7 @@ const CSP = [
   `img-src 'self' data: blob: ${supabaseUrl}`,  // data: QR; blob: previews; supabase: storage
   `connect-src ${connectSrc}`,
   "font-src 'self'",
+  `frame-src 'self' blob: ${supabaseUrl}`,      // blob: para preview de PDFs en iframe
   "frame-ancestors 'none'",            // previene clickjacking (solo funciona como HTTP header)
   "form-action 'self'",
   "base-uri 'self'",
@@ -58,7 +59,7 @@ const SEC_HEADERS = {
   'X-Frame-Options':           'DENY',
   'X-Content-Type-Options':    'nosniff',
   'Referrer-Policy':           'strict-origin-when-cross-origin',
-  'Permissions-Policy':        'camera=(), microphone=(), geolocation=()',
+  'Permissions-Policy':        'camera=(self), microphone=(), geolocation=()',
   'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
 }
 
