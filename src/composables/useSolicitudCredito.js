@@ -757,6 +757,7 @@ export function useSolicitudCredito() {
   watch(() => persona.value.fecha_nacimiento, v => _sincronizarCampoAsociado('fecha_nacimiento', v))
   watch(() => persona.value.fecha_expedicion_documento, v => _sincronizarCampoAsociado('fecha_expedicion', v))
   watch(() => persona.value.direccion_residencia, v => _syncDebounced('direccion', v))
+  watch(() => persona.value.celular, v => _syncDebounced('celular', v))
 
   // ubicación de residencia — municipio → ciudad
   watch(() => ubicacionResidencia.value.municipio_nombre, v => _syncDebounced('ciudad', v))
@@ -779,6 +780,10 @@ export function useSolicitudCredito() {
   watch(() => laboral.value.ocupacion, v => _syncDebounced('ocupacion', v))
   watch(() => laboral.value.tipo_contrato, v => _sincronizarCampoAsociado('tipo_contrato', v))
   watch(() => laboral.value.fecha_ingreso, v => _sincronizarCampoAsociado('fecha_ingreso_empresa', v))
+  watch(() => laboral.value.tipo_trabajador, v => _sincronizarCampoAsociado('tipo_trabajador', v))
+  watch(() => laboral.value.entidad_pagadora, v => _syncDebounced('entidad_pagadora', v))
+  watch(() => laboral.value.institucion_educativa, v => _syncDebounced('institucion_educativa', v))
+  watch(() => laboral.value.nivel_educativo, v => _sincronizarCampoAsociado('nivel_educativo', v))
 
   // laboral — limpiar campos al cambiar tipo de trabajador
   watch(() => laboral.value.tipo_trabajador, (nuevo, anterior) => {
@@ -867,10 +872,22 @@ export function useSolicitudCredito() {
   }, { deep: true })
 
   // financiera — campos individuales
-  watch(() => financiera.value.salario_ingresos_fijos, v => _syncDebounced('salario', v))
+  watch(() => financiera.value.salario_ingresos_fijos, v => {
+    _syncDebounced('salario', v)
+    _syncDebounced('salario_ingresos_fijos', v)
+  })
   watch(() => financiera.value.gastos_familiares, v => _syncDebounced('gastos_familiares', v))
-  watch(() => financiera.value.ingresos_independiente, v => _syncDebounced('otros_ingresos', v))
-  watch(() => financiera.value.obligaciones_financieras, v => _syncDebounced('cuotas_credito', v))
+  watch(() => financiera.value.ingresos_independiente, v => {
+    _syncDebounced('otros_ingresos', v)
+    _syncDebounced('ingresos_independiente', v)
+  })
+  watch(() => financiera.value.obligaciones_financieras, v => {
+    _syncDebounced('cuotas_credito', v)
+    _syncDebounced('obligaciones_financieras', v)
+  })
+  watch(() => financiera.value.otros_gastos, v => _syncDebounced('otros_gastos', v))
+  watch(() => financiera.value.fuente_ingresos, v => _sincronizarCampoAsociado('fuente_ingresos', v))
+  watch(() => financiera.value.mesada_pensional, v => _syncDebounced('mesada_pensional', v))
 
   // financiera — totales calculados
   watch(financiera, f => {
