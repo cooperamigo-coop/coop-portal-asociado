@@ -1461,8 +1461,7 @@ function actualizarPlazo(valor) {
   const max = maxPlazo.value
   const clamped = Math.min(Math.max(num, min), max)
   if (num > max) {
-    const label = esEducativo.value ? 'educativo' : 'ordinario'
-    errorPlazo.value = `Plazo máximo crédito ${label} es ${max} meses.`
+    errorPlazo.value = `Máximo ${max} meses`
   } else if (num < min) {
     errorPlazo.value = 'El plazo mínimo es 1 mes.'
   } else {
@@ -1888,7 +1887,31 @@ function onOtpValidado() {
               </div>
               <template v-if="!mostrarTipoOperacion || general.tipo_operacion">
                 <template v-if="esEducativo">
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '3fr 2fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
+                  <div v-if="isMobile" :style="{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--sp-lg)' }">
+                    <div :style="{ minWidth: 0 }">
+                      <CampoMoneda
+                        v-if="mostrarValorCredito"
+                        :model-value="general.valor_credito"
+                        label="Valor del crédito"
+                        required
+                        @update:model-value="actualizarGeneral('valor_credito', $event)"
+                        :style="{ width: '100%' }"
+                      />
+                    </div>
+                    <div :style="{ minWidth: 0 }">
+                      <CampoTexto
+                        :model-value="general.plazo_solicitado"
+                        label="Plazo (meses)"
+                        required
+                        solo-numeros
+                        :maxlength="2"
+                        :error="errorPlazo"
+                        @update:model-value="actualizarPlazo($event)"
+                        :style="{ width: '100%' }"
+                      />
+                    </div>
+                  </div>
+                  <div v-else :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
                     <CampoMoneda
                       v-if="mostrarValorCredito"
                       :model-value="general.valor_credito"
@@ -1906,7 +1929,6 @@ function onOtpValidado() {
                       @update:model-value="actualizarPlazo($event)"
                     />
                     <CampoSelectBuscable
-                      v-if="!isMobile"
                       :model-value="general.tipo_estudio"
                       label="Tipo de estudio"
                       required
@@ -1918,7 +1940,7 @@ function onOtpValidado() {
                     <CampoSelectBuscable :model-value="general.tipo_estudio" label="Tipo de estudio" required :opciones="opsTipoEstudio" @update:model-value="actualizarGeneral('tipo_estudio', $event)" />
                   </div>
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
-                    <CampoTexto :model-value="general.denominacion_carrera" label="Carrera o programa académico" required @update:model-value="actualizarGeneral('denominacion_carrera', $event)" />
+                    <CampoTexto :model-value="general.denominacion_carrera" label="Carrera o programa académico" required :maxlength="40" @update:model-value="actualizarGeneral('denominacion_carrera', $event ? $event.toUpperCase() : $event)" />
                     <CampoSelectBuscable :model-value="general.institucion" label="Institución" required :opciones="opsInstitucionEducativa" @update:model-value="actualizarGeneral('institucion', $event)" />
                   </div>
                 </template>
@@ -3432,7 +3454,7 @@ function onOtpValidado() {
           <div :style="{ borderRadius: 'var(--r-lg)', border: '2px solid var(--color-primary)', overflow: 'hidden' }">
             <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconShieldCheck :size="18" style="color: white;" />
-              <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'white' }">Firma electrónica de la solicitud</span>
+              <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'white' }">Firma solicitud de afiliación</span>
             </div>
             <div :style="{ padding: 'var(--sp-xl)', background: 'white', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
 

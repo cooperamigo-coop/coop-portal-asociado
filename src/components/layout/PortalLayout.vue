@@ -235,7 +235,7 @@ const router = useRouter()
 
 @media (max-width: 960px) {
   .portal-topbar {
-    position: relative;
+    position: absolute;
     background: transparent;
     justify-content: flex-start;
     padding: 0 16px;
