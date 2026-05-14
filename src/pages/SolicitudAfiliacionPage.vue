@@ -449,12 +449,9 @@ async function onVerificarYContinuarClick() {
     <div v-if="paso === 0" :style="{ maxWidth: '420px', width: '100%', margin: '0 auto' }">
 
       <div :style="{ marginBottom: 'var(--sp-2xl)' }">
-        <div :style="{
-          fontFamily: 'var(--font-display)',
-          fontSize:   'var(--text-xl)',
-          fontWeight: 'var(--fw-extrabold)',
-          color:      'var(--color-text-1)',
-        }">¡Saludos! Comencemos con tu solicitud</div>
+        <div class="step-greeting-title">
+          <span class="greeting-hi">¡Saludos!</span> <span class="greeting-sub">Comencemos con tu solicitud</span>
+        </div>
       </div>
 
       <!-- Borrador disponible -->
@@ -523,7 +520,7 @@ async function onVerificarYContinuarClick() {
 
       <!-- Formulario de verificación -->
       <template v-else>
-        <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+        <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)', padding: '0 var(--sp-xl)' }">
 
           <CampoTexto
             v-model="emailInicial"
@@ -577,6 +574,7 @@ async function onVerificarYContinuarClick() {
             <input
               type="checkbox"
               v-model="aceptaAutorizacion"
+              class="auth-checkbox"
               :style="{
                 marginTop: '3px', flexShrink: '0', cursor: 'pointer',
                 accentColor: 'var(--color-primary)', width: '15px', height: '15px',
@@ -586,7 +584,7 @@ async function onVerificarYContinuarClick() {
               fontSize: 'var(--text-xs)', color: 'var(--color-text-2)',
               fontWeight: 'var(--fw-medium)', lineHeight: '1.7',
             }">
-              Autorizo a la Cooperativa Multiactiva Luis Amigó para tratar mis datos personales con la finalidad de gestionar mi proceso de afiliación, contactarme y suministrarme información relacionada con los servicios y beneficios de la cooperativa.
+              Autorizo a Cooperamigó para tratar mis datos personales con la finalidad de gestionar mi proceso de afiliación, contactarme y suministrarme información relacionada con los servicios y beneficios de la cooperativa.
               Asimismo, autorizo, cuando sea necesario, la consulta de mi información en operadores de información y riesgo, con el fin de validar mis datos.
               Declaro que conozco mis derechos como titular de la información. Igualmente, manifiesto que he leído y acepto los
               <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">Términos y condiciones</a>
@@ -595,15 +593,14 @@ async function onVerificarYContinuarClick() {
             </span>
           </label>
 
-          <div :style="{
-            display: 'flex', justifyContent: 'space-between',
-            gap: 'var(--sp-md)', marginTop: 'var(--sp-sm)',
-          }">
-            <PortalButton variant="secondary" @click="router.push('/')">Volver</PortalButton>
+          <div :style="{ marginTop: 'var(--sp-sm)', width: '100%', maxWidth: '340px', margin: 'var(--sp-sm) auto 0' }">
             <PortalButton
               variant="primary"
-              :disabled="!pasoValido"
+              pill
+              small
+              :style="{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--sp-xs)' }"
               :loading="loadingVerificacion"
+              :disabled="!aceptaAutorizacion || !!errorEmail || !emailValidado"
               @click="onVerificarYContinuarClick"
             >
               Verificar y continuar
@@ -2208,6 +2205,71 @@ async function onVerificarYContinuarClick() {
 </template>
 
 <style scoped>
+.auth-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1.5px solid var(--color-border-card);
+  border-radius: 4px;
+  background: #fff;
+  position: relative;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.auth-checkbox:checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.auth-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  width: 5px;
+  height: 8px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+@keyframes entrarModal {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.step-greeting-title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--fw-extrabold);
+  color: var(--color-text-1);
+  line-height: 1.2;
+  text-align: center;
+}
+
+.greeting-hi {
+  color: var(--color-text-1);
+}
+
+.greeting-sub {
+  color: var(--color-text-1);
+  font-weight: var(--fw-medium);
+}
+
+@media (max-width: 480px) {
+  .step-greeting-title {
+    font-size: var(--text-lg);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .greeting-sub {
+    white-space: nowrap;
+  }
+}
+
 @keyframes entrarModal {
   from { opacity: 0; transform: translateY(16px) scale(0.96); }
   to   { opacity: 1; transform: translateY(0) scale(1); }

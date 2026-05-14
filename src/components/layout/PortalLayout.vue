@@ -11,7 +11,8 @@ const router = useRouter()
     minHeight: '100vh',
     background: 'var(--color-bg-card)',
     display: 'flex', flexDirection: 'column',
-    position: 'relative'
+    position: 'relative',
+    overflow: 'hidden'
   }">
     <!-- Topbar -->
     <header class="portal-topbar">
@@ -33,8 +34,6 @@ const router = useRouter()
       <button class="topbar-back" @click="router.push('/')" aria-label="Inicio">
         <IconArrowLeft :size="18" />
       </button>
-      <!-- Mobile: logo centrado blanco -->
-      <img src="/logo-principal.svg" alt="Cooperamigó" class="topbar-logo" />
     </header>
 
     <!-- Badge VIGILADA lateral (solo desktop) -->
@@ -95,7 +94,6 @@ const router = useRouter()
   left: 0;
   right: 0;
   bottom: 0;
-  overflow: hidden;
   pointer-events: none;
   z-index: 0;
 }
@@ -119,6 +117,7 @@ const router = useRouter()
   top: 0;
   left: 0;
   transform: translate(-50%, -50%);
+  z-index: 2;
 }
 
 .portal-main__inner {
@@ -237,7 +236,7 @@ const router = useRouter()
 @media (max-width: 960px) {
   .portal-topbar {
     position: relative;
-    background: var(--color-primary);
+    background: transparent;
     justify-content: flex-start;
     padding: 0 16px;
     height: 52px;
@@ -249,7 +248,7 @@ const router = useRouter()
   /* Badge lateral: oculto en mobile */
   .vigilada-badge { display: none; }
 
-  /* Flecha retroceso */
+  /* Botón retroceso */
   .topbar-back {
     display: flex;
     align-items: center;
@@ -257,27 +256,16 @@ const router = useRouter()
     width: 36px;
     height: 36px;
     border-radius: var(--r-pill);
-    color: rgba(255, 255, 255, 0.7);
-    background: none;
+    background: transparent;
     border: none;
     cursor: pointer;
+    color: var(--color-text-2);
     flex-shrink: 0;
     transition: background var(--transition-fast), color var(--transition-fast);
   }
   .topbar-back:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-  }
-
-  /* Logo blanco centrado */
-  .topbar-logo {
-    display: block;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    height: 24px;
-    object-fit: contain;
-    filter: brightness(0) invert(1);
+    background: var(--color-bg-surface);
+    color: var(--color-primary);
   }
 
   .portal-main { padding: 28px 20px; }

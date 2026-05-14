@@ -35,7 +35,7 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL ?? ''
 const supabaseWss = supabaseUrl.replace('https://', 'wss://')
 const apiBaseUrl  = process.env.VITE_API_BASE_URL ?? ''
 
-const connectSrc = ["'self'", 'blob:', supabaseUrl, supabaseWss, apiBaseUrl]
+const connectSrc = ["'self'", 'blob:', supabaseUrl, supabaseWss, apiBaseUrl, 'https://api.ipify.org']
   .filter(Boolean)
   .join(' ')
 

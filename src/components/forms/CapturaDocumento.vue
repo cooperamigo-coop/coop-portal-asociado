@@ -63,6 +63,9 @@ async function onFinalizar() {
     emit('completado', url)
   } catch (e) {
     console.error('Error al finalizar captura:', e)
+    // Volver a idle para que el usuario pueda subir PDF manualmente
+    cancelar()
+    _revocarPreviews()
   }
 }
 

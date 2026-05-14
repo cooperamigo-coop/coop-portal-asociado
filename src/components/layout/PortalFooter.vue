@@ -9,7 +9,7 @@
         </a>
       </div>
 
-      <!-- Col 2: copyright + NIT + email (una línea en desktop) + vigilada mobile -->
+      <!-- Col 2: copyright + NIT + email (una línea en desktop) -->
       <div class="footer-col-copy">
         <!-- Desktop: una sola línea -->
         <p class="footer-info-row footer-info--desktop">
@@ -19,13 +19,8 @@
           <span class="footer-sep">·</span>
           <span class="footer-email">info@cooperamigo.coop</span>
         </p>
-        <!-- Mobile: dos líneas -->
-        <p class="footer-info-row footer-info--mobile">© 2026 Cooperativa Multiactiva Luis Amigó - Cooperamigó</p>
-        <p class="footer-info-row footer-info--mobile footer-nit-mobile">
-          NIT 800.191.482-7
-          <span class="footer-sep">·</span>
-          <span class="footer-email">info@cooperamigo.coop</span>
-        </p>
+        <!-- Mobile: simplificado -->
+        <p class="footer-info-row footer-info--mobile">© 2026 Cooperativa Multiactiva Luis Amigó</p>
 
         <div class="footer-info-row footer-links">
           <a href="https://cooperamigo.coop/aviso-privacidad" target="_blank" rel="noopener noreferrer" class="footer-link">
@@ -43,15 +38,6 @@
             <span class="text-mobile">Términos</span>
           </a>
         </div>
-
-        <div class="footer-vigilada-mobile">
-          <div class="fvm-block">
-            <span class="fvm-line"></span>
-            <span class="fvm-vigilada">VIGILADA</span>
-            <span class="fvm-line"></span>
-          </div>
-          <span class="fvm-nombre">SUPERSOLIDARIA</span>
-        </div>
       </div>
 
 
@@ -62,7 +48,7 @@
 <style scoped>
 .portal-footer {
   background: var(--color-primary);
-  padding: 16px 48px;
+  padding: 24px 48px;
   flex-shrink: 0;
 }
 
@@ -167,48 +153,32 @@
 }
 
 /* Mobile: ocultar versión desktop de las líneas */
-.footer-info--mobile    { display: none; }
-.footer-vigilada-mobile { display: none; }
+.footer-info--mobile { display: none; }
 
 .footer-col-spacer { /* balance visual */ }
 
 @media (max-width: 960px) {
-  .portal-footer { padding: 12px 24px; }
-  .footer-inner   { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .portal-footer { padding: 16px 24px; }
+  .footer-inner   { display: flex; flex-direction: column; align-items: center; gap: 12px; }
   .footer-col-logo   { display: none; }
   .footer-col-spacer { display: none; }
-  .footer-col-copy   { gap: 8px; align-items: center; text-align: center; }
+  .footer-col-copy   { gap: 10px; align-items: center; text-align: center; }
   .footer-info--desktop { display: none; }
   .footer-info--mobile  { display: flex; }
-  .footer-vigilada-mobile {
-    display: flex;
-    align-items: center;
+  .footer-info--mobile {
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.5);
+  }
+  .footer-email-mobile {
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+  }
+  .footer-links {
+    margin-top: 2px;
     gap: 8px;
   }
-  .fvm-block {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 2px;
-  }
-  .fvm-line {
-    display: block;
-    height: 1.5px;
-    background: rgba(255, 255, 255, 0.35);
-    border-radius: 1px;
-  }
-  .fvm-vigilada {
-    font-size: 0.5rem;
-    font-weight: var(--fw-extrabold);
-    letter-spacing: 0.2em;
-    color: rgba(255, 255, 255, 0.55);
-    line-height: 1.5;
-  }
-  .fvm-nombre {
-    font-size: 0.5rem;
-    font-weight: var(--fw-semibold);
-    letter-spacing: 0.08em;
-    color: rgba(255, 255, 255, 0.38);
+  .footer-link {
+    font-size: 0.68rem;
   }
 }
 </style>
