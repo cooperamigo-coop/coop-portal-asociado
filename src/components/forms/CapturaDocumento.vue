@@ -163,7 +163,7 @@ const LADOS = [
         </button>
       </div>
 
-      <div v-else-if="estado === 'idle'" :style="{ display: 'flex', gap: 'var(--sp-sm)' }">
+      <div v-else-if="estado === 'idle' || estado === 'error'" :style="{ display: 'flex', gap: 'var(--sp-sm)' }">
         <!-- Botón PDF -->
         <label :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '6px 12px', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)', flex: isMobile ? '1' : 'unset' }">
           <IconUpload :size="14" /> Subir PDF
