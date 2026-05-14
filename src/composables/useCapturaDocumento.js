@@ -214,6 +214,20 @@ export function useCapturaDocumento() {
     }
   }
 
+  // ── Iniciar captura directa en móvil (pide permiso de cámara) ───────────
+  async function iniciarCapturaMovil() {
+    error.value = null
+    if (navigator.mediaDevices?.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        stream.getTracks().forEach(t => t.stop())
+      } catch (e) {
+        // Si se niega el permiso, igual mostramos el grid — el input capture lo maneja
+      }
+    }
+    estado.value = 'capturando_movil'
+  }
+
   // ── Cancelar y limpiar ────────────────────────────────────────────────────
   function cancelar() {
     desuscribir()
@@ -269,7 +283,7 @@ export function useCapturaDocumento() {
     estado, urlFrente, urlReverso,
     qrDataUrl, urlCaptura, sesionId, token,
     error, progreso,
-    crearSesionQR, subirFotoLocal, cancelar, vincularSolicitud,
+    crearSesionQR, subirFotoLocal, iniciarCapturaMovil, cancelar, vincularSolicitud,
     finalizarConPdf, subirPdfDirecto,
   }
 }

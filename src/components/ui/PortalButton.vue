@@ -10,6 +10,7 @@ defineProps({
   type:     { type: String,  default: 'button' },
   full:     { type: Boolean, default: false },
   small:    { type: Boolean, default: false },
+  pill:     { type: Boolean, default: false },
 })
 
 const estilos = {
@@ -41,9 +42,9 @@ const estilos = {
     :style="{
       ...estilos[variant],
       width:          full ? '100%' : 'auto',
-      height:         small ? '40px' : '44px',
+      height:         small ? '36px' : '44px',
       padding:        small ? '0 var(--sp-md)' : '0 var(--sp-xl)',
-      borderRadius:   'var(--r-md)',
+      borderRadius:   pill ? '999px' : 'var(--r-md)',
       fontSize:       'var(--text-base)',
       fontWeight:     'var(--fw-semibold)',
       fontFamily:     'var(--font-body)',

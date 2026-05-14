@@ -34,6 +34,7 @@ import {
   IconUser, IconUserX, IconMail, IconRotate, IconUsers, IconUserCheck, IconFileDescription,
   IconCheck, IconUpload, IconCamera, IconX, IconLoader2,
   IconPencil, IconAlertTriangle, IconFileCheck, IconFile, IconRotateClockwise2,
+  IconArrowRight,
 } from '@tabler/icons-vue'
 import { useSolicitudCredito } from '@/composables/useSolicitudCredito'
 import { useBreakpoint } from '@/composables/useBreakpoint'
@@ -1421,6 +1422,7 @@ function actualizarGeneral(campo, valor) {
 
 const esEducativo = computed(() => general.value.modalidad_credito === 'educativo')
 const esOrdinario = computed(() => general.value.modalidad_credito === 'ordinario')
+const esCreditoNuevo = computed(() => general.value.tipo_operacion === 'credito_nuevo')
 const maxPlazo    = computed(() => esEducativo.value ? 6 : esOrdinario.value ? 60 : 120)
 
 // Clamp plazo si ya tenía un valor mayor cuando se cambia la modalidad
@@ -1611,16 +1613,13 @@ function onOtpValidado() {
 
         <!-- Título -->
         <div :style="{ marginBottom: 'var(--sp-2xl)' }">
-          <div :style="{
-            fontFamily: 'var(--font-display)',
-            fontSize:   'var(--text-xl)',
-            fontWeight: 'var(--fw-extrabold)',
-            color:      'var(--color-text-1)',
-          }">¡Saludos! Comencemos con algunos datos</div>
+          <div class="step-greeting-title">
+            <span class="greeting-hi">¡Saludos!</span> <span class="greeting-sub">Comencemos con algunos datos</span>
+          </div>
         </div>
 
         <!-- Campos de verificación -->
-        <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+        <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)', padding: '0 var(--sp-xl)' }">
 
           <!-- Correo -->
           <div>
@@ -1688,6 +1687,7 @@ function onOtpValidado() {
             <input
               v-model="aceptaCondiciones"
               type="checkbox"
+              class="auth-checkbox"
               :style="{ marginTop: '3px', flexShrink: '0', accentColor: 'var(--color-primary)', width: '15px', height: '15px', cursor: 'pointer' }"
             />
 
@@ -1695,9 +1695,9 @@ function onOtpValidado() {
               fontSize:   'var(--text-xs)',
               color:      'var(--color-text-2)',
               fontWeight: 'var(--fw-medium)',
-              lineHeight: '1.7',
+              lineHeight: '1.45',
             }">
-              Autorizo a la Cooperativa Multiactiva Luis Amigó para tratar mis datos personales, incluyendo contacto y correo electrónico, con la finalidad de contactarme, gestionar mi solicitud, realizar seguimiento y enviarme información relacionada con los productos y servicios ofrecidos.
+              Autorizo a Cooperamigó para tratar mis datos personales, incluyendo contacto y correo electrónico, con la finalidad de contactarme, gestionar mi solicitud, realizar seguimiento y enviarme información relacionada con los productos y servicios ofrecidos.
               Asimismo, autorizo la consulta, reporte y actualización de mi información en centrales de información financiera y crediticia, con el fin de verificar mis datos y evaluar mi comportamiento crediticio.
               <br><br>
               Declaro que conozco mis derechos como titular de la información y que puedo ejercerlos conforme a la ley. Igualmente, manifiesto que he leído y acepto los
@@ -1708,18 +1708,18 @@ function onOtpValidado() {
             </span>
           </label>
 
-          <div :style="{
-            display: 'flex', justifyContent: 'space-between',
-            gap: 'var(--sp-md)', marginTop: 'var(--sp-sm)',
-          }">
-            <PortalButton variant="secondary" @click="router.push('/')">Volver</PortalButton>
+          <div :style="{ marginTop: 'var(--sp-sm)', width: '100%', maxWidth: '340px', margin: 'var(--sp-sm) auto 0' }">
             <PortalButton
               variant="primary"
+              pill
+              small
+              :style="{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--sp-xs)' }"
               :loading="loadingVerificacion"
               :disabled="!aceptaCondiciones || !!errorCorreo || !emailValidado"
               @click="verificarYContinuar()"
             >
               Verificar y continuar
+              <IconArrowRight :size="16" />
             </PortalButton>
           </div>
 
@@ -1740,61 +1740,21 @@ function onOtpValidado() {
     <div v-else :style="{ width: '100%', margin: '0 auto', paddingTop: 'var(--sp-xl)' }">
 
       <!-- Banner: borrador encontrado -->
-      <div v-if="mostrarOpcionBorrador" :style="{
-        background:   'var(--color-bg-card)',
-        border:       '1px solid var(--color-p-light)',
-        borderRadius: 'var(--r-md)',
-        padding:      'var(--sp-lg) var(--sp-xl)',
-        marginBottom: 'var(--sp-xl)',
-        display:      'flex',
-        alignItems:   'center',
-        gap:          'var(--sp-md)',
-        boxShadow:    '0 4px 12px rgba(0,0,0,0.03)'
-      }">
-        <div :style="{
-          width: '40px',
-          height: '40px',
-          borderRadius: '50%',
-          background: 'var(--color-p-light)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: '0',
-          color: 'var(--color-primary)'
-        }">
+      <div v-if="mostrarOpcionBorrador" class="banner-borrador animate-in">
+        <div class="banner-borrador-icon">
           <IconRotateClockwise2 :size="20" />
         </div>
-        <div :style="{ flex: '1' }">
-          <div :style="{
-            fontWeight:   'var(--fw-bold)',
-            color:        'var(--color-primary)',
-            fontSize:     'var(--text-base)',
-            marginBottom: '2px',
-          }">Tienes una solicitud en curso</div>
-          <div :style="{
-            fontSize:   'var(--text-sm)',
-            color:      'var(--color-text-2)',
-            fontWeight: 'var(--fw-medium)',
-          }">
-            Guardamos tu progreso el {{ formatearFecha(fechaBorrador) }}.
+        <div class="banner-borrador-content">
+          <div class="banner-borrador-title">Tienes una solicitud en curso</div>
+          <div class="banner-borrador-text">
+            Progreso guardado el <strong>{{ formatearFecha(fechaBorrador) }}</strong>
           </div>
         </div>
-        <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)', flexShrink: '0' }">
-          <button 
-            @click="empezarDeNuevo"
-            :style="{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--color-text-3)',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 'var(--fw-semibold)',
-              cursor: 'pointer',
-              textDecoration: 'underline'
-            }"
-          >
+        <div class="banner-borrador-actions">
+          <button @click="empezarDeNuevo" class="btn-borrador-reset">
             Empezar de nuevo
           </button>
-          <PortalButton variant="primary" small @click="continuarConBorrador">
+          <PortalButton variant="primary" small pill :full="isMobile" @click="continuarConBorrador">
             Continuar solicitud
           </PortalButton>
         </div>
@@ -1822,15 +1782,16 @@ function onOtpValidado() {
       <div v-if="!verificado" :style="{ marginBottom: 'var(--sp-xl)' }">
         <div :style="{
           fontFamily: 'var(--font-display)',
-          fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-extrabold)',
+          fontSize: isMobile ? 'var(--text-lg)' : 'var(--text-xl)',
+          fontWeight: 'var(--fw-extrabold)',
           color: 'var(--color-text-1)', marginBottom: '2px', lineHeight: '1.1',
         }">Solicitud de crédito</div>
-        <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-text-2)', fontWeight: 'var(--fw-regular)', lineHeight: '1.25' }">
+        <div :style="{ fontSize: isMobile ? 'var(--text-sm)' : 'var(--text-base)', color: 'var(--color-text-2)', fontWeight: 'var(--fw-regular)', lineHeight: '1.25' }">
           Obtenga el financiamiento que necesita con las mejores condiciones
         </div>
       </div>
 
-      <div v-if="paso !== 1" :style="{ marginTop: '56px' }">
+      <div v-if="paso !== 1" :style="{ marginTop: isMobile ? 'var(--sp-lg)' : '56px' }">
         <StepIndicator :pasos="secciones" :actual="seccionActual" />
       </div>
 
@@ -1857,7 +1818,7 @@ function onOtpValidado() {
             boxShadow:    'var(--shadow-card)',
           }">
             <div :style="{
-              padding:    'var(--sp-md) var(--sp-xl)',
+              padding:    isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)',
               background: 'var(--color-primary)',
               color:      'white',
               fontFamily: 'var(--font-display)',
@@ -1871,40 +1832,55 @@ function onOtpValidado() {
               Información de la solicitud
             </div>
 
-            <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
               
-              <!-- Fila: Tipo de operación y sus valores asociados -->
-              <div :style="{ 
-                display: 'grid', 
-                gridTemplateColumns: (mostrarTipoOperacion && general.tipo_operacion === 'reestructura_desembolso' && !isMobile) ? '1fr 1fr 1fr' : 
-                                     (mostrarTipoOperacion && mostrarValorReestructura && !isMobile) ? '1fr 1fr' : '1fr',
-                gap: 'var(--sp-md)' 
-              }">
-                <CampoSelectBuscable
-                  v-if="mostrarTipoOperacion"
-                  :model-value="general.tipo_operacion"
-                  label="Tipo de operación"
-                  required
-                  :opciones="opsTipoOperacion"
-                  @update:model-value="actualizarGeneral('tipo_operacion', $event)"
-                />
-                
-                <CampoMoneda 
-                  v-if="mostrarValorReestructura && mostrarTipoOperacion" 
-                  :model-value="general.valor_reestructura" 
-                  label="Valor reestructura" 
-                  required 
-                  @update:model-value="actualizarGeneral('valor_reestructura', $event)" 
-                />
+              <!-- Fila: Tipo de operación (siempre full width en móvil) -->
+              <CampoSelectBuscable
+                v-if="mostrarTipoOperacion"
+                :model-value="general.tipo_operacion"
+                label="Tipo de operación"
+                required
+                :opciones="opsTipoOperacion"
+                @update:model-value="actualizarGeneral('tipo_operacion', $event)"
+              />
 
-                <CampoMoneda 
-                  v-if="mostrarValorDesembolso && mostrarTipoOperacion" 
-                  :model-value="general.valor_desembolso" 
-                  label="Valor desembolso" 
-                  required 
-                  @update:model-value="actualizarGeneral('valor_desembolso', $event)" 
-                />
-              </div>
+              <!-- Valores de reestructura: solo en móvil (en desktop se integran en la fila de campos) -->
+              <template v-if="mostrarValorReestructura && mostrarTipoOperacion && isMobile">
+                <div :style="{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--sp-lg)' }">
+                  <div :style="{ minWidth: 0 }">
+                    <CampoMoneda
+                      :model-value="general.valor_reestructura"
+                      label="Valor reestructura"
+                      required
+                      :style="{ width: '100%' }"
+                      @update:model-value="actualizarGeneral('valor_reestructura', $event)"
+                    />
+                  </div>
+                  <!-- Reestructura simple: Plazo al lado -->
+                  <div v-if="general.tipo_operacion === 'reestructura'" :style="{ minWidth: 0 }">
+                    <CampoTexto
+                      :model-value="general.plazo_solicitado"
+                      label="Plazo (meses)"
+                      required
+                      solo-numeros
+                      :maxlength="2"
+                      :error="errorPlazo"
+                      :style="{ width: '100%' }"
+                      @update:model-value="actualizarPlazo($event)"
+                    />
+                  </div>
+                  <!-- Reestructura con desembolso: Valor desembolso al lado -->
+                  <div v-else-if="mostrarValorDesembolso" :style="{ minWidth: 0 }">
+                    <CampoMoneda
+                      :model-value="general.valor_desembolso"
+                      label="Valor desembolso"
+                      required
+                      :style="{ width: '100%' }"
+                      @update:model-value="actualizarGeneral('valor_desembolso', $event)"
+                    />
+                  </div>
+                </div>
+              </template>
 
               <!-- Fallbacks para casos donde no se muestra el selector de operación -->
               <div v-if="!mostrarTipoOperacion">
@@ -1912,7 +1888,7 @@ function onOtpValidado() {
               </div>
               <template v-if="!mostrarTipoOperacion || general.tipo_operacion">
                 <template v-if="esEducativo">
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
+                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '3fr 2fr' : '1fr 1fr 1fr', gap: 'var(--sp-lg)' }">
                     <CampoMoneda
                       v-if="mostrarValorCredito"
                       :model-value="general.valor_credito"
@@ -1920,7 +1896,6 @@ function onOtpValidado() {
                       required
                       @update:model-value="actualizarGeneral('valor_credito', $event)"
                     />
-                    <CampoSelectBuscable :model-value="general.tipo_estudio" label="Tipo de estudio" required :opciones="opsTipoEstudio" @update:model-value="actualizarGeneral('tipo_estudio', $event)" />
                     <CampoTexto
                       :model-value="general.plazo_solicitado"
                       label="Plazo (meses)"
@@ -1930,35 +1905,108 @@ function onOtpValidado() {
                       :error="errorPlazo"
                       @update:model-value="actualizarPlazo($event)"
                     />
+                    <CampoSelectBuscable
+                      v-if="!isMobile"
+                      :model-value="general.tipo_estudio"
+                      label="Tipo de estudio"
+                      required
+                      :opciones="opsTipoEstudio"
+                      @update:model-value="actualizarGeneral('tipo_estudio', $event)"
+                    />
+                  </div>
+                  <div v-if="isMobile" :style="{ marginTop: 'var(--sp-lg)' }">
+                    <CampoSelectBuscable :model-value="general.tipo_estudio" label="Tipo de estudio" required :opciones="opsTipoEstudio" @update:model-value="actualizarGeneral('tipo_estudio', $event)" />
                   </div>
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                     <CampoTexto :model-value="general.denominacion_carrera" label="Carrera o programa académico" required @update:model-value="actualizarGeneral('denominacion_carrera', $event)" />
                     <CampoSelectBuscable :model-value="general.institucion" label="Institución" required :opciones="opsInstitucionEducativa" @update:model-value="actualizarGeneral('institucion', $event)" />
                   </div>
                 </template>
-                <div v-else :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : mostrarValorCredito ? '1fr 2fr 1fr' : '3fr 1fr', gap: 'var(--sp-lg)' }">
-                  <CampoMoneda v-if="mostrarValorCredito" :model-value="general.valor_credito" label="Valor del crédito" required @update:model-value="actualizarGeneral('valor_credito', $event)" />
-                  <CampoTexto :model-value="general.destino_credito" label="Destino del crédito" required :maxlength="40" @update:model-value="actualizarGeneral('destino_credito', $event ? $event.toUpperCase() : $event)" />
-                  <CampoTexto
-                    :model-value="general.plazo_solicitado"
-                    label="Plazo (meses)"
-                    required
-                    solo-numeros
-                    :maxlength="2"
-                    :error="errorPlazo"
-                    @update:model-value="actualizarPlazo($event)"
-                  />
-                </div>
+                <template v-else>
+                  <!-- Crédito nuevo: Valor + Plazo 50/50 en móvil, Destino abajo full width -->
+                  <template v-if="esCreditoNuevo && !mostrarValorReestructura">
+                    <!-- Móvil: 50/50 -->
+                    <div v-if="isMobile" :style="{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--sp-lg)' }">
+                      <div :style="{ minWidth: 0 }">
+                        <CampoMoneda v-if="mostrarValorCredito" :model-value="general.valor_credito" label="Valor del crédito" required @update:model-value="actualizarGeneral('valor_credito', $event)" :style="{ width: '100%' }" />
+                      </div>
+                      <div :style="{ minWidth: 0 }">
+                        <CampoTexto
+                          :model-value="general.plazo_solicitado"
+                          label="Plazo (meses)"
+                          required
+                          solo-numeros
+                          :maxlength="2"
+                          :error="errorPlazo"
+                          @update:model-value="actualizarPlazo($event)"
+                          :style="{ width: '100%' }"
+                        />
+                      </div>
+                    </div>
+                    <!-- Destino solo en móvil -->
+                    <div v-if="isMobile" :style="{ marginTop: '-8px' }">
+                      <CampoTexto :model-value="general.destino_credito" label="Destino del crédito" required :maxlength="40" @update:model-value="actualizarGeneral('destino_credito', $event ? $event.toUpperCase() : $event)" />
+                    </div>
+                    <!-- Desktop: layout original -->
+                    <div v-else :style="{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: 'var(--sp-lg)' }">
+                      <CampoMoneda v-if="mostrarValorCredito" :model-value="general.valor_credito" label="Valor del crédito" required @update:model-value="actualizarGeneral('valor_credito', $event)" />
+                      <CampoTexto :model-value="general.destino_credito" label="Destino del crédito" required :maxlength="40" @update:model-value="actualizarGeneral('destino_credito', $event ? $event.toUpperCase() : $event)" />
+                      <CampoTexto
+                        :model-value="general.plazo_solicitado"
+                        label="Plazo (meses)"
+                        required
+                        solo-numeros
+                        :maxlength="2"
+                        :error="errorPlazo"
+                        @update:model-value="actualizarPlazo($event)"
+                      />
+                    </div>
+                  </template>
+                  <!-- Reestructura con desembolso -->
+                  <template v-else-if="mostrarValorDesembolso">
+                    <!-- Desktop: 4 campos en una sola fila 20/20/50/10 -->
+                    <div v-if="!isMobile" :style="{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(0,2fr) minmax(0,4fr) minmax(0,2fr)', gap: 'var(--sp-lg)' }">
+                      <CampoMoneda :model-value="general.valor_reestructura" label="Vr. reestructura" required @update:model-value="actualizarGeneral('valor_reestructura', $event)" />
+                      <CampoMoneda :model-value="general.valor_desembolso" label="Vr. desembolso" required @update:model-value="actualizarGeneral('valor_desembolso', $event)" />
+                      <CampoTexto :model-value="general.destino_credito" label="Destino del crédito" required :maxlength="40" @update:model-value="actualizarGeneral('destino_credito', $event ? $event.toUpperCase() : $event)" />
+                      <CampoTexto :model-value="general.plazo_solicitado" label="Plazo (meses)" required solo-numeros :maxlength="2" :error="errorPlazo" @update:model-value="actualizarPlazo($event)" />
+                    </div>
+                    <!-- Móvil: Destino + Plazo debajo (Valor reestructura + Valor desembolso ya aparecen arriba) -->
+                    <div v-else :style="{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 'var(--sp-lg)' }">
+                      <CampoTexto :model-value="general.destino_credito" label="Destino del crédito" required :maxlength="40" @update:model-value="actualizarGeneral('destino_credito', $event ? $event.toUpperCase() : $event)" />
+                      <CampoTexto :model-value="general.plazo_solicitado" label="Plazo (meses)" required solo-numeros :maxlength="2" :error="errorPlazo" @update:model-value="actualizarPlazo($event)" />
+                    </div>
+                  </template>
+                  <!-- Reestructura simple + fallback general -->
+                  <template v-else>
+                    <!-- Desktop: Valor reestructura + Destino + Plazo en una sola fila -->
+                    <div v-if="!isMobile" :style="{ display: 'grid', gridTemplateColumns: mostrarValorReestructura ? '1fr 1fr 1fr' : '3fr 1fr', gap: 'var(--sp-lg)' }">
+                      <CampoMoneda v-if="mostrarValorReestructura" :model-value="general.valor_reestructura" label="Valor reestructura" required @update:model-value="actualizarGeneral('valor_reestructura', $event)" />
+                      <CampoTexto :model-value="general.destino_credito" label="Destino del crédito" required :maxlength="40" @update:model-value="actualizarGeneral('destino_credito', $event ? $event.toUpperCase() : $event)" />
+                      <CampoTexto
+                        :model-value="general.plazo_solicitado"
+                        label="Plazo (meses)"
+                        required
+                        solo-numeros
+                        :maxlength="2"
+                        :error="errorPlazo"
+                        @update:model-value="actualizarPlazo($event)"
+                      />
+                    </div>
+                    <!-- Móvil reestructura simple: solo Destino (Valor+Plazo ya aparecen arriba) -->
+                    <CampoTexto v-else :model-value="general.destino_credito" label="Destino del crédito" required :maxlength="40" @update:model-value="actualizarGeneral('destino_credito', $event ? $event.toUpperCase() : $event)" />
+                  </template>
+                </template>
               </template>
             </div>
           </div>
 
           <!-- 2. Información del Solicitante -->
           <div id="seccion-persona" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconUserCheck :size="20" /> Información personal
             </div>
-            <div :style="{ padding: 'var(--sp-xl)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)' }">
               <SeccionPersona :model-value="persona" titulo="" :bloquear-documento="true" :bloquear-correo="true" :direccion-estructurada="direccionEstructurada" :ubicacion="ubicacionResidencia" :show-nivel-educativo="true" @update:model-value="persona = $event" @update:direccion-estructurada="direccionEstructurada = $event" @update:ubicacion="ubicacionResidencia = $event" />
             </div>
           </div>
@@ -1974,10 +2022,10 @@ function onOtpValidado() {
 
           <!-- 3. Información Laboral -->
           <div id="seccion-laboral" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconRotate :size="20" /> Situación laboral
             </div>
-            <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: isMobile ? 'var(--sp-lg)' : 'var(--sp-xl)' }">
               <SelectorTipoTrabajador :model-value="laboral.tipo_trabajador" @update:model-value="actualizarLaboral('tipo_trabajador', $event)" />
               <div v-if="laboral.tipo_trabajador" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
 
@@ -2030,20 +2078,20 @@ function onOtpValidado() {
 
           <!-- 4. Información Financiera -->
           <div id="seccion-financiera" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFileDescription :size="20" /> Información financiera
             </div>
-            <div :style="{ padding: 'var(--sp-xl)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)' }">
               <SeccionFinanciera :model-value="financiera" titulo="" :salario-bloqueado="salarioBloqueado" :tipo-trabajador="laboral.tipo_trabajador" @update:model-value="financiera = $event" />
             </div>
           </div>
 
           <!-- 5. Patrimonio -->
           <div id="seccion-patrimonio" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFile :size="20" /> Patrimonio
             </div>
-            <div :style="{ padding: 'var(--sp-xl)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)' }">
               <SeccionPatrimonio :model-value="patrimonio" titulo="" @update:model-value="patrimonio = $event" />
             </div>
           </div>
@@ -2130,21 +2178,22 @@ function onOtpValidado() {
 
                   <!-- Carta de autorización -->
                   <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }">
-                    <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)', padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-bg-surface)' }">
-                      <div :style="{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--color-impulso)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
-                        <IconUpload :size="18" :style="{ color: '#fff' }" />
-                      </div>
-                      <div :style="{ flex: '1', minWidth: '0' }">
-                        <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
-                          Carta de autorización
-                          <span :style="{ marginLeft: 'var(--sp-sm)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 8px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Obligatorio</span>
+                    <div :style="{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 'var(--sp-md)', padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', background: 'var(--color-bg-surface)' }">
+                      <div :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-md)', flex: '1' }">
+                        <div :style="{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--color-impulso)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
+                          <IconUpload :size="18" :style="{ color: '#fff' }" />
                         </div>
-                        <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)' }">Debe anexar carta firmada autorizando el desembolso de los recursos en cuenta de titularidad de un tercero.</div>
+                        <div :style="{ minWidth: '0' }">
+                          <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
+                            Carta de autorización<span :style="{ color: 'var(--color-error)' }">*</span>
+                          </div>
+                          <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)', marginTop: 'var(--sp-xs)' }">Debe anexar carta firmada autorizando el desembolso de los recursos en cuenta de titularidad de un tercero.</div>
+                        </div>
                       </div>
-                      <div v-if="cartaAutorizacion.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', flexShrink: '0' }">
+                      <div v-if="cartaAutorizacion.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
                         <IconLoader2 :size="15" :style="{ animation: 'spin 1s linear infinite' }" /> Subiendo…
                       </div>
-                      <div v-else-if="cartaAutorizacion.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
+                      <div v-else-if="cartaAutorizacion.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)' }">
                         <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-lg)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)', maxWidth: '190px' }">
                           <IconCheck :size="13" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
                           <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-semibold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ cartaAutorizacion.nombre?.length > 16 ? cartaAutorizacion.nombre.substring(0, 13) + '...' : cartaAutorizacion.nombre }}</span>
@@ -2152,11 +2201,11 @@ function onOtpValidado() {
                         </div>
                         <button :style="{ border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)', flexShrink: '0' }" @click="abrirPreviewDoc(cartaAutorizacion.url, 'Carta de autorización')">Visualizar</button>
                       </div>
-                      <button v-else-if="cartaAutorizacion.error" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-error)', background: 'var(--color-error-bg)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-error)', flexShrink: '0' }" @click="refCartaUpload?.click()">
+                      <button v-else-if="cartaAutorizacion.error" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-error)', background: 'var(--color-error-bg)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-error)' }" @click="refCartaUpload?.click()">
                         <IconUpload :size="13" /> Reintentar
                       </button>
-                      <div v-else :style="{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: '0' }">
-                        <button :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'var(--color-bg-card)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-2)' }" @click="refCartaUpload?.click()">
+                      <div v-else :style="{ display: 'flex', gap: 'var(--sp-sm)' }">
+                        <button :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'var(--color-bg-card)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-2)', width: isMobile ? '100%' : 'auto', justifyContent: 'center' }" @click="refCartaUpload?.click()">
                           <IconUpload :size="13" /> Subir archivo
                         </button>
                       </div>
@@ -2166,21 +2215,22 @@ function onOtpValidado() {
 
                   <!-- Certificación bancaria -->
                   <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }">
-                    <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)', padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-bg-surface)' }">
-                      <div :style="{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--color-impulso)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
-                        <IconUpload :size="18" :style="{ color: '#fff' }" />
-                      </div>
-                      <div :style="{ flex: '1', minWidth: '0' }">
-                        <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
-                          Certificación bancaria
-                          <span :style="{ marginLeft: 'var(--sp-sm)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 8px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Obligatorio</span>
+                    <div :style="{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 'var(--sp-md)', padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', background: 'var(--color-bg-surface)' }">
+                      <div :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-md)', flex: '1' }">
+                        <div :style="{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--color-impulso)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
+                          <IconUpload :size="18" :style="{ color: '#fff' }" />
                         </div>
-                        <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)' }">Por favor, anexe la certificación bancaria de la cuenta indicada.</div>
+                        <div :style="{ minWidth: '0' }">
+                          <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
+                            Certificación bancaria<span :style="{ color: 'var(--color-error)' }">*</span>
+                          </div>
+                          <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)', marginTop: 'var(--sp-xs)' }">Por favor, anexe la certificación bancaria de la cuenta indicada.</div>
+                        </div>
                       </div>
-                      <div v-if="certBancaria.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', flexShrink: '0' }">
+                      <div v-if="certBancaria.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
                         <IconLoader2 :size="15" :style="{ animation: 'spin 1s linear infinite' }" /> Subiendo…
                       </div>
-                      <div v-else-if="certBancaria.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
+                      <div v-else-if="certBancaria.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)' }">
                         <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-lg)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)', maxWidth: '190px' }">
                           <IconCheck :size="13" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
                           <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-semibold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ certBancaria.nombre?.length > 16 ? certBancaria.nombre.substring(0, 13) + '...' : certBancaria.nombre }}</span>
@@ -2188,11 +2238,11 @@ function onOtpValidado() {
                         </div>
                         <button :style="{ border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)', flexShrink: '0' }" @click="abrirPreviewDoc(certBancaria.url, 'Certificación bancaria')">Visualizar</button>
                       </div>
-                      <button v-else-if="certBancaria.error" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-error)', background: 'var(--color-error-bg)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-error)', flexShrink: '0' }" @click="refCertUpload?.click()">
+                      <button v-else-if="certBancaria.error" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-error)', background: 'var(--color-error-bg)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-error)' }" @click="refCertUpload?.click()">
                         <IconUpload :size="13" /> Reintentar
                       </button>
-                      <div v-else :style="{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: '0' }">
-                        <button :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'var(--color-bg-card)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-2)' }" @click="refCertUpload?.click()">
+                      <div v-else :style="{ display: 'flex', gap: 'var(--sp-sm)' }">
+                        <button :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'var(--color-bg-card)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-2)', width: isMobile ? '100%' : 'auto', justifyContent: 'center' }" @click="refCertUpload?.click()">
                           <IconUpload :size="13" /> Subir archivo
                         </button>
                       </div>
@@ -2235,8 +2285,13 @@ function onOtpValidado() {
                 v-for="opcion in [{ num: 0, titulo: 'Sin codeudor', desc: 'Continúa sin agregar codeudor' }, { num: 1, titulo: '1 Codeudor', desc: 'Agrega un codeudor a la solicitud' }, { num: 2, titulo: '2 Codeudores', desc: 'Agrega dos codeudores a la solicitud' }]"
                 :key="opcion.num"
                 :style="{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--sp-sm)',
-                  padding: 'var(--sp-xl)', borderRadius: 'var(--r-md)', textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: isMobile ? 'row' : 'column',
+                  alignItems: isMobile ? 'center' : 'center',
+                  gap: 'var(--sp-md)',
+                  padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-xl)',
+                  borderRadius: 'var(--r-md)',
+                  textAlign: isMobile ? 'left' : 'center',
                   border: numCodudores === opcion.num ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
                   boxShadow: numCodudores === opcion.num ? 'var(--shadow-card)' : 'none',
                   background: numCodudores === opcion.num ? 'var(--color-p-light)' : 'var(--color-bg-surface)',
@@ -2244,9 +2299,11 @@ function onOtpValidado() {
                 }"
                 @click="numCodudores = opcion.num"
               >
-                <IconUsers :size="28" :style="{ color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
-                <div :style="{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-base)', color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-1)' }">{{ opcion.titulo }}</div>
-                <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">{{ opcion.desc }}</div>
+                <IconUsers :size="isMobile ? 24 : 28" :style="{ color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-3)', flexShrink: '0' }" />
+                <div>
+                  <div :style="{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-base)', color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-1)' }">{{ opcion.titulo }}</div>
+                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '2px' }">{{ opcion.desc }}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -2524,41 +2581,35 @@ function onOtpValidado() {
           <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
             <IconUserCheck :size="20" /> Acompañamiento de asesor
           </div>
-          <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-            <div :style="{ 
-              display: 'grid', 
-              gridTemplateColumns: isMobile ? '1fr' : (asesoria.tuvo_asesoria === true ? '1fr 70px 70px 140px' : '1fr 70px 70px'), 
-              gap: 'var(--sp-md)', 
-              alignItems: 'center' 
+          <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+
+            <!-- Desktop -->
+            <div v-if="!isMobile" :style="{
+              display: 'grid',
+              gridTemplateColumns: asesoria.tuvo_asesoria === true ? '1fr 70px 70px 140px' : '1fr 70px 70px',
+              gap: 'var(--sp-md)',
+              alignItems: 'center',
             }">
               <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)' }">
                 ¿Tuvo acompañamiento de un asesor para diligenciar la solicitud? *
               </div>
-              <div :style="{ minWidth: '0' }">
-                <CampoCheck
-                  :model-value="asesoria.tuvo_asesoria === true"
-                  label="Sí"
-                  @update:model-value="(v) => { asesoria.tuvo_asesoria = v ? true : null; if (!v) asesoria.codigo_asesor = '' }"
-                />
-              </div>
-              <div :style="{ minWidth: '0' }">
-                <CampoCheck
-                  :model-value="asesoria.tuvo_asesoria === false"
-                  label="No"
-                  @update:model-value="(v) => { asesoria.tuvo_asesoria = v ? false : null; if (v) asesoria.codigo_asesor = '' }"
-                />
-              </div>
-              <div v-if="asesoria.tuvo_asesoria === true" :style="{ minWidth: '0' }">
-                <CampoTexto
-                  v-model="asesoria.codigo_asesor"
-                  label="Código del asesor"
-                  placeholder="00000"
-                  required
-                  solo-numeros
-                  :maxlength="5"
-                />
-              </div>
+              <CampoCheck :model-value="asesoria.tuvo_asesoria === true" label="Sí" @update:model-value="(v) => { asesoria.tuvo_asesoria = v ? true : null; if (!v) asesoria.codigo_asesor = '' }" />
+              <CampoCheck :model-value="asesoria.tuvo_asesoria === false" label="No" @update:model-value="(v) => { asesoria.tuvo_asesoria = v ? false : null; if (v) asesoria.codigo_asesor = '' }" />
+              <CampoTexto v-if="asesoria.tuvo_asesoria === true" v-model="asesoria.codigo_asesor" label="Código del asesor" placeholder="00000" required solo-numeros :maxlength="5" />
             </div>
+
+            <!-- Móvil -->
+            <template v-else>
+              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)' }">
+                ¿Tuvo acompañamiento de un asesor? *
+              </div>
+              <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-md)' }">
+                <div :style="{ minWidth: 0 }"><CampoCheck compact :model-value="asesoria.tuvo_asesoria === true" label="Sí" @update:model-value="(v) => { asesoria.tuvo_asesoria = v ? true : null; if (!v) asesoria.codigo_asesor = '' }" /></div>
+                <div :style="{ minWidth: 0 }"><CampoCheck compact :model-value="asesoria.tuvo_asesoria === false" label="No" @update:model-value="(v) => { asesoria.tuvo_asesoria = v ? false : null; if (v) asesoria.codigo_asesor = '' }" /></div>
+              </div>
+              <CampoTexto v-if="asesoria.tuvo_asesoria === true" v-model="asesoria.codigo_asesor" label="Código del asesor" placeholder="00000" required solo-numeros :maxlength="5" />
+            </template>
+
           </div>
         </div>
 
@@ -2605,10 +2656,6 @@ function onOtpValidado() {
                 <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Operación</div>
                 <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ label(LABEL_TIPO_OP, general.tipo_operacion) }}</div>
               </div>
-              <div v-if="mostrarValorCredito">
-                <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Valor del crédito</div>
-                <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '800', color: 'var(--color-primary)' }">{{ formatMonto(general.valor_credito) }}</div>
-              </div>
               <div v-if="mostrarValorReestructura">
                 <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Valor reestructura</div>
                 <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '800', color: 'var(--color-primary)' }">{{ formatMonto(general.valor_reestructura) }}</div>
@@ -2617,16 +2664,24 @@ function onOtpValidado() {
                 <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Desembolso adicional</div>
                 <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '800', color: 'var(--color-primary)' }">{{ formatMonto(general.valor_desembolso) }}</div>
               </div>
-              <div>
+              <div v-if="mostrarValorCredito" :style="{ gridColumn: esCreditoNuevo && !isMobile ? 'span 1' : 'auto' }">
+                <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Valor del crédito</div>
+                <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '800', color: 'var(--color-primary)' }">{{ formatMonto(general.valor_credito) }}</div>
+              </div>
+              <div v-if="esCreditoNuevo && !isMobile" :style="{ gridColumn: 'span 1' }">
                 <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Plazo</div>
                 <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ general.plazo_solicitado }} meses</div>
               </div>
-              <div v-if="esEducativo" :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+              <div v-else-if="!esCreditoNuevo">
+                <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Plazo</div>
+                <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ general.plazo_solicitado }} meses</div>
+              </div>
+              <div v-if="esEducativo" :style="{ gridColumn: isMobile ? 'auto' : 'span 3' }">
                 <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Programa académico</div>
                 <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ general.denominacion_carrera }} ({{ label(LABEL_TIPO_ESTUDIO, general.tipo_estudio) }})</div>
                 <div :style="{ fontSize: 'var(--text-xs)', fontWeight: '600', color: 'var(--color-text-2)', marginTop: '2px' }">{{ general.institucion || '—' }}</div>
               </div>
-              <div v-else :style="{ gridColumn: isMobile ? 'auto' : 'span 2' }">
+              <div v-else :style="{ gridColumn: isMobile ? 'auto' : 'span 3' }">
                 <div :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Destino</div>
                 <div :style="{ fontSize: 'var(--text-sm)', fontWeight: '600' }">{{ general.destino_credito }}</div>
               </div>
@@ -3457,8 +3512,19 @@ function onOtpValidado() {
 
       <!-- Navegación -->
       <div :style="{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--sp-2xl)', gap: 'var(--sp-md)' }">
-        <PortalButton variant="secondary" @click="paso === 1 ? router.push('/') : anterior()">{{ paso === 1 ? 'Cancelar' : 'Anterior' }}</PortalButton>
-        <PortalButton v-if="!esUltimoPaso && paso !== 1" variant="primary" :loading="loading" :disabled="paso === 4 && (!documentosCompletos || !autorizaciones.autorizacion_aceptada)" @click="continuar()">Continuar</PortalButton>
+        <PortalButton variant="secondary" pill @click="paso === 1 ? router.push('/') : anterior()">{{ paso === 1 ? 'Cancelar' : 'Anterior' }}</PortalButton>
+        <PortalButton
+          v-if="!esUltimoPaso && paso !== 1"
+          variant="primary"
+          pill
+          :loading="loading"
+          :disabled="
+            (paso === 2 && (erroresPaso2.length > 0 || esMenorDeEdad)) ||
+            (paso === 3 && hayErroresDuplicidad) ||
+            (paso === 4 && (!documentosCompletos || !autorizaciones.autorizacion_aceptada))
+          "
+          @click="continuar()"
+        >Continuar</PortalButton>
       </div>
     </div>
 
@@ -3559,4 +3625,213 @@ function onOtpValidado() {
 
 <style scoped>
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.auth-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1.5px solid var(--color-border-card);
+  border-radius: 4px;
+  background: #fff;
+  position: relative;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.auth-checkbox:checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.auth-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  width: 5px;
+  height: 8px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+.step-greeting-title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--fw-extrabold);
+  color: var(--color-text-1);
+  line-height: 1.2;
+}
+
+@media (max-width: 480px) {
+  .step-greeting-title {
+    font-size: var(--text-lg);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .greeting-sub {
+    white-space: nowrap;
+  }
+
+  .verificacion-container {
+    padding-left: var(--sp-md);
+    padding-right: var(--sp-md);
+  }
+
+  .verificacion-container .campo-texto,
+  .verificacion-container .campo-select {
+    max-width: 100%;
+  }
+}
+
+/* ─── Banner Borrador ─── */
+.banner-borrador {
+  background: linear-gradient(135deg, var(--color-bg-card) 0%, var(--color-bg-surface) 100%);
+  border: 1px solid var(--color-border-card);
+  border-radius: var(--r-xl);
+  padding: var(--sp-lg) var(--sp-xl);
+  margin-bottom: var(--sp-xl);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-lg);
+  box-shadow: 0 4px 12px rgba(17, 76, 90, 0.08);
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.banner-borrador:hover {
+  box-shadow: 0 6px 20px rgba(17, 76, 90, 0.12);
+  transform: translateY(-2px);
+}
+
+.banner-borrador-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-lg);
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-bg-card) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(17, 76, 90, 0.1);
+}
+
+.banner-borrador-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.banner-borrador-title {
+  font-family: var(--font-display);
+  font-weight: var(--fw-extrabold);
+  color: var(--color-text-1);
+  font-size: var(--text-lg);
+  margin-bottom: var(--sp-xs);
+  line-height: 1.2;
+}
+
+.banner-borrador-text {
+  font-size: var(--text-sm);
+  color: var(--color-text-2);
+  line-height: 1.4;
+}
+
+.banner-borrador-text strong {
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-1);
+}
+
+.banner-borrador-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-md);
+  flex-shrink: 0;
+}
+
+.btn-borrador-reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 var(--sp-xl);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-pill);
+  color: var(--color-text-2);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  font-family: var(--font-body);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.btn-borrador-reset:hover {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-text-on-primary);
+}
+
+@media (max-width: 600px) {
+  .banner-borrador {
+    flex-wrap: wrap;
+    gap: var(--sp-md);
+    padding: var(--sp-md) var(--sp-lg);
+    box-shadow: 0 2px 8px rgba(17, 76, 90, 0.06);
+  }
+
+  .banner-borrador:hover {
+    transform: none;
+    box-shadow: 0 2px 8px rgba(17, 76, 90, 0.06);
+  }
+
+  .banner-borrador-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .banner-borrador-content {
+    flex-basis: calc(100% - 56px);
+  }
+
+  .banner-borrador-title {
+    font-size: var(--text-base);
+    margin-bottom: 2px;
+  }
+
+  .banner-borrador-text {
+    font-size: var(--text-xs);
+  }
+
+  .banner-borrador-actions {
+    flex-basis: 100%;
+    flex-direction: row;
+    gap: var(--sp-sm);
+    margin-top: var(--sp-sm);
+  }
+
+  .banner-borrador-actions button {
+    flex: 1;
+    height: 36px;
+    font-size: var(--text-xs);
+    padding: 0 var(--sp-md);
+  }
+}
+
+.animate-in {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 </style>

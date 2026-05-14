@@ -37,37 +37,46 @@ const opsTipoContrato = [
       marginBottom: 'var(--sp-xl)',
     }">{{ titulo }}</div>
 
-    <div :style="{
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: 'var(--sp-lg)',
-    }">
-      <CampoTexto
-        :model-value="modelValue[clave('cargo_oficio')]"
-        label="Cargo u oficio"
-        placeholder="Ej: Contador, Docente"
-        required
-        solo-texto-laboral
-        :error="errores[clave('cargo_oficio')]"
-        @update:model-value="actualizar(clave('cargo_oficio'), $event)"
-      />
-      <CampoTexto
-        :model-value="modelValue[clave('nombre_empresa')]"
-        label="Nombre de la empresa"
-        placeholder="Empresa donde trabaja"
-        required
-        solo-texto-laboral
-        :error="errores[clave('nombre_empresa')]"
-        @update:model-value="actualizar(clave('nombre_empresa'), $event)"
-      />
-      <CampoSelectBuscable
-        :model-value="modelValue[clave('tipo_contrato')]"
-        label="Tipo de contrato"
-        :opciones="opsTipoContrato"
-        required
-        :error="errores[clave('tipo_contrato')]"
-        @update:model-value="actualizar(clave('tipo_contrato'), $event)"
-      />
+    <div class="form-col">
+      <!-- Cargo + Empresa: 2 cols en desktop, 1 col en móvil -->
+      <div class="form-grid-2">
+        <CampoTexto
+          :model-value="modelValue[clave('cargo_oficio')]"
+          label="Cargo u oficio"
+          placeholder="Ej: Contador, Docente"
+          required
+          solo-texto-laboral
+          :error="errores[clave('cargo_oficio')]"
+          @update:model-value="actualizar(clave('cargo_oficio'), $event)"
+        />
+        <CampoTexto
+          :model-value="modelValue[clave('nombre_empresa')]"
+          label="Nombre de la empresa"
+          placeholder="Empresa donde trabaja"
+          required
+          solo-texto-laboral
+          :error="errores[clave('nombre_empresa')]"
+          @update:model-value="actualizar(clave('nombre_empresa'), $event)"
+        />
+      </div>
+      <!-- Tipo de contrato + Fecha de ingreso: siempre 50/50 -->
+      <div class="form-grid-half">
+        <CampoSelectBuscable
+          :model-value="modelValue[clave('tipo_contrato')]"
+          label="Tipo de contrato"
+          :opciones="opsTipoContrato"
+          required
+          :error="errores[clave('tipo_contrato')]"
+          @update:model-value="actualizar(clave('tipo_contrato'), $event)"
+        />
+        <CampoFecha
+          :model-value="modelValue[clave('fecha_ingreso')]"
+          label="Fecha de ingreso"
+          required
+          :error="errores[clave('fecha_ingreso')]"
+          @update:model-value="actualizar(clave('fecha_ingreso'), $event)"
+        />
+      </div>
       <CampoTexto
         v-if="modelValue[clave('tipo_contrato')] === 'otro'"
         :model-value="modelValue[clave('tipo_contrato_otro')]"
@@ -76,14 +85,33 @@ const opsTipoContrato = [
         :error="errores[clave('tipo_contrato_otro')]"
         @update:model-value="actualizar(clave('tipo_contrato_otro'), $event)"
       />
-      <div v-else />
-      <CampoFecha
-        :model-value="modelValue[clave('fecha_ingreso')]"
-        label="Fecha de ingreso"
-        required
-        :error="errores[clave('fecha_ingreso')]"
-        @update:model-value="actualizar(clave('fecha_ingreso'), $event)"
-      />
     </div>
   </div>
 </template>
+
+<style scoped>
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-lg);
+}
+
+.form-grid-half {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-lg);
+}
+.form-grid-half > * { min-width: 0; }
+
+.form-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-lg);
+}
+
+@media (max-width: 600px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

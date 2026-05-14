@@ -118,6 +118,13 @@ function onBlur()  { focused.value = false; emit('blur') }
   text-align: left;
 }
 
+@media (max-width: 768px) {
+  .campo-input {
+    height: 48px;
+    padding: 18px 10px 4px 10px;
+  }
+}
+
 /* Estado de foco: Transición suave, línea reforzada */
 .campo-input--focused  { 
   border-bottom-color: var(--color-primary);
@@ -162,6 +169,13 @@ function onBlur()  { focused.value = false; emit('blur') }
     color var(--transition-fast);
 }
 
+@media (max-width: 768px) {
+  .campo-label {
+    left: 10px;
+    top: 30px;
+  }
+}
+
 /* ── Flotado: Mueve el label hacia arriba dentro del contenedor ── */
 .campo-field--floated .campo-label {
   top: 4px; /* Sube pero se mantiene dentro del area del field */
@@ -170,6 +184,13 @@ function onBlur()  { focused.value = false; emit('blur') }
   font-weight: var(--fw-medium);
   background: transparent;
   padding: 0;
+}
+
+@media (max-width: 768px) {
+  .campo-field--floated .campo-label {
+    top: 2px;
+    font-size: 10px;
+  }
 }
 
 .campo-label--focused { color: var(--color-primary); }

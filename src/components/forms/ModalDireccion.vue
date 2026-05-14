@@ -142,7 +142,7 @@ function cerrar() { emit('update:visible', false) }
               }">
                 <IconMapPin :size="18" style="color: white;" />
               </div>
-              <div>
+              <div :style="{ lineHeight: '1.2' }">
                 <div id="modal-dir-title" :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)', fontSize: 'var(--text-lg)' }">
                   Ingresar dirección
                 </div>
@@ -164,7 +164,7 @@ function cerrar() { emit('update:visible', false) }
           <div :style="{ padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)', overflowY: 'auto', flex: '1', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
             
             <!-- Depto y Ciudad -->
-            <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-md)' }">
+            <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-md)' }">
               <CampoSelectBuscable
                 :model-value="local.depto_codigo"
                 label="Departamento"
@@ -199,14 +199,12 @@ function cerrar() { emit('update:visible', false) }
                 gap: 'var(--sp-md)',
                 alignItems: 'start'
               }">
-                <div :style="{ gridColumn: isMobile ? 'span 2' : 'auto' }">
-                  <CampoSelectBuscable
-                    v-model="local.via_principal"
-                    label="Vía principal"
-                    required
-                    :opciones="VIAS_PRINCIPALES.map(v => ({ value: v, label: v }))"
-                  />
-                </div>
+                <CampoSelectBuscable
+                  v-model="local.via_principal"
+                  label="Vía principal"
+                  required
+                  :opciones="VIAS_PRINCIPALES.map(v => ({ value: v, label: v }))"
+                />
                 <CampoTexto v-model="local.numero_via" label="Número" required placeholder="45" />
                 <CampoTexto v-model="local.letra_via" label="Letra" placeholder="A" />
                 <CampoSelectBuscable v-model="local.cuadrante_via" label="Cuadrante" :opciones="opcionesCuadrante" />
@@ -226,7 +224,7 @@ function cerrar() { emit('update:visible', false) }
                 gap: 'var(--sp-md)', 
                 alignItems: 'start' 
               }">
-                <CampoTexto v-model="local.numero_cruce" label="Cruce" placeholder="23" />
+                <CampoTexto v-model="local.numero_cruce" label="Cruce" placeholder="23" uppercase />
                 <CampoTexto v-model="local.letra_cruce" label="Letra" placeholder="B" />
                 <CampoTexto v-model="local.numero_placa" label="Placa" required placeholder="18" />
                 <CampoSelectBuscable v-model="local.cuadrante_cruce" label="Cuadrante" :opciones="opcionesCuadrante" />
@@ -252,7 +250,7 @@ function cerrar() { emit('update:visible', false) }
               <IconCheck :size="20" :style="{ color: 'var(--color-primary)' }" />
               <div :style="{ flex: '1' }">
                 <div :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }">Dirección generada</div>
-                <div :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">{{ preview }}</div>
+                <div :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-sm)' }">{{ preview }}</div>
               </div>
             </div>
           </div>

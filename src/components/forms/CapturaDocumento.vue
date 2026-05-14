@@ -1,11 +1,14 @@
 <script setup>
 import { ref, watch, onUnmounted, computed } from 'vue'
 import { useCapturaDocumento } from '@/composables/useCapturaDocumento.js'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 import PortalButton from '@/components/ui/PortalButton.vue'
 import {
   IconCamera, IconUpload, IconQrcode, IconCircleCheck,
   IconRefresh, IconDeviceMobile, IconX, IconAlertCircle, IconClock, IconId, IconLoader2, IconEye
 } from '@tabler/icons-vue'
+
+const { isMobile } = useBreakpoint()
 
 const props = defineProps({
   solicitudId: { type: String, default: null },
@@ -22,7 +25,7 @@ const {
   esMovil, estado, urlFrente, urlReverso,
   qrDataUrl, urlCaptura, sesionId, token,
   error: errorCaptura,
-  progreso, crearSesionQR, subirFotoLocal, cancelar,
+  progreso, crearSesionQR, subirFotoLocal, iniciarCapturaMovil, cancelar,
   finalizarConPdf, subirPdfDirecto,
 } = useCapturaDocumento()
 
@@ -123,53 +126,51 @@ const LADOS = [
     <!-- Header/Banner Principal -->
     <div :style="{
       display: 'flex',
-      alignItems: 'center',
+      flexDirection: isMobile ? 'column' : 'row',
+      alignItems: isMobile ? 'stretch' : 'center',
       gap: 'var(--sp-md)',
-      padding: 'var(--sp-md) var(--sp-xl)',
+      padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)',
       background: urlFinal ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
       borderBottom: (estado !== 'idle' && !urlFinal) ? '1px solid var(--color-border-card)' : 'none',
     }">
-      <!-- Icono Izquierda -->
-      <div :style="{
-        width: '36px', height: '36px', borderRadius: '50%',
-        background: urlFinal ? 'var(--color-success)' : 'var(--color-primary)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0',
-      }">
-        <IconCircleCheck v-if="urlFinal" :size="18" :style="{ color: '#fff' }" />
-        <IconId v-else :size="18" :style="{ color: '#fff' }" />
-      </div>
-
-      <!-- Texto Central -->
-      <div :style="{ flex: '1', minWidth: '0' }">
-        <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
-          {{ label }}
-          <span v-if="required && !urlFinal" :style="{ marginLeft: 'var(--sp-sm)', fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 6px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase' }">Obligatorio</span>
+      <!-- Icono + Texto -->
+      <div :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-md)', flex: '1', minWidth: '0' }">
+        <div :style="{
+          width: '36px', height: '36px', borderRadius: '50%',
+          background: urlFinal ? 'var(--color-success)' : 'var(--color-primary)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0',
+        }">
+          <IconCircleCheck v-if="urlFinal" :size="18" :style="{ color: '#fff' }" />
+          <IconId v-else :size="18" :style="{ color: '#fff' }" />
         </div>
-        <div :style="{ fontSize: 'var(--text-sm)', color: urlFinal ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">
-          {{ urlFinal ? 'Documento cargado correctamente' : 'Cargue el archivo o tome las fotografías de ambos lados' }}
-        </div>
-      </div>
-
-      <!-- Acciones Derecha (Estado Idle o Completado) -->
-      <div v-if="urlFinal" :style="{ flexShrink: '0' }">
-        <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)' }">
-          <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview">
-            <IconEye :size="13" /> Visualizar
-          </button>
-          <button :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-success-text)', padding: 'var(--sp-xs)', display: 'flex' }" @click="cancelarConPreview">
-            <IconRefresh :size="16" />
-          </button>
+        <div :style="{ minWidth: '0' }">
+          <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
+            {{ label }}<span v-if="required && !urlFinal" :style="{ color: 'var(--color-error)' }"> *</span>
+          </div>
+          <div :style="{ fontSize: 'var(--text-sm)', color: urlFinal ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '2px' }">
+            {{ urlFinal ? 'Documento cargado correctamente' : 'Cargue el archivo o tome las fotografías de ambos lados' }}
+          </div>
         </div>
       </div>
 
-      <div v-else-if="estado === 'idle'" :style="{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: '0' }">
+      <!-- Acciones (Estado Idle o Completado) -->
+      <div v-if="urlFinal" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
+        <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview">
+          <IconEye :size="13" /> Visualizar
+        </button>
+        <button :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-success-text)', padding: 'var(--sp-xs)', display: 'flex' }" @click="cancelarConPreview">
+          <IconRefresh :size="16" />
+        </button>
+      </div>
+
+      <div v-else-if="estado === 'idle'" :style="{ display: 'flex', gap: 'var(--sp-sm)' }">
         <!-- Botón PDF -->
-        <label :style="{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)' }">
+        <label :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '6px 12px', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)', flex: isMobile ? '1' : 'unset' }">
           <IconUpload :size="14" /> Subir PDF
           <input type="file" accept=".pdf" :style="{ display: 'none' }" @change="onPdfSeleccionado" />
         </label>
         <!-- Botón Cámara -->
-        <button @click="esMovil ? null : iniciarQR()" :style="{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-primary)', background: 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)' }">
+        <button @click="esMovil ? iniciarCapturaMovil() : iniciarQR()" :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '6px 12px', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-primary)', background: 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', flex: isMobile ? '1' : 'unset' }">
           <IconCamera :size="14" /> Tomar fotografía
         </button>
       </div>

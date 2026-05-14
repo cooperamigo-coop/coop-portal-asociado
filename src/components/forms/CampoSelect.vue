@@ -178,6 +178,13 @@ onUnmounted(() => {
   padding: 16px 12px 0 12px; /* Espacio superior para label y lateral suave */
 }
 
+@media (max-width: 768px) {
+  .campo-field {
+    height: 48px;
+    padding: 12px 10px 0 10px;
+  }
+}
+
 .campo-field--open {
   border-bottom-color: var(--color-primary);
   box-shadow: 0 1px 0 0 var(--color-primary);
@@ -243,6 +250,13 @@ onUnmounted(() => {
     color var(--transition-fast);
 }
 
+@media (max-width: 768px) {
+  .campo-label {
+    left: 10px;
+    top: 30px;
+  }
+}
+
 .campo-field--floated .campo-label {
   top: 4px;
   transform: translateY(0);
@@ -250,6 +264,13 @@ onUnmounted(() => {
   font-weight: var(--fw-medium);
   background: transparent;
   padding: 0;
+}
+
+@media (max-width: 768px) {
+  .campo-field--floated .campo-label {
+    top: 2px;
+    font-size: 10px;
+  }
 }
 
 .campo-label--focused { color: var(--color-primary); }

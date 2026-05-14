@@ -30,7 +30,7 @@ const SERVICIOS_ASOCIADO = [
     id: 'retiro',
     icono: IconUserMinus,
     nombre: 'Formalizar retiro',
-    descripcion: 'Inicie su proceso de desvinculación de manera virtual',
+    descripcion: 'Proceso de desvinculación de manera virtual',
     disponible: false,
     iconoBg: 'var(--color-bg-surface-alt)',
     iconoColor: 'var(--color-text-3)',
@@ -162,7 +162,7 @@ const SERVICIOS_NO_ASOCIADO = [
                 </span>
                 <span v-else class="row-soon">
                   <IconClock :size="9" />
-                  Próximamente
+                  Pronto
                 </span>
               </div>
             </div>
@@ -407,8 +407,8 @@ const SERVICIOS_NO_ASOCIADO = [
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 0 16px;
-  height: 72px;
+  padding: 14px 16px;
+  min-height: 72px;
   transition: background var(--transition-fast);
 }
 
@@ -462,9 +462,8 @@ const SERVICIOS_NO_ASOCIADO = [
   font-size: var(--text-sm);
   color: var(--color-text-3);
   font-weight: var(--fw-regular);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.4;
+  margin-top: 2px;
 }
 
 .row-action {

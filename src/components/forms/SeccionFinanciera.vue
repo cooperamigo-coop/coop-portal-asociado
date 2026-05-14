@@ -1,6 +1,9 @@
 <script setup>
-import CampoMoneda from './CampoMoneda.vue'
-import CampoTexto  from './CampoTexto.vue'
+import CampoMoneda    from './CampoMoneda.vue'
+import CampoTexto     from './CampoTexto.vue'
+import { useBreakpoint } from '@/composables/useBreakpoint'
+
+const { isMobile } = useBreakpoint()
 
 const props = defineProps({
   modelValue:       { type: Object,  required: true },
@@ -48,7 +51,7 @@ function claveFuente() {
     <template v-if="!tipoTrabajador || tipoTrabajador === 'empleado'">
       <div :style="{
         display:             'grid',
-        gridTemplateColumns: '1fr 1fr 1fr',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr',
         gap:                 'var(--sp-lg)',
         marginBottom:        'var(--sp-lg)',
       }">
@@ -75,7 +78,7 @@ function claveFuente() {
       </div>
       <div :style="{
         display:             'grid',
-        gridTemplateColumns: mostrarDependientes ? '1fr 1fr 1fr' : '1fr 1fr',
+        gridTemplateColumns: isMobile ? '1fr' : mostrarDependientes ? '1fr 1fr 1fr' : '1fr 1fr',
         gap:                 'var(--sp-lg)',
       }">
         <CampoMoneda
@@ -108,7 +111,7 @@ function claveFuente() {
     <template v-else-if="tipoTrabajador === 'independiente'">
       <div :style="{
         display:             'grid',
-        gridTemplateColumns: '1fr 1fr',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
         gap:                 'var(--sp-lg)',
         marginBottom:        'var(--sp-lg)',
       }">
@@ -129,7 +132,7 @@ function claveFuente() {
       </div>
       <div :style="{
         display:             'grid',
-        gridTemplateColumns: mostrarDependientes ? '1fr 1fr 1fr' : '1fr 1fr',
+        gridTemplateColumns: isMobile ? '1fr' : mostrarDependientes ? '1fr 1fr 1fr' : '1fr 1fr',
         gap:                 'var(--sp-lg)',
       }">
         <CampoMoneda
@@ -162,7 +165,7 @@ function claveFuente() {
     <template v-else-if="tipoTrabajador === 'pensionado'">
       <div :style="{
         display:             'grid',
-        gridTemplateColumns: mostrarDependientes ? '1fr 1fr' : '1fr',
+        gridTemplateColumns: isMobile ? '1fr' : mostrarDependientes ? '1fr 1fr' : '1fr',
         gap:                 'var(--sp-lg)',
       }">
         <CampoMoneda
@@ -189,7 +192,7 @@ function claveFuente() {
     <template v-else-if="tipoTrabajador === 'estudiante'">
       <div :style="{
         display:             'grid',
-        gridTemplateColumns: mostrarDependientes ? '1fr 1fr 1fr' : '1fr 1fr',
+        gridTemplateColumns: isMobile ? '1fr' : mostrarDependientes ? '1fr 1fr 1fr' : '1fr 1fr',
         gap:                 'var(--sp-lg)',
       }">
         <CampoMoneda
@@ -224,7 +227,7 @@ function claveFuente() {
     <template v-else-if="tipoTrabajador === 'cuidado_hogar'">
       <div :style="{
         display:             'grid',
-        gridTemplateColumns: mostrarDependientes ? '1fr 1fr 1fr' : '1fr 1fr',
+        gridTemplateColumns: isMobile ? '1fr' : mostrarDependientes ? '1fr 1fr 1fr' : '1fr 1fr',
         gap:                 'var(--sp-lg)',
       }">
         <CampoMoneda

@@ -110,6 +110,13 @@ function onBlur()  { focused.value = false; emit('blur') }
   transition: border-bottom-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
+@media (max-width: 768px) {
+  .campo-input-container {
+    height: 48px;
+    padding: 18px 10px 4px 10px;
+  }
+}
+
 .campo-input-container--focused {
   border-bottom-color: var(--color-primary);
   box-shadow: 0 1px 0 0 var(--color-primary);
@@ -169,12 +176,26 @@ function onBlur()  { focused.value = false; emit('blur') }
   transition: all var(--transition-fast);
 }
 
+@media (max-width: 768px) {
+  .campo-label {
+    left: 24px;
+    top: 30px;
+  }
+}
+
 .campo-field--floated .campo-label {
   left: 12px;
   top: 4px;
   transform: translateY(0);
   font-size: 11px;
   font-weight: var(--fw-medium);
+}
+
+@media (max-width: 768px) {
+  .campo-field--floated .campo-label {
+    top: 2px;
+    font-size: 10px;
+  }
 }
 
 .campo-label--focused { color: var(--color-primary); }
