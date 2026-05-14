@@ -80,13 +80,10 @@ const SERVICIOS_NO_ASOCIADO = [
           <IconWorld :size="14" />Cooperamigo.coop
         </a>
       </div>
-      <!-- Mobile: link a cooperamigo.coop -->
-      <a href="https://cooperamigo.coop" target="_blank" rel="noopener noreferrer" class="topbar-back"
-        aria-label="Visitar cooperamigo.coop">
+      <!-- Mobile: botón volver -->
+      <button class="topbar-back" @click="paso = 'pregunta'" aria-label="Volver">
         <IconArrowLeft :size="18" />
-      </a>
-      <!-- Mobile: logo centrado blanco -->
-      <img src="/logo-principal.svg" alt="Cooperamigó" class="topbar-logo" />
+      </button>
     </header>
 
     <!-- Badge VIGILADA lateral (solo desktop) -->
@@ -252,6 +249,7 @@ const SERVICIOS_NO_ASOCIADO = [
   top: 0;
   left: 0;
   transform: translate(-50%, -50%);
+  z-index: 2;
 }
 
 @media (max-width: 767px) {
@@ -608,7 +606,7 @@ const SERVICIOS_NO_ASOCIADO = [
 @media (max-width: 960px) {
   .portal-topbar {
     position: relative;
-    background: var(--color-primary);
+    background: transparent;
     justify-content: flex-start;
     padding: 0 16px;
     height: 52px;
@@ -623,7 +621,7 @@ const SERVICIOS_NO_ASOCIADO = [
     display: none;
   }
 
-  /* Flecha: link a cooperamigo.com */
+  /* Botón volver */
   .topbar-back {
     display: flex;
     align-items: center;
@@ -631,26 +629,17 @@ const SERVICIOS_NO_ASOCIADO = [
     width: 36px;
     height: 36px;
     border-radius: var(--r-pill);
-    color: rgba(255, 255, 255, 0.7);
-    text-decoration: none;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-2);
     flex-shrink: 0;
     transition: background var(--transition-fast), color var(--transition-fast);
   }
 
   .topbar-back:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-  }
-
-  /* Logo blanco centrado */
-  .topbar-logo {
-    display: block;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    height: 24px;
-    object-fit: contain;
-    filter: brightness(0) invert(1);
+    background: var(--color-bg-surface);
+    color: var(--color-primary);
   }
 
   /* Main ocupa toda la pantalla → footer queda fuera del viewport (hay que hacer scroll) */

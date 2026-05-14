@@ -17,8 +17,19 @@ export async function generarPdfCedula(imagenFrente, imagenReverso) {
   const espacioVertical = pageHeight - (margin * 2) - separacion - (etiquetaH * 2)
   const maxHeightPorImagen = espacioVertical / 2
 
-  const cargarImagen = (src) =>
-    fetch(src)
+  const cargarImagen = (src) => {
+    // URLs blob ya están en memoria — cargar directo sin fetch
+    // (fetch a blob: viola connect-src en CSP)
+    if (src.startsWith('blob:') || src.startsWith('data:')) {
+      return new Promise((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => resolve(img)
+        img.onerror = () => reject(new Error('No se pudo decodificar la imagen'))
+        img.src = src
+      })
+    }
+    // URLs remotas (Supabase): fetch para obtener el blob y evitar taint de canvas
+    return fetch(src)
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status} al descargar imagen`)
         return res.blob()
@@ -30,6 +41,7 @@ export async function generarPdfCedula(imagenFrente, imagenReverso) {
         img.onerror = () => reject(new Error('No se pudo decodificar la imagen'))
         img.src = objectUrl
       }))
+  }
 
   try {
     const [imgF, imgR] = await Promise.all([
