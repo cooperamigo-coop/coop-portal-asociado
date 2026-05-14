@@ -5,6 +5,9 @@ import CampoSelectBuscable from './CampoSelectBuscable.vue'
 import SelectorFecha       from './SelectorFecha.vue'
 import ModalDireccion      from './ModalDireccion.vue'
 import { TIPOS_DOCUMENTO } from '@/data/formularioCredito'
+import { useBreakpoint }   from '@/composables/useBreakpoint'
+
+const { isMobile } = useBreakpoint()
 
 const TIPOS_DOC_CODEUDOR = [
   { value: 'cedula_ciudadania',  label: 'Cédula de ciudadanía'  },
@@ -87,85 +90,169 @@ const nivelEducativoOpciones = [
       marginBottom: 'var(--sp-xl)',
     }">{{ titulo }}</div>
 
-    <!-- Fila 1: tipo documento, número de documento y fecha expedición (3 columnas) -->
-    <div :style="{
-      display:             'grid',
-      gridTemplateColumns: '1fr 1fr 1fr',
-      gap:                 'var(--sp-lg)',
-      marginBottom:        'var(--sp-lg)',
-    }">
-      <CampoSelectBuscable
-        :model-value="modelValue[clave('tipo_documento')]"
-        label="Tipo de documento"
-        :opciones="tiposDocOpciones"
-        required
-        :disabled="bloquearDocumento"
-        :error="errores[clave('tipo_documento')]"
-        @update:model-value="actualizar(clave('tipo_documento'), $event)"
-      />
+    <!-- ── DESKTOP ─────────────────────────────────────────────── -->
+    <template v-if="!isMobile">
+      <!-- Fila 1: tipo documento, número de documento y fecha expedición -->
+      <div class="form-grid-3 mb-lg">
+        <CampoSelectBuscable
+          :model-value="modelValue[clave('tipo_documento')]"
+          label="Tipo de documento"
+          :opciones="tiposDocOpciones"
+          required
+          :disabled="bloquearDocumento"
+          :error="errores[clave('tipo_documento')]"
+          @update:model-value="actualizar(clave('tipo_documento'), $event)"
+        />
+        <CampoTexto
+          :model-value="modelValue[clave('numero_identificacion')]"
+          label="Número de documento"
+          placeholder="Ej: 1023456789"
+          required
+          :maxlength="esCodeudor ? 10 : 15"
+          :solo-numeros="esCodeudor"
+          :disabled="bloquearDocumento"
+          :helper="null"
+          :error="errores[clave('numero_identificacion')]"
+          @update:model-value="actualizar(clave('numero_identificacion'), $event)"
+        />
+        <SelectorFecha
+          :model-value="modelValue[clave('fecha_expedicion_documento')]"
+          label="Fecha expedición"
+          required
+          :error="errores[clave('fecha_expedicion_documento')]"
+          :max-year="new Date().getFullYear()"
+          :min-year="1950"
+          @update:model-value="actualizar(clave('fecha_expedicion_documento'), $event)"
+        />
+      </div>
+      <!-- Fila 2: nombres y apellidos -->
+      <div class="form-grid-half">
+        <CampoTexto
+          :model-value="modelValue[clave('nombres')]"
+          label="Nombres"
+          placeholder="NOMBRES COMPLETOS"
+          required
+          solo-letras
+          :error="errores[clave('nombres')]"
+          @update:model-value="actualizar(clave('nombres'), $event ? $event.toUpperCase() : $event)"
+          @blur="actualizarUpper(clave('nombres'), modelValue[clave('nombres')])"
+        />
+        <CampoTexto
+          :model-value="modelValue[clave('apellidos')]"
+          label="Apellidos"
+          placeholder="APELLIDOS COMPLETOS"
+          required
+          solo-letras
+          :error="errores[clave('apellidos')]"
+          @update:model-value="actualizar(clave('apellidos'), $event ? $event.toUpperCase() : $event)"
+          @blur="actualizarUpper(clave('apellidos'), modelValue[clave('apellidos')])"
+        />
+      </div>
+      <!-- Fila 3: nivel educativo, fecha nacimiento, teléfono -->
+      <div class="form-grid-3 mt-lg">
+        <CampoSelectBuscable
+          v-if="showNivelEducativo"
+          :model-value="modelValue[clave('nivel_educativo')]"
+          label="Nivel educativo"
+          required
+          :opciones="nivelEducativoOpciones"
+          :error="errores[clave('nivel_educativo')]"
+          @update:model-value="actualizar(clave('nivel_educativo'), $event)"
+        />
+        <div v-else />
+        <SelectorFecha
+          :model-value="modelValue[clave('fecha_nacimiento')]"
+          label="Fecha nacimiento"
+          required
+          :error="errores[clave('fecha_nacimiento')]"
+          :max-year="new Date().getFullYear() - 18"
+          :min-year="1930"
+          @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
+        />
+        <CampoTexto
+          :model-value="modelValue[clave('celular')]"
+          label="Teléfono de contacto"
+          placeholder="Ej: 3101234567"
+          required
+          solo-numeros
+          :maxlength="10"
+          :error="errores[clave('celular')]"
+          @update:model-value="actualizar(clave('celular'), $event)"
+        />
+      </div>
+    </template>
 
-      <CampoTexto
-        :model-value="modelValue[clave('numero_identificacion')]"
-        label="Número de documento"
-        placeholder="Ej: 1023456789"
-        required
-        :maxlength="esCodeudor ? 10 : 15"
-        :solo-numeros="esCodeudor"
-        :disabled="bloquearDocumento"
-        :helper="null"
-        :error="errores[clave('numero_identificacion')]"
-        @update:model-value="actualizar(clave('numero_identificacion'), $event)"
-      />
-
-      <SelectorFecha
-        :model-value="modelValue[clave('fecha_expedicion_documento')]"
-        label="Fecha expedición"
-        required
-        :error="errores[clave('fecha_expedicion_documento')]"
-        :max-year="new Date().getFullYear()"
-        :min-year="1950"
-        @update:model-value="actualizar(clave('fecha_expedicion_documento'), $event)"
-      />
-    </div>
-
-    <!-- Resto de campos en grid 2 columnas -->
-    <div :style="{
-      display:             'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap:                 'var(--sp-lg)',
-    }">
-      <!-- Nombres -->
-      <CampoTexto
-        :model-value="modelValue[clave('nombres')]"
-        label="Nombres"
-        placeholder="NOMBRES COMPLETOS"
-        required
-        solo-letras
-        :error="errores[clave('nombres')]"
-        @update:model-value="actualizar(clave('nombres'), $event ? $event.toUpperCase() : $event)"
-        @blur="actualizarUpper(clave('nombres'), modelValue[clave('nombres')])"
-      />
-
-      <!-- Apellidos -->
-      <CampoTexto
-        :model-value="modelValue[clave('apellidos')]"
-        label="Apellidos"
-        placeholder="APELLIDOS COMPLETOS"
-        required
-        solo-letras
-        :error="errores[clave('apellidos')]"
-        @update:model-value="actualizar(clave('apellidos'), $event ? $event.toUpperCase() : $event)"
-        @blur="actualizarUpper(clave('apellidos'), modelValue[clave('apellidos')])"
-      />
-    </div>
-
-    <!-- Fila 3: Nivel educativo, Fecha nacimiento, Contacto (3 columnas) -->
-    <div :style="{
-      display:             'grid',
-      gridTemplateColumns: '1fr 1fr 1fr',
-      gap:                 'var(--sp-lg)',
-      marginTop:           'var(--sp-lg)',
-    }">
+    <!-- ── MÓVIL ──────────────────────────────────────────────── -->
+    <template v-else>
+      <!-- Tipo doc + Nro doc -->
+      <div class="form-grid-half mb-lg">
+        <CampoSelectBuscable
+          :model-value="modelValue[clave('tipo_documento')]"
+          label="Tipo de documento"
+          :opciones="tiposDocOpciones"
+          required
+          :disabled="bloquearDocumento"
+          :error="errores[clave('tipo_documento')]"
+          @update:model-value="actualizar(clave('tipo_documento'), $event)"
+        />
+        <CampoTexto
+          :model-value="modelValue[clave('numero_identificacion')]"
+          label="Número de documento"
+          placeholder="Ej: 1023456789"
+          required
+          :maxlength="esCodeudor ? 10 : 15"
+          :solo-numeros="esCodeudor"
+          :disabled="bloquearDocumento"
+          :helper="null"
+          :error="errores[clave('numero_identificacion')]"
+          @update:model-value="actualizar(clave('numero_identificacion'), $event)"
+        />
+      </div>
+      <!-- Fecha expedición + Fecha nacimiento 50/50 -->
+      <div class="form-grid-half mb-lg">
+        <SelectorFecha
+          :model-value="modelValue[clave('fecha_expedicion_documento')]"
+          label="Fecha expedición"
+          required
+          :error="errores[clave('fecha_expedicion_documento')]"
+          :max-year="new Date().getFullYear()"
+          :min-year="1950"
+          @update:model-value="actualizar(clave('fecha_expedicion_documento'), $event)"
+        />
+        <SelectorFecha
+          :model-value="modelValue[clave('fecha_nacimiento')]"
+          label="Fecha nacimiento"
+          required
+          :error="errores[clave('fecha_nacimiento')]"
+          :max-year="new Date().getFullYear() - 18"
+          :min-year="1930"
+          @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
+        />
+      </div>
+      <!-- Nombres + Apellidos 50/50 -->
+      <div class="form-grid-half mb-lg">
+        <CampoTexto
+          :model-value="modelValue[clave('nombres')]"
+          label="Nombres"
+          placeholder="NOMBRES COMPLETOS"
+          required
+          solo-letras
+          :error="errores[clave('nombres')]"
+          @update:model-value="actualizar(clave('nombres'), $event ? $event.toUpperCase() : $event)"
+          @blur="actualizarUpper(clave('nombres'), modelValue[clave('nombres')])"
+        />
+        <CampoTexto
+          :model-value="modelValue[clave('apellidos')]"
+          label="Apellidos"
+          placeholder="APELLIDOS COMPLETOS"
+          required
+          solo-letras
+          :error="errores[clave('apellidos')]"
+          @update:model-value="actualizar(clave('apellidos'), $event ? $event.toUpperCase() : $event)"
+          @blur="actualizarUpper(clave('apellidos'), modelValue[clave('apellidos')])"
+        />
+      </div>
+      <!-- Nivel educativo (si aplica) -->
       <CampoSelectBuscable
         v-if="showNivelEducativo"
         :model-value="modelValue[clave('nivel_educativo')]"
@@ -173,20 +260,10 @@ const nivelEducativoOpciones = [
         required
         :opciones="nivelEducativoOpciones"
         :error="errores[clave('nivel_educativo')]"
+        class="mb-lg"
         @update:model-value="actualizar(clave('nivel_educativo'), $event)"
       />
-      <div v-else />
-
-      <SelectorFecha
-        :model-value="modelValue[clave('fecha_nacimiento')]"
-        label="Fecha nacimiento"
-        required
-        :error="errores[clave('fecha_nacimiento')]"
-        :max-year="new Date().getFullYear() - 18"
-        :min-year="1930"
-        @update:model-value="actualizar(clave('fecha_nacimiento'), $event)"
-      />
-
+      <!-- Teléfono -->
       <CampoTexto
         :model-value="modelValue[clave('celular')]"
         label="Teléfono de contacto"
@@ -197,14 +274,9 @@ const nivelEducativoOpciones = [
         :error="errores[clave('celular')]"
         @update:model-value="actualizar(clave('celular'), $event)"
       />
-    </div>
+    </template>
 
-    <div :style="{
-      display:             'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap:                 'var(--sp-lg)',
-      marginTop:           'var(--sp-lg)',
-    }">
+    <div :class="isMobile ? 'form-col mt-lg' : 'form-grid-2 mt-lg'">
       <!-- Correo electrónico -->
       <CampoTexto
         :model-value="modelValue[clave('correo_electronico')]"
@@ -285,6 +357,39 @@ const nivelEducativoOpciones = [
 </template>
 
 <style scoped>
+.form-grid-2,
+.form-grid-3 {
+  display: grid;
+  gap: var(--sp-lg);
+}
+
+.form-grid-2 { grid-template-columns: 1fr 1fr; }
+.form-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+.form-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-lg);
+}
+
+/* 50/50 fijo en todas las pantallas, incluyendo móvil */
+.form-grid-half {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-lg);
+}
+.form-grid-half > * { min-width: 0; }
+
+.mb-lg { margin-bottom: var(--sp-lg); }
+.mt-lg { margin-top: var(--sp-lg); }
+
+@media (max-width: 600px) {
+  .form-grid-2,
+  .form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
 .direccion-trigger:hover {
   border-bottom-color: var(--color-primary) !important;
   box-shadow: 0 1px 0 0 var(--color-primary);

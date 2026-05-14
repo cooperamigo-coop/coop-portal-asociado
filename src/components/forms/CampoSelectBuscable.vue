@@ -314,11 +314,9 @@ onUnmounted(() => {
 
 /* ── Trigger / field (Estilo Minimalista) ── */
 .csb-field {
-  position: relative;
   display: flex;
-  align-items: center;
-  gap: var(--sp-sm);
-  padding: 16px 12px 0 12px; /* Espacio superior para label y lateral suave */
+  align-items: flex-end;
+  padding: 16px 12px 6px 12px;
   border: none;
   border-bottom: 1px solid var(--color-border);
   border-radius: var(--r-md);
@@ -328,6 +326,13 @@ onUnmounted(() => {
   transition: border-bottom-color var(--transition-fast), box-shadow var(--transition-fast);
   height: 54px;
   box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .csb-field {
+    height: 48px;
+    padding: 14px 10px 4px 10px;
+  }
 }
 
 .csb-field--open { 
@@ -383,6 +388,13 @@ onUnmounted(() => {
     color var(--transition-fast);
 }
 
+@media (max-width: 768px) {
+  .csb-label {
+    left: 10px;
+    top: 30px;
+  }
+}
+
 /* ── Flotado: dentro del contenedor ── */
 .csb-field--floated .csb-label {
   top: 4px;
@@ -391,6 +403,13 @@ onUnmounted(() => {
   font-weight: var(--fw-medium);
   background: transparent;
   padding: 0;
+}
+
+@media (max-width: 768px) {
+  .csb-field--floated .csb-label {
+    top: 2px;
+    font-size: 10px;
+  }
 }
 
 .csb-label--focused { color: var(--color-primary); }

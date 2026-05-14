@@ -1,6 +1,9 @@
 <script setup>
 import { ref, watch, nextTick } from 'vue'
 import { IconX, IconCircleCheck, IconCircleX, IconFileDescription, IconChevronsDown } from '@tabler/icons-vue'
+import { useBreakpoint } from '@/composables/useBreakpoint'
+
+const { isMobile } = useBreakpoint()
 
 const props = defineProps({
   visible:  { type: Boolean, default: false },
@@ -92,14 +95,16 @@ function cerrar() {
             display:        'flex',
             alignItems:     'center',
             justifyContent: 'space-between',
-            padding:        'var(--sp-xl) var(--sp-2xl)',
+            padding:        isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-xl) var(--sp-2xl)',
             borderBottom:   '1px solid var(--color-border-card)',
             background:     'var(--color-bg-surface)',
             flexShrink:     '0',
+            gap:            'var(--sp-sm)',
           }">
-            <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)' }">
+            <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', minWidth: '0', flex: '1' }">
               <div :style="{
-                width:          '40px', height: '40px',
+                width:          isMobile ? '30px' : '40px',
+                height:         isMobile ? '30px' : '40px',
                 borderRadius:   '50%',
                 background:     'var(--color-primary)',
                 display:        'flex',
@@ -107,16 +112,19 @@ function cerrar() {
                 justifyContent: 'center',
                 flexShrink:     '0',
               }">
-                <IconFileDescription :size="20" :style="{ color: '#fff' }" />
+                <IconFileDescription :size="isMobile ? 15 : 20" :style="{ color: '#fff' }" />
               </div>
-              <div>
+              <div :style="{ minWidth: '0' }">
                 <div id="modal-auto-title" :style="{
                   fontFamily:  'var(--font-display)',
                   fontWeight:  'var(--fw-medium)',
                   color:       'var(--color-text-1)',
-                  fontSize:    'var(--text-lg)',
+                  fontSize:    isMobile ? 'var(--text-base)' : 'var(--text-lg)',
+                  whiteSpace:  'nowrap',
+                  overflow:    'hidden',
+                  textOverflow:'ellipsis',
                 }">Autorizaciones y declaraciones</div>
-                <div :style="{
+                <div v-if="!isMobile" :style="{
                   fontSize:   'var(--text-sm)',
                   color:      'var(--color-text-3)',
                   fontWeight: 'var(--fw-medium)',
@@ -168,21 +176,21 @@ function cerrar() {
             :style="{
               flex:       '1',
               overflowY:  'auto',
-              padding:    'var(--sp-2xl)',
-              fontSize:   'var(--text-base)',
+              padding:    isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
+              fontSize:   'var(--text-sm)',
               color:      'var(--color-text-2)',
               fontWeight: 'var(--fw-regular)',
-              lineHeight: '1.45',
+              lineHeight: '1.5',
             }"
             ref="contenedorTexto"
             @scroll="onScroll"
           >
             <!-- Sección 1 -->
             <p :style="{
-              fontWeight:   'var(--fw-medium)',
+              fontWeight:   'var(--fw-semibold)',
               color:        'var(--color-text-1)',
               marginBottom: 'var(--sp-sm)',
-              fontSize:     'var(--text-base)',
+              fontSize:     'var(--text-sm)',
             }">
               AUTORIZACIÓN PARA EL TRATAMIENTO DE DATOS PERSONALES
             </p>
@@ -205,10 +213,10 @@ function cerrar() {
 
             <!-- Sección 2 -->
             <p :style="{
-              fontWeight:   'var(--fw-medium)',
+              fontWeight:   'var(--fw-semibold)',
               color:        'var(--color-text-1)',
               marginBottom: 'var(--sp-sm)',
-              fontSize:     'var(--text-base)',
+              fontSize:     'var(--text-sm)',
             }">DECLARACIÓN SOBRE EL TRATAMIENTO DE LA INFORMACIÓN</p>
             <p :style="{ marginBottom: 'var(--sp-xl)' }">
               Declaro(amos) que he(mos) sido informado(s) de manera clara, suficiente y comprensible acerca de las finalidades del tratamiento de mis(nuestros) datos personales, así como de los derechos que me(nos) asisten para conocer, actualizar, rectificar y suprimir dicha información, y para revocar la presente autorización cuando sea procedente.
@@ -219,10 +227,10 @@ function cerrar() {
 
             <!-- Sección 3 -->
             <p :style="{
-              fontWeight:   'var(--fw-medium)',
+              fontWeight:   'var(--fw-semibold)',
               color:        'var(--color-text-1)',
               marginBottom: 'var(--sp-sm)',
-              fontSize:     'var(--text-base)',
+              fontSize:     'var(--text-sm)',
             }">
               AUTORIZACIÓN PARA CONSULTA Y REPORTE A CENTRALES DE INFORMACIÓN
             </p>
@@ -238,10 +246,10 @@ function cerrar() {
 
             <!-- Sección 4 -->
             <p :style="{
-              fontWeight:   'var(--fw-medium)',
+              fontWeight:   'var(--fw-semibold)',
               color:        'var(--color-text-1)',
               marginBottom: 'var(--sp-sm)',
-              fontSize:     'var(--text-base)',
+              fontSize:     'var(--text-sm)',
             }">NOTIFICACIÓN A CODEUDORES</p>
             <p :style="{ marginBottom: 'var(--sp-xl)' }">
               Declaro(amos) que, en caso de aprobación de la solicitud de crédito, los codeudores relacionados serán contactados a través de los medios suministrados, con el fin de adelantar el proceso de validación, aceptación y firma de los documentos correspondientes, incluyendo el pagaré, plan de pagos y demás soportes contractuales.
@@ -249,10 +257,10 @@ function cerrar() {
 
             <!-- Sección 5 -->
             <p :style="{
-              fontWeight:   'var(--fw-medium)',
+              fontWeight:   'var(--fw-semibold)',
               color:        'var(--color-text-1)',
               marginBottom: 'var(--sp-sm)',
-              fontSize:     'var(--text-base)',
+              fontSize:     'var(--text-sm)',
             }">DECLARACIÓN DE VERACIDAD Y RECEPCIÓN DE INFORMACIÓN</p>
             <p :style="{ marginBottom: 'var(--sp-xl)' }">
               Declaro(amos) bajo la gravedad de juramento que la información suministrada es veraz, completa y verificable, y que ha sido entregada de manera voluntaria.
@@ -263,10 +271,10 @@ function cerrar() {
 
             <!-- Sección 6 -->
             <p :style="{
-              fontWeight:   'var(--fw-medium)',
+              fontWeight:   'var(--fw-semibold)',
               color:        'var(--color-text-1)',
               marginBottom: 'var(--sp-sm)',
-              fontSize:     'var(--text-base)',
+              fontSize:     'var(--text-sm)',
             }">AUTORIZACIÓN PARA EL TRATAMIENTO DE DATOS SENSIBLES</p>
             <p :style="{ marginBottom: 'var(--sp-2xl)' }">
               Autorizo(amos) de manera expresa el tratamiento de datos sensibles, en particular la captura y uso de la huella dactilar, con el propósito de validación de identidad, autenticación y gestión de los trámites relacionados con la presente solicitud.
@@ -278,14 +286,15 @@ function cerrar() {
 
           <!-- Footer con botones — siempre visible, fuera del scroll -->
           <div :style="{
-            padding:        'var(--sp-xl) var(--sp-2xl)',
+            padding:        isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-xl) var(--sp-2xl)',
             borderTop:      '1px solid var(--color-border-card)',
             background:     'var(--color-bg-surface)',
             flexShrink:     '0',
             display:        'flex',
+            flexDirection:  isMobile ? 'column' : 'row',
             gap:            'var(--sp-md)',
-            justifyContent: 'flex-end',
-            alignItems:     'center',
+            justifyContent: isMobile ? 'stretch' : 'flex-end',
+            alignItems:     isMobile ? 'stretch' : 'center',
           }">
             <span
               v-if="!scrollCompletado && !aceptado"
@@ -293,7 +302,8 @@ function cerrar() {
                 fontSize:   'var(--text-sm)',
                 color:      'var(--color-text-3)',
                 fontWeight: 'var(--fw-medium)',
-                flex:       '1',
+                flex:       isMobile ? 'unset' : '1',
+                textAlign:  isMobile ? 'center' : 'left',
               }"
             >
               Desplace para leer ({{ porcentajeScroll }}%)
@@ -302,19 +312,21 @@ function cerrar() {
             <button
               v-if="aceptado"
               :style="{
-                display:      'flex',
-                alignItems:   'center',
-                gap:          'var(--sp-sm)',
-                padding:      'var(--sp-sm) var(--sp-xl)',
-                borderRadius: 'var(--r-pill)',
-                border:       '1px solid var(--color-border)',
-                background:   'transparent',
-                fontFamily:   'var(--font-body)',
-                fontSize:     'var(--text-base)',
-                fontWeight:   'var(--fw-semibold)',
-                color:        'var(--color-error-text)',
-                cursor:       'pointer',
-                transition:   'all var(--transition-base)',
+                display:        'flex',
+                alignItems:     'center',
+                justifyContent: 'center',
+                gap:            'var(--sp-sm)',
+                padding:        'var(--sp-sm) var(--sp-xl)',
+                borderRadius:   'var(--r-pill)',
+                border:         '1px solid var(--color-border)',
+                background:     'transparent',
+                fontFamily:     'var(--font-body)',
+                fontSize:       'var(--text-base)',
+                fontWeight:     'var(--fw-semibold)',
+                color:          'var(--color-error-text)',
+                cursor:         'pointer',
+                transition:     'all var(--transition-base)',
+                width:          isMobile ? '100%' : 'auto',
               }"
               @click="rechazar()"
             >
@@ -325,21 +337,23 @@ function cerrar() {
               <button
                 :disabled="!scrollCompletado"
                 :style="{
-                  display:      'flex',
-                  alignItems:   'center',
-                  gap:          'var(--sp-sm)',
-                  padding:      'var(--sp-sm) var(--sp-xl)',
-                  borderRadius: 'var(--r-pill)',
-                  border:       scrollCompletado ? 'none' : '1px solid var(--color-border)',
-                  background:   scrollCompletado ? 'var(--color-primary)' : 'transparent',
-                  fontFamily:   'var(--font-body)',
-                  fontSize:     'var(--text-base)',
-                  fontWeight:   'var(--fw-bold)',
-                  color:        scrollCompletado ? 'var(--color-text-on-primary)' : 'var(--color-text-3)',
-                  cursor:       scrollCompletado ? 'pointer' : 'not-allowed',
-                  boxShadow:    scrollCompletado ? 'var(--shadow-btn)' : 'none',
-                  opacity:      scrollCompletado ? '1' : '0.45',
-                  transition:   'all var(--transition-base)',
+                  display:        'flex',
+                  alignItems:     'center',
+                  justifyContent: 'center',
+                  gap:            'var(--sp-sm)',
+                  padding:        'var(--sp-sm) var(--sp-xl)',
+                  borderRadius:   'var(--r-pill)',
+                  border:         scrollCompletado ? 'none' : '1px solid var(--color-border)',
+                  background:     scrollCompletado ? 'var(--color-primary)' : 'transparent',
+                  fontFamily:     'var(--font-body)',
+                  fontSize:       'var(--text-base)',
+                  fontWeight:     'var(--fw-bold)',
+                  color:          scrollCompletado ? 'var(--color-text-on-primary)' : 'var(--color-text-3)',
+                  cursor:         scrollCompletado ? 'pointer' : 'not-allowed',
+                  boxShadow:      scrollCompletado ? 'var(--shadow-btn)' : 'none',
+                  opacity:        scrollCompletado ? '1' : '0.45',
+                  transition:     'all var(--transition-base)',
+                  width:          isMobile ? '100%' : 'auto',
                 }"
                 @click="aceptar()"
               >

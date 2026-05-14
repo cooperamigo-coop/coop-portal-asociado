@@ -3,6 +3,9 @@ import { ref, computed, watch } from 'vue'
 import { IconUpload, IconCircleCheck, IconX, IconFileDescription, IconLoader2, IconRefresh, IconEye, IconUser, IconUsers } from '@tabler/icons-vue'
 import CapturaDocumento from '@/components/forms/CapturaDocumento.vue'
 import { subirDocumentoSolicitud, obtenerMensajeErrorSubidaDocumento } from '@/services/documentos.service'
+import { useBreakpoint } from '@/composables/useBreakpoint'
+
+const { isMobile } = useBreakpoint()
 
 const props = defineProps({
   solicitudId:      { type: String, default: null },
@@ -241,25 +244,27 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
           overflow:     'hidden',
         }">
           <div :style="{
-            display:    'flex', alignItems: 'center', gap: 'var(--sp-md)',
-            padding:    'var(--sp-md) var(--sp-xl)',
+            display: 'flex', flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'stretch' : 'center', gap: 'var(--sp-md)',
+            padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)',
             background: getEstado(doc.campo).url ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
           }">
-            <div :style="{
-              width: '36px', height: '36px', borderRadius: '50%',
-              background:     getEstado(doc.campo).url ? 'var(--color-success)' : 'var(--color-primary)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0',
-            }">
-              <IconCircleCheck v-if="getEstado(doc.campo).url" :size="18" :style="{ color: '#fff' }" />
-              <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
-            </div>
-            <div :style="{ flex: '1', minWidth: '0' }">
-              <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
-                {{ doc.titulo }}
-                <span v-if="!getEstado(doc.campo).url" :style="{ marginLeft: 'var(--sp-sm)', fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 6px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase' }">Obligatorio</span>
+            <div :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-md)', flex: '1', minWidth: '0' }">
+              <div :style="{
+                width: '36px', height: '36px', borderRadius: '50%',
+                background: getEstado(doc.campo).url ? 'var(--color-success)' : 'var(--color-primary)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0',
+              }">
+                <IconCircleCheck v-if="getEstado(doc.campo).url" :size="18" :style="{ color: '#fff' }" />
+                <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
               </div>
-              <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">
-                {{ getEstado(doc.campo).url ? 'Documento cargado correctamente' : doc.descripcion }}
+              <div :style="{ minWidth: '0' }">
+                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
+                  {{ doc.titulo }}<span v-if="!getEstado(doc.campo).url" :style="{ color: 'var(--color-error)' }"> *</span>
+                </div>
+                <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '2px' }">
+                  {{ getEstado(doc.campo).url ? 'Documento cargado correctamente' : doc.descripcion }}
+                </div>
               </div>
             </div>
             <div v-if="getEstado(doc.campo).cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
@@ -273,12 +278,13 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
                 <IconRefresh :size="16" />
               </button>
             </div>
-            <div v-else :style="{ flexShrink: '0' }">
+            <div v-else>
               <button :style="{
                 display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)',
                 padding: '6px 14px', borderRadius: 'var(--r-pill)',
                 border: '1px solid var(--color-border)', background: 'white',
                 cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)',
+                width: isMobile ? '100%' : 'auto', justifyContent: 'center',
               }" @click="seleccionarArchivo($refs[`ref_${doc.campo}`]?.[0])">
                 <IconUpload :size="14" />Subir PDF
               </button>
@@ -335,25 +341,27 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
           overflow:     'hidden',
         }">
           <div :style="{
-            display:    'flex', alignItems: 'center', gap: 'var(--sp-md)',
-            padding:    'var(--sp-md) var(--sp-xl)',
+            display: 'flex', flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'stretch' : 'center', gap: 'var(--sp-md)',
+            padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)',
             background: getEstado(doc.campo).url ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
           }">
-            <div :style="{
-              width: '36px', height: '36px', borderRadius: '50%',
-              background:     getEstado(doc.campo).url ? 'var(--color-success)' : 'var(--color-primary)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0',
-            }">
-              <IconCircleCheck v-if="getEstado(doc.campo).url" :size="18" :style="{ color: '#fff' }" />
-              <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
-            </div>
-            <div :style="{ flex: '1', minWidth: '0' }">
-              <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
-                {{ doc.titulo }}
-                <span v-if="!getEstado(doc.campo).url" :style="{ marginLeft: 'var(--sp-sm)', fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 6px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase' }">Obligatorio</span>
+            <div :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-md)', flex: '1', minWidth: '0' }">
+              <div :style="{
+                width: '36px', height: '36px', borderRadius: '50%',
+                background: getEstado(doc.campo).url ? 'var(--color-success)' : 'var(--color-primary)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0',
+              }">
+                <IconCircleCheck v-if="getEstado(doc.campo).url" :size="18" :style="{ color: '#fff' }" />
+                <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
               </div>
-              <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">
-                {{ getEstado(doc.campo).url ? 'Documento cargado correctamente' : doc.descripcion }}
+              <div :style="{ minWidth: '0' }">
+                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
+                  {{ doc.titulo }}<span v-if="!getEstado(doc.campo).url" :style="{ color: 'var(--color-error)' }"> *</span>
+                </div>
+                <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '2px' }">
+                  {{ getEstado(doc.campo).url ? 'Documento cargado correctamente' : doc.descripcion }}
+                </div>
               </div>
             </div>
             <div v-if="getEstado(doc.campo).cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
@@ -367,12 +375,13 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
                 <IconRefresh :size="16" />
               </button>
             </div>
-            <div v-else :style="{ flexShrink: '0' }">
+            <div v-else>
               <button :style="{
                 display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)',
                 padding: '6px 14px', borderRadius: 'var(--r-pill)',
                 border: '1px solid var(--color-border)', background: 'white',
                 cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)',
+                width: isMobile ? '100%' : 'auto', justifyContent: 'center',
               }" @click="seleccionarArchivo($refs[`ref_${doc.campo}`]?.[0])">
                 <IconUpload :size="14" />Subir PDF
               </button>
@@ -429,25 +438,27 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
           overflow:     'hidden',
         }">
           <div :style="{
-            display:    'flex', alignItems: 'center', gap: 'var(--sp-md)',
-            padding:    'var(--sp-md) var(--sp-xl)',
+            display: 'flex', flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'stretch' : 'center', gap: 'var(--sp-md)',
+            padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)',
             background: getEstado(doc.campo).url ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
           }">
-            <div :style="{
-              width: '36px', height: '36px', borderRadius: '50%',
-              background:     getEstado(doc.campo).url ? 'var(--color-success)' : 'var(--color-primary)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0',
-            }">
-              <IconCircleCheck v-if="getEstado(doc.campo).url" :size="18" :style="{ color: '#fff' }" />
-              <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
-            </div>
-            <div :style="{ flex: '1', minWidth: '0' }">
-              <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
-                {{ doc.titulo }}
-                <span v-if="!getEstado(doc.campo).url" :style="{ marginLeft: 'var(--sp-sm)', fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 6px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase' }">Obligatorio</span>
+            <div :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-md)', flex: '1', minWidth: '0' }">
+              <div :style="{
+                width: '36px', height: '36px', borderRadius: '50%',
+                background: getEstado(doc.campo).url ? 'var(--color-success)' : 'var(--color-primary)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0',
+              }">
+                <IconCircleCheck v-if="getEstado(doc.campo).url" :size="18" :style="{ color: '#fff' }" />
+                <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
               </div>
-              <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">
-                {{ getEstado(doc.campo).url ? 'Documento cargado correctamente' : doc.descripcion }}
+              <div :style="{ minWidth: '0' }">
+                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
+                  {{ doc.titulo }}<span v-if="!getEstado(doc.campo).url" :style="{ color: 'var(--color-error)' }"> *</span>
+                </div>
+                <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '2px' }">
+                  {{ getEstado(doc.campo).url ? 'Documento cargado correctamente' : doc.descripcion }}
+                </div>
               </div>
             </div>
             <div v-if="getEstado(doc.campo).cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
@@ -461,12 +472,13 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
                 <IconRefresh :size="16" />
               </button>
             </div>
-            <div v-else :style="{ flexShrink: '0' }">
+            <div v-else>
               <button :style="{
                 display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)',
                 padding: '6px 14px', borderRadius: 'var(--r-pill)',
                 border: '1px solid var(--color-border)', background: 'white',
                 cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)',
+                width: isMobile ? '100%' : 'auto', justifyContent: 'center',
               }" @click="seleccionarArchivo($refs[`ref_${doc.campo}`]?.[0])">
                 <IconUpload :size="14" />Subir PDF
               </button>

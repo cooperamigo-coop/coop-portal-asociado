@@ -1,7 +1,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 
 export function useBreakpoint() {
-  const isMobile = ref(false)
+  const isMobile = ref(typeof window !== 'undefined' && window.innerWidth <= 767)
 
   function update() {
     isMobile.value = window.innerWidth <= 767

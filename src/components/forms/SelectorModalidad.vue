@@ -28,19 +28,20 @@ const opciones = [
   <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
 
     <!-- Encabezado -->
-    <div :style="{ marginBottom: 'var(--sp-sm)' }">
+    <div class="selector-header" :style="{ marginBottom: 'var(--sp-sm)' }">
       <h2 :style="{
         fontFamily:   'var(--font-display)',
         fontSize:     'var(--text-2xl)',
         fontWeight:   'var(--fw-extrabold)',
         color:        'var(--color-text-1)',
         margin:       '0 0 var(--sp-xs)',
+        lineHeight:   '1.1',
       }">Solicitud de crédito</h2>
       <p :style="{
         fontSize:   'var(--text-base)',
         color:      'var(--color-text-2)',
         fontWeight: 'var(--fw-regular)',
-        lineHeight: '1.4',
+        lineHeight: '1.2',
         margin:     '0',
       }">¿Qué modalidad de crédito deseas solicitar?</p>
     </div>
@@ -114,9 +115,25 @@ const opciones = [
           fontSize:   'var(--text-base)',
           color:      'var(--color-text-2)',
           fontWeight: 'var(--fw-regular)',
-          lineHeight: '1.6',
+          lineHeight: '1.2',
         }">{{ op.descripcion }}</div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+@media (max-width: 480px) {
+  .selector-header {
+    text-align: center;
+  }
+
+  .selector-header h2 {
+    font-size: 18px;
+  }
+
+  .selector-header p {
+    font-size: 12px;
+  }
+}
+</style>

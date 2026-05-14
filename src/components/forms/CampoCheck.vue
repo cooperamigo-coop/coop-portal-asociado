@@ -4,6 +4,7 @@ defineProps({
   label:      { type: String, required: true },
   required:   { type: Boolean, default: false },
   error:      { type: String, default: null },
+  compact:    { type: Boolean, default: false },
 })
 defineEmits(['update:modelValue'])
 </script>
@@ -11,8 +12,8 @@ defineEmits(['update:modelValue'])
 <template>
   <div
     :style="{
-      display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-sm)',
-      padding: 'var(--sp-md)',
+      display: 'flex', alignItems: compact ? 'center' : 'flex-start', gap: 'var(--sp-sm)',
+      padding: compact ? 'var(--sp-xs) var(--sp-sm)' : 'var(--sp-md)',
       borderRadius: 'var(--r-md)',
       border: `1px solid ${error
         ? 'var(--color-error)'
@@ -33,7 +34,7 @@ defineEmits(['update:modelValue'])
       border: `2px solid ${modelValue ? 'var(--color-primary)' : 'var(--color-border)'}`,
       background: modelValue ? 'var(--color-primary)' : 'transparent',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      flexShrink: '0', marginTop: '1px',
+      flexShrink: '0', marginTop: compact ? '0' : '1px',
       transition: 'all var(--transition-fast)',
     }">
       <svg v-if="modelValue" width="10" height="8" viewBox="0 0 10 8" fill="none">

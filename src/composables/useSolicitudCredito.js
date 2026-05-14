@@ -920,6 +920,20 @@ export function useSolicitudCredito() {
     guardarPaso()
   })
 
+  // Ocultar banner de borrador en cuanto el usuario avanza al paso 2
+  // o selecciona una modalidad — ya tomó la decisión de continuar
+  watch(() => paso.value, (p) => {
+    if (p > 1 && mostrarOpcionBorrador.value) {
+      mostrarOpcionBorrador.value = false
+    }
+  })
+
+  watch(() => general.value.modalidad_credito, (val) => {
+    if (val && mostrarOpcionBorrador.value) {
+      mostrarOpcionBorrador.value = false
+    }
+  })
+
   // Persistir URLs de documentos en Supabase inmediatamente al cargarse
   watch(documentos, async (newDocs) => {
     if (!solicitudId.value || enviado.value) return

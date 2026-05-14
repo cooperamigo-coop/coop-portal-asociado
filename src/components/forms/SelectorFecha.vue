@@ -456,9 +456,16 @@ const valorFormateado = computed(() => {
   cursor: pointer;
   transition: border-bottom-color var(--transition-fast), box-shadow var(--transition-fast);
   display: flex;
-  align-items: center;
-  padding: 8px 12px 2px 12px; /* reducido: texto queda a ~30px sobre 54px (≈ centro visual) */
+  align-items: flex-end;
+  padding: 16px 12px 6px 12px;
   box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .fecha-field {
+    height: 48px;
+    padding: 14px 10px 4px 10px;
+  }
 }
 
 .fecha-field--open {
@@ -491,7 +498,7 @@ const valorFormateado = computed(() => {
 .fecha-label {
   position: absolute;
   left: 12px;
-  top: 50%;
+  top: 35px;
   transform: translateY(-50%);
   font-size: var(--text-base);
   font-weight: var(--fw-regular);
@@ -511,13 +518,27 @@ const valorFormateado = computed(() => {
     color var(--transition-fast);
 }
 
+@media (max-width: 768px) {
+  .fecha-label {
+    left: 10px;
+    top: 30px;
+  }
+}
+
 .fecha-field--floated .fecha-label {
-  top: 3px;
+  top: 4px;
   transform: translateY(0);
   font-size: 11px;
   font-weight: var(--fw-medium);
   background: transparent;
   padding: 0;
+}
+
+@media (max-width: 768px) {
+  .fecha-field--floated .fecha-label {
+    top: 2px;
+    font-size: 10px;
+  }
 }
 
 .fecha-label--focused { color: var(--color-primary); }
