@@ -205,7 +205,7 @@ function cerrar() { emit('update:visible', false) }
                   required
                   :opciones="VIAS_PRINCIPALES.map(v => ({ value: v, label: v }))"
                 />
-                <CampoTexto v-model="local.numero_via" label="Número" required placeholder="45" />
+                <CampoTexto v-model="local.numero_via" label="Número" required placeholder="45" uppercase />
                 <CampoTexto v-model="local.letra_via" label="Letra" placeholder="A" />
                 <CampoSelectBuscable v-model="local.cuadrante_via" label="Cuadrante" :opciones="opcionesCuadrante" />
               </div>

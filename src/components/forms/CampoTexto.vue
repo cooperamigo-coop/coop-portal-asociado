@@ -17,6 +17,7 @@ const props = defineProps({
   soloLetras:        { type: Boolean, default: false },
   // letras, números, espacios, guion, punto, coma — para campos laborales
   soloTextoLaboral:  { type: Boolean, default: false },
+  labelWrap:         { type: Boolean, default: false },
 })
 const emit = defineEmits(['update:modelValue', 'blur'])
 
@@ -78,6 +79,7 @@ function onBlur()  { focused.value = false; emit('blur') }
         :class="{
           'campo-label--focused': focused && !error,
           'campo-label--error':   !!error,
+          'campo-label--wrap':    labelWrap,
         }"
       >
         {{ label }}<span v-if="required" class="campo-required"> *</span>
@@ -167,6 +169,13 @@ function onBlur()  { focused.value = false; emit('blur') }
     font-size var(--transition-fast),
     font-weight var(--transition-fast),
     color var(--transition-fast);
+}
+
+/* Label en múltiples líneas (para labels largos) */
+.campo-label--wrap {
+  white-space: normal;
+  line-height: 1.2;
+  max-width: none;
 }
 
 @media (max-width: 768px) {

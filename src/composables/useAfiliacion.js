@@ -193,6 +193,37 @@ export function useAfiliacion() {
     doc_soporte_ingresos_laboral_url: '',
   })
 
+  // ── Firma electrónica ──────────────────────────────────────────────────────
+  const firma = ref({
+    nombre_firma: '',
+    firma_metodo: 'dibujar',
+    firma_imagen_dataurl: '',
+    firma_hash: '',
+    firma_fecha_iso: '',
+    firma_nonce: '',
+    firma_user_agent: '',
+    firma_plataforma: '',
+    firma_idioma: '',
+    firma_timezone: '',
+    firma_resolucion: '',
+    firma_imagen_hash: '',
+    firma_transaccion_id: '',
+    firma_timestamp_servidor_iso: '',
+    firma_timestamp_servidor_unix: '',
+    firma_timestamp_fuente: '',
+    firma_ip_publica: '',
+    firma_dispositivo_tipo: '',
+    firma_sistema_operativo: '',
+    firma_navegador: '',
+    firma_geo_lat: '',
+    firma_geo_lon: '',
+    firma_geo_accuracy: '',
+    firma_doc_hash_sha256: '',
+    firma_doc_hash_firmado_b64: '',
+    firma_doc_firma_public_key_jwk: null,
+    firma_doc_firma_alg: '',
+  })
+
   // Sección 1 encabezado
   const oficina = ref('PRINCIPAL - MEDELLÍN')
   const fechaSolicitud = ref(hoyIso())
@@ -616,7 +647,17 @@ export function useAfiliacion() {
       return
     }
 
-    const permitido = await verificarRateLimit(supabase, datosPersonales.value.cedula, 'afiliacion')
+    const dp = datosPersonales.value
+    if (!dp.nombres || dp.nombres.trim().length < 2) {
+      error.value = 'El campo Nombres es muy corto. Ingrese el nombre completo.'
+      return
+    }
+    if (!dp.apellidos || dp.apellidos.trim().length < 3) {
+      error.value = 'El campo Apellidos es muy corto. Ingrese los apellidos completos.'
+      return
+    }
+
+    const permitido = await verificarRateLimit(supabase, dp.cedula, 'afiliacion')
     if (!permitido) {
       error.value = 'Ha alcanzado el límite de solicitudes para este documento. Intente después de 24 horas.'
       return
@@ -629,7 +670,6 @@ export function useAfiliacion() {
       if (asociadoExistente.value) {
         asociadoId = asociadoExistente.value.id
       } else {
-        const dp = datosPersonales.value
         const dl = datosLaborales.value
         const df = datosFinancieros.value
 
@@ -725,9 +765,9 @@ export function useAfiliacion() {
         asociadoId = nuevo.id
       }
 
-      const dp = datosPersonales.value
-      const dl = datosLaborales.value
-      const df = datosFinancieros.value
+      const dpSnap = datosPersonales.value
+      const dlSnap = datosLaborales.value
+      const dfSnap = datosFinancieros.value
       const dc = declaraciones.value
 
       const solicitud = await crearSolicitudAfiliacion({
@@ -735,48 +775,48 @@ export function useAfiliacion() {
         oficina:     oficina.value,
         fecha_solicitud: fechaSolicitud.value || null,
         tipo_solicitud:  tipoSolicitud.value || null,
-        canales_comunicacion: (Array.isArray(dp.canales_comunicacion) && dp.canales_comunicacion.length)
-          ? dp.canales_comunicacion
+        canales_comunicacion: (Array.isArray(dpSnap.canales_comunicacion) && dpSnap.canales_comunicacion.length)
+          ? dpSnap.canales_comunicacion
           : null,
         // Snapshot personal
-        tipo_identificacion:             dp.tipo_identificacion,
-        fecha_expedicion:                dp.fecha_expedicion || null,
-        nacionalidad:                    dp.nacionalidad || null,
-        lugar_nacimiento:                dp.lugar_nacimiento || null,
-        rh:                              dp.rh || null,
-        titulo:                          dp.titulo || null,
-        personas_a_cargo:                dp.personas_a_cargo !== '' ? Number(dp.personas_a_cargo) : null,
-        personas_economicamente_activas: dp.personas_economicamente_activas !== '' ? Number(dp.personas_economicamente_activas) : null,
-        barrio:                          dp.barrio || null,
-        estrato:                         dp.estrato !== '' ? Number(dp.estrato) : null,
-        tiempo_residencia_meses:         dp.tiempo_residencia_meses !== '' ? Number(dp.tiempo_residencia_meses) : null,
-        celular:                         dp.celular || null,
-        otro_email:                      dp.otro_email || null,
-        estado_civil:                    dp.estado_civil || null,
-        tipo_vivienda:                   dp.tipo_vivienda || null,
-        genero:                          dp.genero || null,
-        nivel_academico:                 dp.nivel_academico || null,
-        administra_recursos_publicos:    dp.administra_recursos_publicos === true,
-        persona_expuesta_publicamente:   dp.persona_expuesta_publicamente === true,
+        tipo_identificacion:             dpSnap.tipo_identificacion,
+        fecha_expedicion:                dpSnap.fecha_expedicion || null,
+        nacionalidad:                    dpSnap.nacionalidad || null,
+        lugar_nacimiento:                dpSnap.lugar_nacimiento || null,
+        rh:                              dpSnap.rh || null,
+        titulo:                          dpSnap.titulo || null,
+        personas_a_cargo:                dpSnap.personas_a_cargo !== '' ? Number(dpSnap.personas_a_cargo) : null,
+        personas_economicamente_activas: dpSnap.personas_economicamente_activas !== '' ? Number(dpSnap.personas_economicamente_activas) : null,
+        barrio:                          dpSnap.barrio || null,
+        estrato:                         dpSnap.estrato !== '' ? Number(dpSnap.estrato) : null,
+        tiempo_residencia_meses:         dpSnap.tiempo_residencia_meses !== '' ? Number(dpSnap.tiempo_residencia_meses) : null,
+        celular:                         dpSnap.celular || null,
+        otro_email:                      dpSnap.otro_email || null,
+        estado_civil:                    dpSnap.estado_civil || null,
+        tipo_vivienda:                   dpSnap.tipo_vivienda || null,
+        genero:                          dpSnap.genero || null,
+        nivel_academico:                 dpSnap.nivel_academico || null,
+        administra_recursos_publicos:    dpSnap.administra_recursos_publicos === true,
+        persona_expuesta_publicamente:   dpSnap.persona_expuesta_publicamente === true,
         // Snapshot laboral
-        tipo_trabajador:                 dl.tipo_trabajador || null,
-        empresa:                         dl.tipo_trabajador === 'empleado' ? (dl.nombre_empresa || null) : null,
-        cargo:                           dl.tipo_trabajador === 'empleado' ? (dl.cargo_oficio || null) : null,
-        tipo_contrato:                   dl.tipo_trabajador === 'empleado'
-          ? (dl.tipo_contrato === 'otro' ? (dl.tipo_contrato_otro || null) : (dl.tipo_contrato || null))
+        tipo_trabajador:                 dlSnap.tipo_trabajador || null,
+        empresa:                         dlSnap.tipo_trabajador === 'empleado' ? (dlSnap.nombre_empresa || null) : null,
+        cargo:                           dlSnap.tipo_trabajador === 'empleado' ? (dlSnap.cargo_oficio || null) : null,
+        tipo_contrato:                   dlSnap.tipo_trabajador === 'empleado'
+          ? (dlSnap.tipo_contrato === 'otro' ? (dlSnap.tipo_contrato_otro || null) : (dlSnap.tipo_contrato || null))
           : null,
-        fecha_ingreso:                   dl.tipo_trabajador === 'empleado' ? (dl.fecha_ingreso || null) : null,
-        entidad_pagadora:                dl.tipo_trabajador === 'pensionado' ? (dl.entidad_pagadora || null) : null,
-        institucion_educativa:           dl.tipo_trabajador === 'estudiante' ? (dl.institucion_educativa || null) : null,
-        nivel_educativo:                 dl.tipo_trabajador === 'estudiante' ? (dl.nivel_educativo || null) : null,
+        fecha_ingreso:                   dlSnap.tipo_trabajador === 'empleado' ? (dlSnap.fecha_ingreso || null) : null,
+        entidad_pagadora:                dlSnap.tipo_trabajador === 'pensionado' ? (dlSnap.entidad_pagadora || null) : null,
+        institucion_educativa:           dlSnap.tipo_trabajador === 'estudiante' ? (dlSnap.institucion_educativa || null) : null,
+        nivel_educativo:                 dlSnap.tipo_trabajador === 'estudiante' ? (dlSnap.nivel_educativo || null) : null,
         // Snapshot financiero
-        salario_ingresos_fijos:          df.salario_ingresos_fijos !== '' ? Number(df.salario_ingresos_fijos) : null,
-        ingresos_independiente:          df.ingresos_independiente !== '' ? Number(df.ingresos_independiente) : null,
-        gastos_familiares:               df.gastos_familiares !== '' ? Number(df.gastos_familiares) : null,
-        otros_gastos:                    df.otros_gastos !== '' ? Number(df.otros_gastos) : null,
-        obligaciones_financieras:        df.obligaciones_financieras !== '' ? Number(df.obligaciones_financieras) : null,
-        fuente_ingresos:                 df.fuente_ingresos || null,
-        mesada_pensional:                df.mesada_pensional !== '' ? Number(df.mesada_pensional) : null,
+        salario_ingresos_fijos:          dfSnap.salario_ingresos_fijos !== '' ? Number(dfSnap.salario_ingresos_fijos) : null,
+        ingresos_independiente:          dfSnap.ingresos_independiente !== '' ? Number(dfSnap.ingresos_independiente) : null,
+        gastos_familiares:               dfSnap.gastos_familiares !== '' ? Number(dfSnap.gastos_familiares) : null,
+        otros_gastos:                    dfSnap.otros_gastos !== '' ? Number(dfSnap.otros_gastos) : null,
+        obligaciones_financieras:        dfSnap.obligaciones_financieras !== '' ? Number(dfSnap.obligaciones_financieras) : null,
+        fuente_ingresos:                 dfSnap.fuente_ingresos || null,
+        mesada_pensional:                dfSnap.mesada_pensional !== '' ? Number(dfSnap.mesada_pensional) : null,
         // JSONB
         actividad_independiente:         esIndependiente.value
           ? {
@@ -820,12 +860,38 @@ export function useAfiliacion() {
       solicitudCreada.value = solicitud
       paso.value = 6
     } catch (e) {
-      if (e.message?.includes('duplicate') || e.message?.includes('unique')) {
+      const msg = e?.message || e?.error_description || String(e) || ''
+      const code = e?.code || e?.status || ''
+      console.error('[enviarSolicitud] Error:', { code, msg, raw: e })
+      if (msg.includes('duplicate') || msg.includes('unique') || code === '23505') {
         error.value = 'Ya existe una solicitud de afiliación para este documento.'
-      } else if (e.message?.includes('violates check constraint')) {
-        error.value = 'Uno o más valores están fuera del rango permitido.'
+      } else if (msg.includes('chk_apellidos_longitud')) {
+        error.value = 'El campo Apellidos no cumple el largo mínimo requerido. Por favor revíselo.'
+      } else if (msg.includes('chk_nombres_longitud')) {
+        error.value = 'El campo Nombres no cumple el largo mínimo requerido. Por favor revíselo.'
+      } else if (msg.includes('violates check constraint') || code === '23514') {
+        const constraint = msg.match(/constraint "([^"]+)"/)?.[1] || ''
+        error.value = constraint
+          ? `Dato inválido (${constraint}). Revise los campos del formulario.`
+          : 'Uno o más valores están fuera del rango permitido.'
+      } else if (msg.includes('violates not-null constraint') || code === '23502') {
+        const col = msg.match(/column "([^"]+)"/)?.[1] || ''
+        error.value = col
+          ? `El campo "${col}" es requerido pero llegó vacío.`
+          : 'Falta un campo requerido. Revise el formulario.'
+      } else if (msg.includes('value too long') || code === '22001') {
+        const col = msg.match(/type "([^"]+)"/)?.[1] || ''
+        error.value = col
+          ? `El campo "${col}" excede el largo máximo permitido.`
+          : 'Un valor ingresado es demasiado largo.'
+      } else if (msg.includes('invalid input syntax') || code === '22P02') {
+        error.value = 'Un campo tiene un formato inválido. Revise fechas y números.'
+      } else if (code === '42501' || msg.includes('permission denied')) {
+        error.value = 'Sin permisos para enviar la solicitud. Contacte al administrador.'
+      } else if (msg) {
+        error.value = `Error al enviar: ${msg}`
       } else {
-        error.value = 'Error al enviar la solicitud. Intente nuevamente.'
+        error.value = 'Error desconocido al enviar la solicitud. Intente nuevamente.'
       }
     } finally {
       loading.value = false
@@ -982,7 +1048,7 @@ export function useAfiliacion() {
     datosPersonales, datosLaborales,
     actividadIndependiente, datosFinancieros, activosPasivos,
     datosConyuge, referencias, declaraciones,
-    documentos,
+    documentos, firma,
     pasoValido, necesitaConyuge, esIndependiente,
     validarCampoActual, schemaPersonales,
     verificarYContinuar, restaurarBorrador, descartarBorrador,

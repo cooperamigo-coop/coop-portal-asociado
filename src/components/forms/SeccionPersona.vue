@@ -184,8 +184,8 @@ const nivelEducativoOpciones = [
 
     <!-- ── MÓVIL ──────────────────────────────────────────────── -->
     <template v-else>
-      <!-- Tipo doc + Nro doc -->
-      <div class="form-grid-half mb-lg">
+      <!-- Tipo doc + Nro doc 70/30 -->
+      <div class="form-grid-70-30 mb-lg">
         <CampoSelectBuscable
           :model-value="modelValue[clave('tipo_documento')]"
           label="Tipo de documento"
@@ -380,12 +380,21 @@ const nivelEducativoOpciones = [
 }
 .form-grid-half > * { min-width: 0; }
 
+/* 70/30 para tipo documento y número */
+.form-grid-70-30 {
+  display: grid;
+  grid-template-columns: 7fr 3fr;
+  gap: var(--sp-lg);
+}
+.form-grid-70-30 > * { min-width: 0; }
+
 .mb-lg { margin-bottom: var(--sp-lg); }
 .mt-lg { margin-top: var(--sp-lg); }
 
 @media (max-width: 600px) {
   .form-grid-2,
-  .form-grid-3 {
+  .form-grid-3,
+  .form-grid-70-30 {
     grid-template-columns: 1fr;
   }
 }

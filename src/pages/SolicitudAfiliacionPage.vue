@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import PortalLayout       from '@/components/layout/PortalLayout.vue'
 import StepIndicator      from '@/components/ui/StepIndicator.vue'
@@ -20,7 +20,7 @@ import CapturaDocumento from '@/components/forms/CapturaDocumento.vue'
 import { useAfiliacion }  from '@/composables/useAfiliacion'
 import { useBreakpoint }  from '@/composables/useBreakpoint'
 import { subirDocumentoSolicitud, obtenerMensajeErrorSubidaDocumento } from '@/services/documentos.service'
-import { IconCircleCheck, IconUserCheck, IconCheck, IconMapPin, IconX, IconUpload, IconEye, IconRefresh, IconFileDescription, IconLoader2, IconRotateClockwise2, IconHome, IconCar } from '@tabler/icons-vue'
+import { IconCircleCheck, IconUserCheck, IconCheck, IconMapPin, IconX, IconUpload, IconEye, IconRefresh, IconFileDescription, IconLoader2, IconRotateClockwise2, IconHome, IconCar, IconShieldCheck } from '@tabler/icons-vue'
 import { ENTIDADES_PENSIONES, TIPOS_CONTRATO } from '@/data/formularioCredito'
 
 const router = useRouter()
@@ -67,7 +67,7 @@ const {
   datosPersonales, datosLaborales,
   actividadIndependiente, datosFinancieros, activosPasivos,
   datosConyuge, referencias, declaraciones,
-  documentos,
+  documentos, firma,
   pasoValido, necesitaConyuge, esIndependiente,
   validarCampoActual, schemaPersonales,
   verificarYContinuar, restaurarBorrador, descartarBorrador,
@@ -226,12 +226,20 @@ const pasos = computed(() => ([
 const estiloSeccionTitulo = {
   fontFamily: 'var(--font-display)',
   fontSize: 'var(--text-base)',
-  fontWeight: 'var(--fw-bold)',
+  fontWeight: 'var(--fw-extrabold)',
   color: 'var(--color-text-1)',
-  marginBottom: 'var(--sp-lg)',
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  paddingBottom: 'var(--sp-sm)',
+  borderBottom: '1px solid var(--color-border-card)',
+  marginBottom: 'var(--sp-md)',
+  marginTop: 'var(--sp-lg)',
 }
+const estiloSeccionTituloCentrado = (mobile) => ({
+  ...estiloSeccionTitulo,
+  textAlign: mobile ? 'center' : 'left',
+})
 const estiloSubtitulo = {
-  fontFamily: 'var(--font-display)',
   fontSize: 'var(--text-base)',
   fontWeight: 'var(--fw-extrabold)',
   color: 'var(--color-text-1)',
@@ -242,6 +250,10 @@ const estiloSubtitulo = {
   marginBottom: 'var(--sp-md)',
   marginTop: 'var(--sp-lg)',
 }
+const estiloSubtituloCentrado = (mobile) => ({
+  ...estiloSubtitulo,
+  textAlign: mobile ? 'center' : 'left',
+})
 const estiloBloque = {
   background: 'var(--color-bg-card)',
   borderRadius: 'var(--r-md)',
@@ -372,6 +384,524 @@ function toggleCanal(valor) {
   datosPersonales.value.canales_comunicacion = arr
 }
 
+// ── Firma electrónica ────────────────────────────────────────────────────────
+const firmaSolicitanteAplicada = computed(() => !!firma.value?.firma_hash)
+const firmaCanvasRef = ref(null)
+const firmaFileRef = ref(null)
+const firmaArchivoNombre = ref('')
+const _dibujandoFirma = ref(false)
+const _firmaTrazoPrev = ref(null)
+const _firmaCanvasCssHeight = 140
+const firmaImagen = ref('')
+const firmaMetodo = computed({
+  get: () => firma.value?.firma_metodo ?? 'dibujar',
+  set: (v) => { if (firma.value) firma.value.firma_metodo = v },
+})
+
+function _invalidarFirma() {
+  if (!firma.value?.firma_hash) return
+  firma.value.firma_hash = ''
+  firma.value.firma_fecha_iso = ''
+  firma.value.firma_nonce = ''
+  firma.value.firma_user_agent = ''
+  firma.value.firma_plataforma = ''
+  firma.value.firma_idioma = ''
+  firma.value.firma_timezone = ''
+  firma.value.firma_resolucion = ''
+  firma.value.firma_imagen_hash = ''
+  firma.value.firma_transaccion_id = ''
+  firma.value.firma_timestamp_servidor_iso = ''
+  firma.value.firma_timestamp_servidor_unix = ''
+  firma.value.firma_timestamp_fuente = ''
+  firma.value.firma_ip_publica = ''
+  firma.value.firma_dispositivo_tipo = ''
+  firma.value.firma_sistema_operativo = ''
+  firma.value.firma_navegador = ''
+  firma.value.firma_geo_lat = ''
+  firma.value.firma_geo_lon = ''
+  firma.value.firma_geo_accuracy = ''
+  firma.value.firma_doc_hash_sha256 = ''
+  firma.value.firma_doc_hash_firmado_b64 = ''
+  firma.value.firma_doc_firma_public_key_jwk = null
+  firma.value.firma_doc_firma_alg = ''
+}
+
+function _canvasCtx() {
+  const c = firmaCanvasRef.value
+  if (!c) return null
+  const ctx = c.getContext('2d')
+  if (!ctx) return null
+  ctx.lineWidth = 2.2
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.strokeStyle = '#111827'
+  return ctx
+}
+
+function prepararCanvasFirma() {
+  const c = firmaCanvasRef.value
+  if (!c) return
+  const rect = c.getBoundingClientRect()
+  const cssW = Math.max(1, Math.round(rect.width))
+  const cssH = Math.max(1, Math.round(rect.height || _firmaCanvasCssHeight))
+  const dpr = window.devicePixelRatio || 1
+  c.width = Math.round(cssW * dpr)
+  c.height = Math.round(cssH * dpr)
+  const ctx = c.getContext('2d')
+  if (!ctx) return
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.clearRect(0, 0, cssW, cssH)
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, cssW, cssH)
+  ctx.strokeStyle = '#e5e7eb'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(12, cssH - 24)
+  ctx.lineTo(cssW - 12, cssH - 24)
+  ctx.stroke()
+}
+
+function _posEnCanvas(evt) {
+  const c = firmaCanvasRef.value
+  if (!c) return null
+  const rect = c.getBoundingClientRect()
+  const clientX = evt.touches?.[0]?.clientX ?? evt.clientX
+  const clientY = evt.touches?.[0]?.clientY ?? evt.clientY
+  const x = clientX - rect.left
+  const y = clientY - rect.top
+  return { x: Math.max(0, Math.min(rect.width, x)), y: Math.max(0, Math.min(rect.height, y)) }
+}
+
+function iniciarFirmaDibujo(evt) {
+  if (firmaMetodo.value !== 'dibujar') return
+  const p = _posEnCanvas(evt)
+  const ctx = _canvasCtx()
+  if (!p || !ctx) return
+  if (ctx.lineWidth !== 2.2) {
+    ctx.lineWidth = 2.2
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.strokeStyle = '#111827'
+  }
+  _dibujandoFirma.value = true
+  _firmaTrazoPrev.value = p
+}
+
+function moverFirmaDibujo(evt) {
+  if (!_dibujandoFirma.value) return
+  const p = _posEnCanvas(evt)
+  const ctx = _canvasCtx()
+  if (!p || !ctx || !_firmaTrazoPrev.value) return
+  evt.preventDefault?.()
+  ctx.beginPath()
+  ctx.moveTo(_firmaTrazoPrev.value.x, _firmaTrazoPrev.value.y)
+  ctx.lineTo(p.x, p.y)
+  ctx.stroke()
+  _firmaTrazoPrev.value = p
+}
+
+function terminarFirmaDibujo() {
+  if (!_dibujandoFirma.value) return
+  _dibujandoFirma.value = false
+  _firmaTrazoPrev.value = null
+  const c = firmaCanvasRef.value
+  if (!c) return
+  const dataUrl = c.toDataURL('image/png')
+  console.log('Firma terminada, dataUrl length:', dataUrl?.length)
+  if (firma.value) {
+    firma.value.firma_imagen_dataurl = dataUrl
+    firmaImagen.value = dataUrl
+  }
+}
+
+function limpiarFirmaDibujo() {
+  const c = firmaCanvasRef.value
+  if (!c) return
+  prepararCanvasFirma()
+  firmaImagen.value = ''
+}
+
+function _onResizeFirma() {
+  if (!firma?.value) return
+  if (firma.value.firma_metodo !== 'dibujar') return
+  prepararCanvasFirma()
+}
+
+function prepararCanvasFirmaOnMount() {
+  if (firmaMetodo.value === 'dibujar') {
+    setTimeout(() => prepararCanvasFirma(), 100)
+  }
+}
+
+async function _sha256Hex(texto) {
+  const data = new TextEncoder().encode(texto)
+  const hash = await crypto.subtle.digest('SHA-256', data)
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+async function _sha256HexBuffer(buf) {
+  const hash = await crypto.subtle.digest('SHA-256', buf)
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+function _base64FromArrayBuffer(buffer) {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+  return btoa(binary)
+}
+
+function _mimeDesdeDataUrl(dataUrl) {
+  const m = /^data:([^;]+);/i.exec(String(dataUrl || ''))
+  return m?.[1] ? String(m[1]).toLowerCase() : ''
+}
+
+async function _convertirDataUrlAPng(dataUrl) {
+  const img = await new Promise((resolve, reject) => {
+    const i = new Image()
+    i.onload = () => resolve(i)
+    i.onerror = () => reject(new Error('No se pudo cargar la imagen'))
+    i.src = dataUrl
+  })
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, img.naturalWidth || img.width || 1)
+  canvas.height = Math.max(1, img.naturalHeight || img.height || 1)
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('No se pudo preparar la imagen')
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.drawImage(img, 0, 0)
+  return canvas.toDataURL('image/png')
+}
+
+async function _normalizarImagenParaPdf(dataUrl) {
+  const mime = _mimeDesdeDataUrl(dataUrl)
+  if (mime === 'image/jpeg' || mime === 'image/jpg') return { dataUrl, tipo: 'JPEG' }
+  if (mime === 'image/png') return { dataUrl, tipo: 'PNG' }
+  const png = await _convertirDataUrlAPng(dataUrl)
+  return { dataUrl: png, tipo: 'PNG' }
+}
+
+async function _obtenerTimestampServidor() {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), 1200)
+  try {
+    const res = await fetch('/', { method: 'HEAD', cache: 'no-store', signal: ctrl.signal })
+    const dateHeader = res.headers.get('date') || ''
+    const d = dateHeader ? new Date(dateHeader) : null
+    if (!d || Number.isNaN(d.getTime())) return null
+    return { iso: d.toISOString(), unix: String(Math.floor(d.getTime() / 1000)), fuente: 'http-date' }
+  } catch {
+    return null
+  } finally {
+    clearTimeout(t)
+  }
+}
+
+function _obtenerInfoDispositivo() {
+  const ua = navigator.userAgent || ''
+  const esMovil = /Mobi|Android|iPhone|iPad|iPod/i.test(ua)
+  const tipo = esMovil ? 'movil' : 'desktop'
+  const os = /Windows NT/i.test(ua) ? 'Windows' : /Mac OS X/i.test(ua) && !/iPhone|iPad|iPod/i.test(ua) ? 'macOS' : /Android/i.test(ua) ? 'Android' : /iPhone|iPad|iPod/i.test(ua) ? 'iOS' : /Linux/i.test(ua) ? 'Linux' : ''
+  const navegador = /Edg\//i.test(ua) ? 'Edge' : /OPR\//i.test(ua) ? 'Opera' : /Chrome\//i.test(ua) && !/Edg\//i.test(ua) ? 'Chrome' : /Safari\//i.test(ua) && !/Chrome\//i.test(ua) ? 'Safari' : /Firefox\//i.test(ua) ? 'Firefox' : ''
+  return { tipo, os, navegador }
+}
+
+async function _obtenerIpPublica() {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), 1200)
+  try {
+    const res = await fetch('https://api.ipify.org?format=json', { signal: ctrl.signal })
+    if (!res.ok) return ''
+    const data = await res.json()
+    return String(data?.ip || '')
+  } catch {
+    return ''
+  } finally {
+    clearTimeout(t)
+  }
+}
+
+async function _firmarHashDocumento(hashHex) {
+  const bytes = new Uint8Array(hashHex.match(/.{1,2}/g)?.map(h => parseInt(h, 16)) || [])
+  const keyPair = await crypto.subtle.generateKey(
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    true,
+    ['sign', 'verify']
+  )
+  const firmaBin = await crypto.subtle.sign(
+    { name: 'ECDSA', hash: 'SHA-256' },
+    keyPair.privateKey,
+    bytes
+  )
+  const publicJwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey)
+  return {
+    alg: 'ECDSA-P256-SHA256',
+    firmaB64: _base64FromArrayBuffer(firmaBin),
+    publicKeyJwk: publicJwk,
+  }
+}
+
+async function aplicarFirmaSolicitante() {
+  const nombre = (firma.value.nombre_firma || '').trim()
+  if (!nombre) return
+  if (!firmaImagen.value) return
+  const ahora = new Date().toISOString()
+  const nonce = crypto.randomUUID()
+  const transaccionId = crypto.randomUUID()
+  const resolucion = `${window.screen.width}x${window.screen.height}`
+  const disp = _obtenerInfoDispositivo()
+  const selloTiempo = await _obtenerTimestampServidor()
+  const ip = await _obtenerIpPublica()
+  const imgHash = await _sha256Hex(firmaImagen.value)
+  const base = [
+    datosPersonales.value.cedula || '',
+    nombre,
+    ahora,
+    nonce,
+    transaccionId,
+    navigator.userAgent || '',
+    navigator.platform || '',
+    navigator.language || '',
+    resolucion,
+    firmaMetodo.value,
+    imgHash,
+  ].join('|')
+  const hash = await _sha256Hex(base)
+  const nuevo = {
+    ...firma.value,
+    nombre_firma: nombre,
+    firma_metodo: firmaMetodo.value,
+    firma_tipografia: '',
+    firma_imagen_dataurl: firmaImagen.value,
+    firma_imagen_hash: imgHash,
+    firma_hash: hash,
+    firma_fecha_iso: ahora,
+    firma_nonce: nonce,
+    firma_transaccion_id: transaccionId,
+    firma_timestamp_servidor_iso: selloTiempo?.iso || '',
+    firma_timestamp_servidor_unix: selloTiempo?.unix || '',
+    firma_timestamp_fuente: selloTiempo?.fuente || '',
+    firma_ip_publica: ip || '',
+    firma_user_agent: navigator.userAgent || '',
+    firma_plataforma: navigator.platform || '',
+    firma_idioma: navigator.language || '',
+    firma_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+    firma_resolucion: resolucion,
+    firma_dispositivo_tipo: disp.tipo || '',
+    firma_sistema_operativo: disp.os || '',
+    firma_navegador: disp.navegador || '',
+    firma_geo_lat: '',
+    firma_geo_lon: '',
+    firma_geo_accuracy: '',
+    firma_doc_hash_sha256: '',
+    firma_doc_hash_firmado_b64: '',
+    firma_doc_firma_public_key_jwk: null,
+    firma_doc_firma_alg: '',
+  }
+  firma.value = nuevo
+
+  try {
+    const blob = await _generarPdfFormalizadoBlob()
+    const buf = await blob.arrayBuffer()
+    const docHash = await _sha256HexBuffer(buf)
+    let firmaDoc = null
+    try {
+      firmaDoc = await _firmarHashDocumento(docHash)
+    } catch { firmaDoc = null }
+    firma.value = {
+      ...firma.value,
+      firma_doc_hash_sha256: docHash,
+      firma_doc_hash_firmado_b64: firmaDoc?.firmaB64 || '',
+      firma_doc_firma_public_key_jwk: firmaDoc?.publicKeyJwk || null,
+      firma_doc_firma_alg: firmaDoc?.alg || '',
+    }
+  } catch {}
+}
+
+async function firmarYEnviar() {
+  if (!firma.value.nombre_firma || !firmaImagen.value) return
+  if (!firmaSolicitanteAplicada.value) {
+    await aplicarFirmaSolicitante()
+  }
+  await enviarSolicitud()
+}
+
+async function _generarPdfFormalizadoBlob() {
+  const { jsPDF } = await import('jspdf')
+  const doc = new jsPDF()
+  const pageW = doc.internal.pageSize.getWidth()
+  const pageH = doc.internal.pageSize.getHeight()
+  const colorPrimary = { r: 17, g: 76, b: 90 }
+  const colorText = { r: 17, g: 24, b: 39 }
+  const headerH = 34
+  doc.setFillColor(colorPrimary.r, colorPrimary.g, colorPrimary.b)
+  doc.rect(0, 0, pageW, 6, 'F')
+  doc.setFillColor(255, 255, 255)
+  doc.rect(0, 6, pageW, headerH - 6, 'F')
+  doc.setTextColor(colorText.r, colorText.g, colorText.b)
+  doc.setFontSize(13)
+  doc.text('Solicitud de afiliación', 14, 16)
+  doc.setFontSize(9)
+  doc.text(`Fecha: ${formatearFecha(fechaSolicitud.value)}`, pageW - 14, 14, { align: 'right' })
+  let y = headerH + 10
+  const x = 14
+  const cardW = pageW - (x * 2)
+  const cardPad = 8
+  const r = 3
+  const setFill = (c) => doc.setFillColor(c.r, c.g, c.b)
+  const setDraw = (c) => doc.setDrawColor(c.r, c.g, c.b)
+  const setText = (c) => doc.setTextColor(c.r, c.g, c.b)
+  const nuevaPagina = () => {
+    doc.addPage()
+    setFill(colorPrimary)
+    doc.rect(0, 0, pageW, 6, 'F')
+    setFill({ r: 255, g: 255, b: 255 })
+    doc.rect(0, 6, pageW, headerH - 6, 'F')
+    setDraw({ r: 220, g: 227, b: 233 })
+    doc.line(0, headerH, pageW, headerH)
+    setText(colorText)
+    doc.setFontSize(13)
+    doc.text('Solicitud de afiliación', 14, 16)
+    doc.setFontSize(9)
+    doc.text(`Fecha: ${formatearFecha(fechaSolicitud.value)}`, pageW - 14, 14, { align: 'right' })
+    y = headerH + 10
+  }
+  const card = (titulo, items) => {
+    const colGap = 10
+    const colW = (cardW - colGap) / 2
+    const rows = []
+    for (let i = 0; i < items.length; i += 2) rows.push([items[i], items[i + 1]])
+    const labelSize = 7
+    const valueSize = 9.2
+    const labelLH = 3.4
+    const valueLH = 4.2
+    const rowHeights = rows.map(([izq, der]) => {
+      const leftLines = izq ? doc.splitTextToSize(String(izq.label).toUpperCase(), colW - 2) : []
+      const rightLines = der ? doc.splitTextToSize(String(der.label).toUpperCase(), colW - 2) : []
+      const leftValueLines = izq ? doc.splitTextToSize(izq.value, colW - 2) : []
+      const rightValueLines = der ? doc.splitTextToSize(der.value, colW - 2) : []
+      const labelLines = Math.max(leftLines.length, rightLines.length, 1)
+      const valueLines = Math.max(leftValueLines.length, rightValueLines.length, 1)
+      return 3 + (labelLines * labelLH) + 1 + (valueLines * valueLH) + 5
+    })
+    const contentH = rowHeights.reduce((a, b) => a + b, 0)
+    const alto = 10 + contentH + cardPad + 4
+    if (y + alto > pageH - 16) nuevaPagina()
+    setFill({ r: 255, g: 255, b: 255 })
+    setDraw({ r: 220, g: 227, b: 233 })
+    doc.roundedRect(x, y, cardW, alto, r, r, 'FD')
+    setFill({ r: 245, g: 247, b: 250 })
+    doc.roundedRect(x, y, cardW, 10, r, r, 'F')
+    setText(colorText)
+    doc.setFontSize(10)
+    doc.text(titulo, x + cardPad, y + 7)
+    doc.setFontSize(9.2)
+    let yy = y + 16
+    for (let i = 0; i < rows.length; i++) {
+      const [izq, der] = rows[i]
+      const rowH = rowHeights[i]
+      if (izq) {
+        doc.setFontSize(labelSize)
+        setText({ r: 107, g: 114, b: 128 })
+        const labelLines = doc.splitTextToSize(String(izq.label).toUpperCase(), colW - 2)
+        for (let j = 0; j < labelLines.length; j++) doc.text(labelLines[j], x + cardPad, yy + (j * labelLH))
+        doc.setFontSize(valueSize)
+        setText(colorText)
+        const lines = doc.splitTextToSize(izq.value, colW - 2)
+        for (let j = 0; j < lines.length; j++) doc.text(lines[j], x + cardPad, yy + (labelLines.length * labelLH) + 1 + (j * valueLH))
+      }
+      if (der) {
+        doc.setFontSize(labelSize)
+        setText({ r: 107, g: 114, b: 128 })
+        const labelLines = doc.splitTextToSize(String(der.label).toUpperCase(), colW - 2)
+        for (let j = 0; j < labelLines.length; j++) doc.text(labelLines[j], x + cardPad + colW + colGap, yy + (j * labelLH))
+        doc.setFontSize(valueSize)
+        setText(colorText)
+        const lines = doc.splitTextToSize(der.value, colW - 2)
+        for (let j = 0; j < lines.length; j++) doc.text(lines[j], x + cardPad + colW + colGap, yy + (labelLines.length * labelLH) + 1 + (j * valueLH))
+      }
+      yy += rowH
+    }
+    y += alto + 8
+  }
+  const personalesItems = [
+    { label: 'Nombre', value: `${datosPersonales.value.nombres} ${datosPersonales.value.apellidos}` || '—' },
+    { label: 'Cédula', value: datosPersonales.value.cedula || '—' },
+    { label: 'Email', value: datosPersonales.value.email || '—' },
+    { label: 'Teléfono', value: datosPersonales.value.telefono || '—' },
+    { label: 'Celular', value: datosPersonales.value.celular || '—' },
+    { label: 'Dirección', value: datosPersonales.value.direccion || '—' },
+  ]
+  card('Información personal', personalesItems)
+  const laboralesItems = [
+    { label: 'Tipo trabajador', value: datosLaborales.value.tipo_trabajador || '—' },
+    { label: 'Empresa', value: datosLaborales.value.nombre_empresa || '—' },
+    { label: 'Cargo', value: datosLaborales.value.cargo_oficio || '—' },
+    { label: 'Salario', value: datosFinancieros.value.salario_mensual ? `$${Number(datosFinancieros.value.salario_mensual).toLocaleString()}` : '—' },
+  ]
+  card('Información laboral', laboralesItems)
+  const firmaCardItems = [
+    { label: 'Nombre firmado', value: firma.value.nombre_firma || '' },
+    { label: 'Fecha firma', value: formatearFecha(firma.value.firma_fecha_iso || new Date().toISOString()) },
+    { label: 'Método', value: firma.value.firma_metodo || '' },
+    { label: 'Hash firma', value: firma.value.firma_hash || '' },
+    { label: 'IP pública', value: firma.value.firma_ip_publica || '—' },
+  ]
+  card('Evidencia de firma', firmaCardItems)
+  const img = firma.value.firma_imagen_dataurl || ''
+  if (img) {
+    const imgW = cardW
+    const imgH = 28
+    if (y + imgH + 10 > pageH - 16) nuevaPagina()
+    setDraw({ r: 220, g: 227, b: 233 })
+    setFill({ r: 255, g: 255, b: 255 })
+    doc.roundedRect(x, y, imgW, imgH, r, r, 'FD')
+    try {
+      const norm = await _normalizarImagenParaPdf(img)
+      doc.addImage(norm.dataUrl, norm.tipo, x + 6, y + 6, imgW - 12, imgH - 12)
+    } catch {
+      setText({ r: 107, g: 114, b: 128 })
+      doc.setFontSize(8)
+      doc.text('Firma (imagen no soportada)', x + 6, y + 16)
+      setText(colorText)
+      doc.setFontSize(9)
+    }
+    y += imgH + 8
+  }
+  return doc.output('blob')
+}
+
+function formatearFecha(iso) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleString('es-CO', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
+async function cargarFirmaImagen(evt) {
+  const file = evt?.target?.files?.[0]
+  if (evt?.target) evt.target.value = ''
+  if (!file) return
+  firmaArchivoNombre.value = file.name || ''
+  const reader = new FileReader()
+  const dataUrl = await new Promise((resolve, reject) => {
+    reader.onerror = () => reject(new Error('Error leyendo la imagen'))
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.readAsDataURL(file)
+  })
+  try {
+    const norm = await _normalizarImagenParaPdf(dataUrl)
+    firmaImagen.value = norm.dataUrl
+  } catch {
+    firmaImagen.value = dataUrl
+  }
+}
+
+function seleccionarFirmaArchivo() {
+  firmaFileRef.value?.click?.()
+}
+
 // ── OTP: validación de correo ────────────────────────────────────────────────
 const emailValidado    = ref(false)
 const mostrarModalOtp  = ref(false)
@@ -438,6 +968,16 @@ async function onVerificarYContinuarClick() {
   continuarDespuesOtp.value = false
   await verificarYContinuar()
 }
+
+// Lifecycle para canvas de firma
+onMounted(() => {
+  window.addEventListener('resize', _onResizeFirma)
+  prepararCanvasFirmaOnMount()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', _onResizeFirma)
+})
 </script>
 
 <template>
@@ -648,7 +1188,7 @@ async function onVerificarYContinuarClick() {
     <!-- PASOS 1–6: Formulario principal                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <template v-else>
-      <div :style="{ width: '100%', margin: '0 auto', paddingTop: 'var(--sp-xl)' }">
+      <div :style="{ width: '100%', margin: '0 auto', paddingTop: isMobile ? '0' : 'var(--sp-xl)' }">
 
         <!-- Banner: datos recuperados -->
         <div v-if="bannerRecuperadoVisible" :style="{
@@ -668,20 +1208,24 @@ async function onVerificarYContinuarClick() {
           }">Sus datos anteriores fueron recuperados. Continúa desde donde lo dejó.</span>
         </div>
 
-      <div :style="{ marginBottom: 'var(--sp-xl)' }">
+      <div :style="{ marginBottom: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)' }">
         <div :style="{
-          fontSize: 'var(--text-sm)',
+          fontSize: isMobile ? 'var(--text-xs)' : 'var(--text-sm)',
           color: 'var(--color-text-2)',
           fontWeight: 'var(--fw-bold)',
           letterSpacing: '0.02em',
-          marginBottom: 'var(--sp-sm)',
-          textAlign: 'right',
+          marginBottom: 'var(--sp-2xs)',
+          textAlign: isMobile ? 'center' : 'right',
         }">SAR FT 001 V. 1.0 30/12/2025</div>
 
         <div :style="{
           fontFamily: 'var(--font-display)',
-          fontSize: 'var(--text-2xl)', fontWeight: 'var(--fw-extrabold)',
-          color: 'var(--color-text-1)', marginBottom: '2px', lineHeight: '1.1',
+          fontSize: isMobile ? 'var(--text-lg)' : 'var(--text-2xl)',
+          fontWeight: 'var(--fw-extrabold)',
+          color: 'var(--color-text-1)',
+          marginBottom: '2px',
+          lineHeight: '1.1',
+          textAlign: isMobile ? 'center' : 'left',
         }">Formato único de afiliación y/o conocimiento del asociado.</div>
       </div>
 
@@ -744,7 +1288,7 @@ async function onVerificarYContinuarClick() {
 
           <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
             <div :style="estiloBloque">
-              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Datos generales</div>
+              <div :style="{ ...estiloSubtituloCentrado(isMobile), marginTop: '0' }">Datos generales</div>
               <div :style="grid3(isMobile)">
                 <CampoTexto
                   :model-value="fechaSolicitudFormateada"
@@ -768,7 +1312,7 @@ async function onVerificarYContinuarClick() {
             </div>
 
             <div :style="estiloBloque">
-              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Información personal</div>
+              <div :style="{ ...estiloSubtituloCentrado(isMobile), marginTop: '0' }">Información personal</div>
               <div :style="grid3(isMobile)">
                 <CampoSelect
                   v-model="datosPersonales.tipo_identificacion"
@@ -905,10 +1449,11 @@ async function onVerificarYContinuarClick() {
                     />
                     <CampoTexto
                       :model-value="datosPersonales.personas_economicamente_activas"
-                      label="No. Personas económicamente activas en núcleo familiar"
+                      label="No. Personas económicamente activas en el núcleo familiar"
                       placeholder="0"
                       required
                       solo-numeros
+                      :label-wrap="isMobile"
                       @update:model-value="datosPersonales.personas_economicamente_activas = String($event ?? '').replace(/\\D/g, '')"
                     />
                   </div>
@@ -917,7 +1462,7 @@ async function onVerificarYContinuarClick() {
             </div>
 
             <div :style="estiloBloque">
-              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Contacto y residencia</div>
+              <div :style="{ ...estiloSubtituloCentrado(isMobile), marginTop: '0' }">Contacto y residencia</div>
               <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
                 <div :style="grid2(isMobile)">
                   <CampoTexto
@@ -933,7 +1478,7 @@ async function onVerificarYContinuarClick() {
                     placeholder="correo.alternativo@ejemplo.com"
                   />
                 </div>
-                <div :style="grid2(isMobile)">
+                <div :style="{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--sp-lg)' }">
                   <CampoTexto
                     v-model="datosPersonales.telefono"
                     label="Teléfono"
@@ -995,7 +1540,7 @@ async function onVerificarYContinuarClick() {
             </div>
 
             <div :style="estiloBloque">
-              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Canales de comunicación de preferencia</div>
+              <div :style="{ ...estiloSubtituloCentrado(isMobile), marginTop: '0' }">Canales de comunicación</div>
               <div :style="grid3(isMobile)">
                 <CampoCheck
                   v-for="op in opsCanalesComunicacion"
@@ -1008,49 +1553,41 @@ async function onVerificarYContinuarClick() {
             </div>
 
             <div :style="estiloBloque">
-              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Exposición política y pública</div>
+              <div :style="{ ...estiloSubtituloCentrado(isMobile), marginTop: '0' }">Exposición política y pública</div>
               <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-                <div>
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 110px 110px', gap: 'var(--sp-md)', alignItems: 'center' }">
-                    <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-extrabold)', minWidth: '0' }">
-                      ¿Administra recursos públicos?
-                    </div>
-                    <div :style="{ minWidth: '0' }">
-                      <CampoCheck
-                        :model-value="datosPersonales.administra_recursos_publicos === true"
-                        label="Sí"
-                        @update:model-value="() => { datosPersonales.administra_recursos_publicos = true }"
-                      />
-                    </div>
-                    <div :style="{ minWidth: '0' }">
-                      <CampoCheck
-                        :model-value="datosPersonales.administra_recursos_publicos === false"
-                        label="No"
-                        @update:model-value="() => { datosPersonales.administra_recursos_publicos = false }"
-                      />
-                    </div>
+                <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+                  <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-extrabold)' }">
+                    ¿Administra recursos públicos?
+                  </div>
+                  <div :style="{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--sp-md)' }">
+                    <CampoCheck
+                      :model-value="datosPersonales.administra_recursos_publicos === true"
+                      label="Sí"
+                      @update:model-value="() => { datosPersonales.administra_recursos_publicos = true }"
+                    />
+                    <CampoCheck
+                      :model-value="datosPersonales.administra_recursos_publicos === false"
+                      label="No"
+                      @update:model-value="() => { datosPersonales.administra_recursos_publicos = false }"
+                    />
                   </div>
                 </div>
 
-                <div>
-                  <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 110px 110px', gap: 'var(--sp-md)', alignItems: 'center' }">
-                    <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-extrabold)', minWidth: '0' }">
-                      ¿Es persona expuesta públicamente (PEP)?
-                    </div>
-                    <div :style="{ minWidth: '0' }">
-                      <CampoCheck
-                        :model-value="datosPersonales.persona_expuesta_publicamente === true"
-                        label="Sí"
-                        @update:model-value="() => { datosPersonales.persona_expuesta_publicamente = true }"
-                      />
-                    </div>
-                    <div :style="{ minWidth: '0' }">
-                      <CampoCheck
-                        :model-value="datosPersonales.persona_expuesta_publicamente === false"
-                        label="No"
-                        @update:model-value="() => { datosPersonales.persona_expuesta_publicamente = false }"
-                      />
-                    </div>
+                <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+                  <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-extrabold)' }">
+                    ¿Es persona expuesta públicamente (PEP)?
+                  </div>
+                  <div :style="{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--sp-md)' }">
+                    <CampoCheck
+                      :model-value="datosPersonales.persona_expuesta_publicamente === true"
+                      label="Sí"
+                      @update:model-value="() => { datosPersonales.persona_expuesta_publicamente = true }"
+                    />
+                    <CampoCheck
+                      :model-value="datosPersonales.persona_expuesta_publicamente === false"
+                      label="No"
+                      @update:model-value="() => { datosPersonales.persona_expuesta_publicamente = false }"
+                    />
                   </div>
                 </div>
               </div>
@@ -1149,7 +1686,7 @@ async function onVerificarYContinuarClick() {
         <!-- PASO 2: Laboral y financiera                                -->
         <!-- ─────────────────────────────────────────────────────────── -->
         <div v-if="paso === 2">
-          <div :style="estiloSeccionTitulo">Laboral y financiera</div>
+          <div :style="estiloSeccionTituloCentrado(isMobile)">Laboral y financiera</div>
 
           <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
             <div :style="estiloBloque">
@@ -1462,7 +1999,7 @@ async function onVerificarYContinuarClick() {
 
           <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
             <div v-if="necesitaConyuge" :style="estiloBloque">
-              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Datos del cónyuge / compañero(a)</div>
+              <div :style="{ ...estiloSubtituloCentrado(isMobile), marginTop: '0' }">Datos del cónyuge / compañero(a)</div>
               <div :style="grid3(isMobile)">
                 <CampoSelect
                   v-model="datosConyuge.tipo_identificacion"
@@ -1653,93 +2190,118 @@ async function onVerificarYContinuarClick() {
 
           <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
             <div :style="estiloBloque">
-              <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Referencias</div>
+              <div :style="{ ...estiloSubtituloCentrado(isMobile), marginTop: '0' }">Referencias</div>
 
-              <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-                <div :style="{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '100px 1fr 160px',
-                  gap: 'var(--sp-lg)',
-                  alignItems: 'start',
-                }">
-                  <CampoTexto :model-value="'Personal'" label="Tipo" disabled />
-                  <CampoTexto
-                    v-model="referencias.personal.nombres"
-                    label="Nombres completos"
-                    placeholder="Nombre completo"
-                    required
-                    uppercase
-                  />
-                  <CampoTexto
-                    v-model="referencias.personal.contacto"
-                    label="Contacto"
-                    placeholder="Ej. 3001234567"
-                    solo-numeros
-                    :maxlength="10"
-                    required
-                  />
-                </div>
-
-                <div :style="{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : '100px 1fr 0.7fr 160px',
-                  gap: 'var(--sp-lg)',
-                  alignItems: 'start',
-                }">
-                  <CampoTexto :model-value="'Familiar'" label="Tipo" disabled />
-                  <CampoTexto
-                    v-model="referencias.familiar.nombres"
-                    label="Nombres completos"
-                    placeholder="Nombre completo"
-                    required
-                    uppercase
-                  />
-                  <CampoSelect
-                    v-model="referencias.familiar.parentesco"
-                    label="Parentesco"
-                    :opciones="opsParentesco"
-                    required
-                  />
-                  <CampoTexto
-                    v-model="referencias.familiar.contacto"
-                    label="Contacto"
-                    placeholder="Ej. 3001234567"
-                    solo-numeros
-                    :maxlength="10"
-                    required
-                  />
-                </div>
-
-                <!-- Referencia Financiera: Reorganizada en 2 filas para evitar amontonamiento -->
-                <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)' }">
-                  <!-- Fila 1: Tipo y Nombre -->
+              <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+                <!-- Referencia Personal -->
+                <div>
+                  <div :style="{
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 'var(--fw-bold)',
+                    color: 'var(--color-primary)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    marginBottom: 'var(--sp-md)',
+                  }">Personal</div>
                   <div :style="{
                     display: 'grid',
-                    gridTemplateColumns: isMobile ? '1fr' : '100px 1fr',
+                    gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
                     gap: 'var(--sp-lg)',
                     alignItems: 'start',
                   }">
-                    <CampoTexto :model-value="'Financiera'" label="Tipo" disabled />
+                    <CampoTexto
+                      v-model="referencias.personal.nombres"
+                      label="Nombres completos"
+                      placeholder="Nombre completo"
+                      required
+                      uppercase
+                    />
+                    <CampoTexto
+                      v-model="referencias.personal.contacto"
+                      label="Contacto"
+                      placeholder="Ej. 3001234567"
+                      solo-numeros
+                      :maxlength="10"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <!-- Referencia Familiar -->
+                <div>
+                  <div :style="{
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 'var(--fw-bold)',
+                    color: 'var(--color-primary)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    marginBottom: 'var(--sp-md)',
+                  }">Familiar</div>
+                  <div :style="{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr',
+                    gap: 'var(--sp-lg)',
+                    alignItems: 'start',
+                  }">
+                    <CampoTexto
+                      v-model="referencias.familiar.nombres"
+                      label="Nombres completos"
+                      placeholder="Nombre completo"
+                      required
+                      uppercase
+                    />
+                    <CampoSelect
+                      v-model="referencias.familiar.parentesco"
+                      label="Parentesco"
+                      :opciones="opsParentesco"
+                      required
+                    />
+                    <CampoTexto
+                      v-model="referencias.familiar.contacto"
+                      label="Contacto"
+                      placeholder="Ej. 3001234567"
+                      solo-numeros
+                      :maxlength="10"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <!-- Referencia Financiera -->
+                <div>
+                  <div :style="{
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 'var(--fw-bold)',
+                    color: 'var(--color-primary)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    marginBottom: 'var(--sp-md)',
+                  }">Financiera</div>
+                  <div :style="{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                    gap: 'var(--sp-lg)',
+                    alignItems: 'start',
+                  }">
                     <CampoTexto
                       v-model="referencias.financiera.nombre_establecimiento"
                       label="Nombre establecimiento"
                       placeholder="Nombre comercial"
                       uppercase
                     />
-                  </div>
-                  <!-- Fila 2: Detalles (CDT, Cuenta, Contacto) -->
-                  <div :style="{
-                    display: 'grid',
-                    gridTemplateColumns: isMobile ? '1fr' : '100px 1fr 1fr 1fr',
-                    gap: 'var(--sp-lg)',
-                    alignItems: 'start',
-                  }">
-                    <div v-if="!isMobile" style="width: 100px"></div>
                     <CampoSelect
                       v-model="referencias.financiera.tipo_producto"
                       label="Tipo producto"
                       :opciones="opsTipoProductoReferencia"
                     />
+                  </div>
+                  <div :style="{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr',
+                    gap: 'var(--sp-lg)',
+                    alignItems: 'start',
+                    marginTop: 'var(--sp-lg)',
+                  }">
                     <CampoTexto
                       v-model="referencias.financiera.numero_cuenta"
                       label="No. cuenta"
@@ -1757,15 +2319,22 @@ async function onVerificarYContinuarClick() {
                   </div>
                 </div>
 
-                <!-- Referencia Comercial: Reorganizada -->
-                <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)' }">
+                <!-- Referencia Comercial -->
+                <div>
+                  <div :style="{
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 'var(--fw-bold)',
+                    color: 'var(--color-primary)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    marginBottom: 'var(--sp-md)',
+                  }">Comercial</div>
                   <div :style="{
                     display: 'grid',
-                    gridTemplateColumns: isMobile ? '1fr' : '100px 1fr 160px',
+                    gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
                     gap: 'var(--sp-lg)',
                     alignItems: 'start',
                   }">
-                    <CampoTexto :model-value="'Comercial'" label="Tipo" disabled />
                     <CampoTexto
                       v-model="referencias.comercial.nombre_establecimiento"
                       label="Nombre establecimiento"
@@ -1849,7 +2418,7 @@ async function onVerificarYContinuarClick() {
             </div>
           </div>
 
-          <div :style="estiloSubtitulo">Documentos requeridos</div>
+          <div :style="estiloSubtituloCentrado(isMobile)">Documentos requeridos</div>
           <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)', marginBottom: 'var(--sp-xl)' }">
             <CapturaDocumento
               :solicitud-id="null"
@@ -1879,8 +2448,7 @@ async function onVerificarYContinuarClick() {
                 </div>
                 <div :style="{ flex: '1', minWidth: '0' }">
                   <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
-                    {{ soporteTitulo }}
-                    <span v-if="!documentos.doc_soporte_ingresos_laboral_url" :style="{ marginLeft: 'var(--sp-sm)', fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-error)', background: 'var(--color-error-bg)', padding: '1px 6px', borderRadius: 'var(--r-pill)', textTransform: 'uppercase' }">Obligatorio</span>
+                    {{ soporteTitulo }}<span v-if="!documentos.doc_soporte_ingresos_laboral_url" :style="{ marginLeft: '4px', color: 'var(--color-error)' }">*</span>
                   </div>
                   <div :style="{ fontSize: 'var(--text-sm)', color: documentos.doc_soporte_ingresos_laboral_url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">
                     {{ documentos.doc_soporte_ingresos_laboral_url ? 'Documento cargado correctamente' : soporteDescripcion }}
@@ -1918,7 +2486,7 @@ async function onVerificarYContinuarClick() {
           </div>
 
           <!-- ── Acompañamiento de asesor ─────────────────────── -->
-          <div :style="estiloSubtitulo">Acompañamiento de asesor</div>
+          <div :style="estiloSubtituloCentrado(isMobile)">Acompañamiento de asesor</div>
           <div :style="{
             background: 'var(--color-bg-card)',
             borderRadius: 'var(--r-xl)',
@@ -1965,7 +2533,7 @@ async function onVerificarYContinuarClick() {
           </div>
 
           <!-- ── Sección 10: Declaraciones SARLAFT ─────────────────── -->
-          <div :style="estiloSubtitulo">Declaraciones adicionales</div>
+          <div :style="estiloSubtituloCentrado(isMobile)">Declaraciones adicionales</div>
           <div :style="{
             background: 'var(--color-bg-card)',
             borderRadius: 'var(--r-xl)',
@@ -2063,6 +2631,86 @@ async function onVerificarYContinuarClick() {
               </div>
             </div>
           </div>
+
+          <!-- 6. Firma electrónica de la solicitud -->
+          <div :style="{ borderRadius: 'var(--r-lg)', border: '2px solid var(--color-primary)', overflow: 'hidden', marginTop: 'var(--sp-xl)' }">
+            <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconShieldCheck :size="18" style="color: white;" />
+              <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'white' }">Firma electrónica de la solicitud</span>
+            </div>
+            <div :style="{ padding: 'var(--sp-xl)', background: 'white', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+
+              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', lineHeight: '1.65', background: 'var(--color-bg-surface)', padding: 'var(--sp-md)', borderRadius: 'var(--r-md)', border: '1px solid var(--color-border-light)' }">
+                Al firmar, certifica que la información proporcionada es veraz y autoriza a <strong>Cooperamigó</strong> para realizar las validaciones correspondientes.
+              </div>
+
+              <CampoTexto
+                label="Nombre completo del solicitante"
+                placeholder="TAL CUAL APARECE EN SU CÉDULA"
+                :model-value="firma.nombre_firma"
+                @update:model-value="firma.nombre_firma = $event"
+              />
+
+              <div :style="{ display: 'flex', gap: '6px', flexWrap: 'wrap' }">
+                <button type="button" @click="firmaMetodo = 'dibujar'" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (firmaMetodo === 'dibujar' ? 'var(--color-primary)' : 'var(--color-border)'), background: firmaMetodo === 'dibujar' ? 'rgba(17,76,90,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'dibujar' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Firmar en pantalla</button>
+                <button type="button" @click="firmaMetodo = 'subir'" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-border)'), background: firmaMetodo === 'subir' ? 'rgba(17,76,90,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Cargar firma</button>
+              </div>
+
+              <div v-if="firmaMetodo === 'dibujar'" :style="{ display: 'flex', flexDirection: 'column', gap: '8px' }">
+                <div :style="{ border: '1px solid var(--color-border)', borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'white' }">
+                  <canvas
+                    ref="firmaCanvasRef"
+                    width="720"
+                    height="220"
+                    :style="{ width: '100%', height: '140px', touchAction: 'none', display: 'block', cursor: 'crosshair' }"
+                    @mousedown="iniciarFirmaDibujo"
+                    @mousemove="moverFirmaDibujo"
+                    @mouseup="terminarFirmaDibujo"
+                    @mouseleave="terminarFirmaDibujo"
+                    @touchstart.prevent="iniciarFirmaDibujo"
+                    @touchmove.prevent="moverFirmaDibujo"
+                    @touchend="terminarFirmaDibujo"
+                  />
+                </div>
+                <div :style="{ display: 'flex', justifyContent: 'flex-end' }">
+                  <PortalButton variant="secondary" @click="limpiarFirmaDibujo()">Limpiar</PortalButton>
+                </div>
+              </div>
+
+              <div v-if="firmaMetodo === 'subir'" :style="{ display: 'flex', flexDirection: 'column', gap: '8px' }">
+                <div :style="{ border: '1px dashed var(--color-border)', borderRadius: 'var(--r-md)', padding: '10px 12px', background: 'var(--color-bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)', flexWrap: 'wrap' }">
+                  <div :style="{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '180px' }">
+                    <div :style="{ fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Archivo de firma</div>
+                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: firmaArchivoNombre ? 'var(--color-text-1)' : 'var(--color-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? '100%' : '340px' }">
+                      {{ firmaArchivoNombre || 'Cargue un archivo .png o .jpg con fondo preferiblemente blanco' }}
+                    </div>
+                  </div>
+                  <PortalButton variant="secondary" @click="seleccionarFirmaArchivo()">Seleccionar archivo</PortalButton>
+                  <input ref="firmaFileRef" type="file" accept="image/png,image/jpeg" :style="{ display: 'none' }" @change="cargarFirmaImagen" />
+                </div>
+                <div v-if="firmaImagen" :style="{ border: '1px solid var(--color-border)', borderRadius: 'var(--r-md)', padding: '10px', background: 'white', display: 'flex', flexDirection: 'column', gap: '6px' }">
+                  <div :style="{ fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Previsualización</div>
+                  <img :src="firmaImagen" alt="Previsualización de firma" :style="{ maxHeight: '140px', maxWidth: '100%', objectFit: 'contain', display: 'block', margin: '0 auto' }" />
+                </div>
+              </div>
+
+              <div v-if="firmaSolicitanteAplicada" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', padding: 'var(--sp-sm) var(--sp-md)', borderRadius: 'var(--r-md)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)' }">
+                <IconCircleCheck :size="16" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
+                <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-success-text)' }">Firma registrada el {{ formatearFecha(firma.firma_fecha_iso) }}</span>
+              </div>
+
+              <PortalButton
+                variant="primary"
+                :full="true"
+                :loading="loading"
+                :disabled="!firma?.nombre_firma || !firmaImagen"
+                @click="firmarYEnviar()"
+              >
+                <IconShieldCheck :size="16" style="display:inline-block;vertical-align:middle;margin-right:6px;" />
+                Firmar y enviar solicitud
+              </PortalButton>
+            </div>
+          </div>
         </div>
 
         <!-- Error general -->
@@ -2090,13 +2738,14 @@ async function onVerificarYContinuarClick() {
             {{ paso === 1 ? 'Cancelar' : 'Anterior' }}
           </PortalButton>
           <PortalButton
+            v-if="paso < 5"
             variant="primary"
             :disabled="!pasoValido"
             :loading="loading"
             :full="isMobile"
-            @click="paso < 5 ? irAPaso(paso + 1) : enviarSolicitud()"
+            @click="irAPaso(paso + 1)"
           >
-            {{ paso === 5 ? (loading ? 'Enviando...' : 'Enviar solicitud') : 'Siguiente' }}
+            Siguiente
           </PortalButton>
         </div>
       </div>
