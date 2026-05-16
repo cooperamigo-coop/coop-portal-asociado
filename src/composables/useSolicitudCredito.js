@@ -405,6 +405,99 @@ export function useSolicitudCredito() {
     if (pat.tiene_propiedad_raiz_codeudor && !pat.valor_propiedad_raiz_codeudor) list.push('Valor de propiedad raíz (Codeudor)')
     if (pat.tiene_vehiculo_codeudor && !pat.valor_vehiculo_codeudor) list.push('Valor del vehículo (Codeudor)')
 
+    // 4.6 Codeudores (validación condicional según numCodudores)
+    if (numCodudores.value >= 1) {
+      const p1 = personaCod1.value
+      const l1 = laboralCod1.value
+      const f1 = financieraCod1.value
+
+      // Información personal codeudor 1
+      if (!p1.tipo_documento_codeudor) list.push('Tipo de documento (Codeudor 1)')
+      if (!p1.numero_identificacion_codeudor) list.push('Número de identificación (Codeudor 1)')
+      if (!p1.nombres_codeudor) list.push('Nombres (Codeudor 1)')
+      if (!p1.apellidos_codeudor) list.push('Apellidos (Codeudor 1)')
+      if (!p1.correo_electronico_codeudor) list.push('Correo electrónico (Codeudor 1)')
+      if (!p1.celular_codeudor) list.push('Celular (Codeudor 1)')
+      if (!p1.fecha_nacimiento_codeudor) list.push('Fecha de nacimiento (Codeudor 1)')
+      if (!p1.fecha_expedicion_documento_codeudor) list.push('Fecha de expedición (Codeudor 1)')
+      if (!p1.nivel_educativo_codeudor) list.push('Nivel educativo (Codeudor 1)')
+      if (!p1.direccion_residencia_codeudor && !construirDireccionCodeudor1()) list.push('Dirección de residencia (Codeudor 1)')
+      if (!ubicacionCod1.value.municipio_codigo) list.push('Ciudad/Municipio (Codeudor 1)')
+
+      // Laboral codeudor 1
+      if (!l1.tipo_trabajador_codeudor) list.push('Tipo de trabajador (Codeudor 1)')
+      else {
+        if (l1.tipo_trabajador_codeudor === 'empleado' && (!l1.nombre_empresa_codeudor || !l1.cargo_oficio_codeudor || !l1.tipo_contrato_codeudor || !l1.fecha_ingreso_codeudor)) list.push('Información laboral (Codeudor 1 - Empleado)')
+        if (l1.tipo_trabajador_codeudor === 'independiente' && (!l1.actividad_comercial_codeudor || !l1.ocupacion_codeudor || !l1.fecha_inicio_actividad_codeudor)) list.push('Información laboral (Codeudor 1 - Independiente)')
+        if (l1.tipo_trabajador_codeudor === 'pensionado' && !l1.entidad_pagadora_codeudor) list.push('Entidad pagadora (Codeudor 1)')
+        if (l1.tipo_trabajador_codeudor === 'estudiante' && (!l1.institucion_educativa_codeudor || !l1.nivel_estudio_actual_codeudor)) list.push('Información académica (Codeudor 1)')
+      }
+
+      // Financiera codeudor 1
+      if (l1.tipo_trabajador_codeudor === 'pensionado') {
+        if (f1.mesada_pensional_codeudor === '' || f1.mesada_pensional_codeudor == null) list.push('Mesada pensional (Codeudor 1)')
+        if (f1.numero_dependientes_codeudor === '' || f1.numero_dependientes_codeudor == null) list.push('Personas a cargo (Codeudor 1)')
+      } else if (l1.tipo_trabajador_codeudor === 'independiente') {
+        if (f1.ingresos_independiente_codeudor === '' || f1.ingresos_independiente_codeudor == null) list.push('Ingresos (Codeudor 1 - Independiente)')
+        if (f1.gastos_familiares_codeudor === '' || f1.gastos_familiares_codeudor == null) list.push('Gastos familiares (Codeudor 1)')
+        if (f1.numero_dependientes_codeudor === '' || f1.numero_dependientes_codeudor == null) list.push('Personas a cargo (Codeudor 1)')
+      } else if (l1.tipo_trabajador_codeudor === 'estudiante' || l1.tipo_trabajador_codeudor === 'cuidado_hogar') {
+        if (f1.salario_codeudor === '' || f1.salario_codeudor == null) list.push('Ingresos mensuales (Codeudor 1)')
+        if (!f1.fuente_ingresos_codeudor) list.push('Fuente de ingresos (Codeudor 1)')
+        if (f1.numero_dependientes_codeudor === '' || f1.numero_dependientes_codeudor == null) list.push('Personas a cargo (Codeudor 1)')
+      } else {
+        if (f1.salario_codeudor === '' || f1.salario_codeudor == null) list.push('Salario / Ingresos fijos (Codeudor 1)')
+        if (f1.gastos_familiares_codeudor === '' || f1.gastos_familiares_codeudor == null) list.push('Gastos familiares (Codeudor 1)')
+        if (f1.numero_dependientes_codeudor === '' || f1.numero_dependientes_codeudor == null) list.push('Personas a cargo (Codeudor 1)')
+      }
+    }
+
+    if (numCodudores.value >= 2) {
+      const p2 = personaCod2.value
+      const l2 = laboralCod2.value
+      const f2 = financieraCod2.value
+
+      // Información personal codeudor 2
+      if (!p2.tipo_documento_codeudor2) list.push('Tipo de documento (Codeudor 2)')
+      if (!p2.numero_identificacion_codeudor2) list.push('Número de identificación (Codeudor 2)')
+      if (!p2.nombres_codeudor2) list.push('Nombres (Codeudor 2)')
+      if (!p2.apellidos_codeudor2) list.push('Apellidos (Codeudor 2)')
+      if (!p2.correo_electronico_codeudor2) list.push('Correo electrónico (Codeudor 2)')
+      if (!p2.celular_codeudor2) list.push('Celular (Codeudor 2)')
+      if (!p2.fecha_nacimiento_codeudor2) list.push('Fecha de nacimiento (Codeudor 2)')
+      if (!p2.fecha_expedicion_documento_codeudor2) list.push('Fecha de expedición (Codeudor 2)')
+      if (!p2.nivel_educativo_codeudor2) list.push('Nivel educativo (Codeudor 2)')
+      if (!p2.direccion_residencia_codeudor2 && !construirDireccionCodeudor2()) list.push('Dirección de residencia (Codeudor 2)')
+      if (!ubicacionCod2.value.municipio_codigo) list.push('Ciudad/Municipio (Codeudor 2)')
+
+      // Laboral codeudor 2
+      if (!l2.tipo_trabajador_codeudor2) list.push('Tipo de trabajador (Codeudor 2)')
+      else {
+        if (l2.tipo_trabajador_codeudor2 === 'empleado' && (!l2.nombre_empresa_codeudor2 || !l2.cargo_oficio_codeudor2 || !l2.tipo_contrato_codeudor2 || !l2.fecha_ingreso_codeudor2)) list.push('Información laboral (Codeudor 2 - Empleado)')
+        if (l2.tipo_trabajador_codeudor2 === 'independiente' && (!l2.actividad_comercial_codeudor2 || !l2.ocupacion_codeudor2 || !l2.fecha_inicio_actividad_codeudor2)) list.push('Información laboral (Codeudor 2 - Independiente)')
+        if (l2.tipo_trabajador_codeudor2 === 'pensionado' && !l2.entidad_pagadora_codeudor2) list.push('Entidad pagadora (Codeudor 2)')
+        if (l2.tipo_trabajador_codeudor2 === 'estudiante' && (!l2.institucion_educativa_codeudor2 || !l2.nivel_estudio_actual_codeudor2)) list.push('Información académica (Codeudor 2)')
+      }
+
+      // Financiera codeudor 2
+      if (l2.tipo_trabajador_codeudor2 === 'pensionado') {
+        if (f2.mesada_pensional_codeudor2 === '' || f2.mesada_pensional_codeudor2 == null) list.push('Mesada pensional (Codeudor 2)')
+        if (f2.numero_dependientes_codeudor2 === '' || f2.numero_dependientes_codeudor2 == null) list.push('Personas a cargo (Codeudor 2)')
+      } else if (l2.tipo_trabajador_codeudor2 === 'independiente') {
+        if (f2.ingresos_independiente_codeudor2 === '' || f2.ingresos_independiente_codeudor2 == null) list.push('Ingresos (Codeudor 2 - Independiente)')
+        if (f2.gastos_familiares_codeudor2 === '' || f2.gastos_familiares_codeudor2 == null) list.push('Gastos familiares (Codeudor 2)')
+        if (f2.numero_dependientes_codeudor2 === '' || f2.numero_dependientes_codeudor2 == null) list.push('Personas a cargo (Codeudor 2)')
+      } else if (l2.tipo_trabajador_codeudor2 === 'estudiante' || l2.tipo_trabajador_codeudor2 === 'cuidado_hogar') {
+        if (f2.salario_codeudor2 === '' || f2.salario_codeudor2 == null) list.push('Ingresos mensuales (Codeudor 2)')
+        if (!f2.fuente_ingresos_codeudor2) list.push('Fuente de ingresos (Codeudor 2)')
+        if (f2.numero_dependientes_codeudor2 === '' || f2.numero_dependientes_codeudor2 == null) list.push('Personas a cargo (Codeudor 2)')
+      } else {
+        if (f2.salario_codeudor2 === '' || f2.salario_codeudor2 == null) list.push('Salario / Ingresos fijos (Codeudor 2)')
+        if (f2.gastos_familiares_codeudor2 === '' || f2.gastos_familiares_codeudor2 == null) list.push('Gastos familiares (Codeudor 2)')
+        if (f2.numero_dependientes_codeudor2 === '' || f2.numero_dependientes_codeudor2 == null) list.push('Personas a cargo (Codeudor 2)')
+      }
+    }
+
     // 5. Cuenta
     if (d.tipo_operacion !== 'reestructura') {
       if (d.modalidad_credito === 'educativo') {
@@ -438,6 +531,13 @@ export function useSolicitudCredito() {
     )
   )
 
+  // Errores específicos del paso 3 (codeudores)
+  const erroresPaso3 = computed(() =>
+    erroresCampos.value.filter(e =>
+      e.includes('(Codeudor 1)') || e.includes('(Codeudor 2)')
+    )
+  )
+
   const pasoSolicitudValido = computed(() => {
     return erroresCampos.value.length === 0
   })
@@ -445,6 +545,44 @@ export function useSolicitudCredito() {
   // ── Dirección → texto ─────────────────────────────────────
   function construirDireccion() {
     const m = direccionEstructurada.value
+    if (!m.via_principal && !m.numero_via) return ''
+    let dir = m.via_principal || ''
+    if (m.numero_via) dir += ` ${m.numero_via}`
+    if (m.letra_via) dir += m.letra_via
+    if (m.bis) dir += ' BIS'
+    if (m.cuadrante_via) dir += ` ${m.cuadrante_via}`
+    dir += ' #'
+    if (m.numero_cruce) dir += ` ${m.numero_cruce}`
+    if (m.letra_cruce) dir += m.letra_cruce
+    if (m.cuadrante_cruce) dir += ` ${m.cuadrante_cruce}`
+    dir += ' -'
+    if (m.numero_placa) dir += ` ${m.numero_placa}`
+    if (m.complemento) dir += `, ${m.complemento}`
+    if (m.barrio) dir += `, ${m.barrio}`
+    return dir.trim().toUpperCase()
+  }
+
+  function construirDireccionCodeudor1() {
+    const m = direccionEstructuradaCod1.value
+    if (!m.via_principal && !m.numero_via) return ''
+    let dir = m.via_principal || ''
+    if (m.numero_via) dir += ` ${m.numero_via}`
+    if (m.letra_via) dir += m.letra_via
+    if (m.bis) dir += ' BIS'
+    if (m.cuadrante_via) dir += ` ${m.cuadrante_via}`
+    dir += ' #'
+    if (m.numero_cruce) dir += ` ${m.numero_cruce}`
+    if (m.letra_cruce) dir += m.letra_cruce
+    if (m.cuadrante_cruce) dir += ` ${m.cuadrante_cruce}`
+    dir += ' -'
+    if (m.numero_placa) dir += ` ${m.numero_placa}`
+    if (m.complemento) dir += `, ${m.complemento}`
+    if (m.barrio) dir += `, ${m.barrio}`
+    return dir.trim().toUpperCase()
+  }
+
+  function construirDireccionCodeudor2() {
+    const m = direccionEstructuradaCod2.value
     if (!m.via_principal && !m.numero_via) return ''
     let dir = m.via_principal || ''
     if (m.numero_via) dir += ` ${m.numero_via}`
@@ -486,7 +624,28 @@ export function useSolicitudCredito() {
     if (borrador.patrimonioCod1) patrimonioCod1.value = { ...patrimonioCod1.value, ...borrador.patrimonioCod1 }
     if (borrador.personaCod2) personaCod2.value = { ...personaCod2.value, ...borrador.personaCod2 }
     if (borrador.laboralCod2) laboralCod2.value = { ...laboralCod2.value, ...borrador.laboralCod2 }
-    if (borrador.financieraCod2) financieraCod2.value = { ...financieraCod2.value, ...borrador.financieraCod2 }
+    if (borrador.financieraCod2) {
+      // Migrar claves incorrectas generadas por bug en clave() de SeccionFinanciera
+      // (escribía en base sin sufijo en vez de _codeudor2)
+      const f2 = { ...borrador.financieraCod2 }
+      const migracion = {
+        salario:                  'salario_codeudor2',
+        ingresos_independiente:   'ingresos_independiente_codeudor2',
+        gastos_familiares:        'gastos_familiares_codeudor2',
+        otros_gastos:             'otros_gastos_codeudor2',
+        obligaciones_financieras: 'obligaciones_financieras_codeudor2',
+        fuente_ingresos:          'fuente_ingresos_codeudor2',
+        mesada_pensional:         'mesada_pensional_codeudor2',
+        numero_dependientes:      'numero_dependientes_codeudor2',
+      }
+      for (const [vieja, nueva] of Object.entries(migracion)) {
+        if (vieja in f2 && (f2[vieja] !== '' && f2[vieja] != null) && !f2[nueva]) {
+          f2[nueva] = f2[vieja]
+          delete f2[vieja]
+        }
+      }
+      financieraCod2.value = { ...financieraCod2.value, ...f2 }
+    }
     if (borrador.patrimonioCod2) patrimonioCod2.value = { ...patrimonioCod2.value, ...borrador.patrimonioCod2 }
     if (borrador.ubicacionResidencia)
       ubicacionResidencia.value = { ...ubicacionResidencia.value, ...borrador.ubicacionResidencia }
@@ -1142,6 +1301,6 @@ export function useSolicitudCredito() {
     montoTotalOperacion, pasoSolicitudValido,
     // Acciones
     siguiente, anterior, irAPaso, enviar, guardarPaso, formatMonto,
-    erroresCampos, erroresPaso2,
+    erroresCampos, erroresPaso2, erroresPaso3,
   }
 }

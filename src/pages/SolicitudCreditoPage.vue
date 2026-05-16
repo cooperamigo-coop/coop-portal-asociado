@@ -70,7 +70,7 @@ const {
   fechaSolicitud,
   mostrarTipoOperacion, mostrarValorCredito,
   mostrarValorReestructura, mostrarValorDesembolso, mostrarCuentaDesembolso,
-  salarioBloqueado, montoTotalOperacion, pasoSolicitudValido, erroresCampos, erroresPaso2,
+  salarioBloqueado, montoTotalOperacion, pasoSolicitudValido, erroresCampos, erroresPaso2, erroresPaso3,
   siguiente, anterior, irAPaso, enviar, guardarPaso, formatMonto,
 } = useSolicitudCredito()
 
@@ -573,6 +573,97 @@ const erroresDuplicidadCod2 = computed(() => {
 const hayErroresDuplicidad = computed(() =>
   erroresDuplicidadCod1.value.length > 0 || erroresDuplicidadCod2.value.length > 0
 )
+
+const hayErroresCodeudoresPaso3 = computed(() => {
+  if (numCodudores.value === 0) return false
+  const p1 = personaCod1.value
+  const l1 = laboralCod1.value
+  const f1 = financieraCod1.value
+
+  // Validar codeudor 1
+  if (numCodudores.value >= 1) {
+    if (!p1.tipo_documento_codeudor || !p1.numero_identificacion_codeudor ||
+        !p1.nombres_codeudor || !p1.apellidos_codeudor ||
+        !p1.correo_electronico_codeudor || !p1.celular_codeudor ||
+        !p1.fecha_nacimiento_codeudor || !p1.fecha_expedicion_documento_codeudor ||
+        !p1.nivel_educativo_codeudor ||
+        (!p1.direccion_residencia_codeudor && !direccionEstructuradaCod1.value.via_principal && !direccionEstructuradaCod1.value.numero_via) ||
+        !ubicacionCod1.value.municipio_codigo) return true
+
+    if (!l1.tipo_trabajador_codeudor) return true
+    if (l1.tipo_trabajador_codeudor === 'empleado' &&
+        (!l1.nombre_empresa_codeudor || !l1.cargo_oficio_codeudor ||
+         !l1.tipo_contrato_codeudor || !l1.fecha_ingreso_codeudor)) return true
+    if (l1.tipo_trabajador_codeudor === 'independiente' &&
+        (!l1.actividad_comercial_codeudor || !l1.ocupacion_codeudor ||
+         !l1.fecha_inicio_actividad_codeudor)) return true
+    if (l1.tipo_trabajador_codeudor === 'pensionado' && !l1.entidad_pagadora_codeudor) return true
+    if (l1.tipo_trabajador_codeudor === 'estudiante' &&
+        (!l1.institucion_educativa_codeudor || !l1.nivel_estudio_actual_codeudor)) return true
+
+    if (l1.tipo_trabajador_codeudor === 'pensionado') {
+      if (f1.mesada_pensional_codeudor === '' || f1.mesada_pensional_codeudor == null ||
+          f1.numero_dependientes_codeudor === '') return true
+    } else if (l1.tipo_trabajador_codeudor === 'independiente') {
+      if (f1.ingresos_independiente_codeudor === '' || f1.ingresos_independiente_codeudor == null ||
+          f1.gastos_familiares_codeudor === '' || f1.gastos_familiares_codeudor == null ||
+          f1.numero_dependientes_codeudor === '') return true
+    } else if (l1.tipo_trabajador_codeudor === 'estudiante' || l1.tipo_trabajador_codeudor === 'cuidado_hogar') {
+      if (f1.salario_codeudor === '' || f1.salario_codeudor == null ||
+          !f1.fuente_ingresos_codeudor ||
+          f1.numero_dependientes_codeudor === '') return true
+    } else {
+      if (f1.salario_codeudor === '' || f1.salario_codeudor == null ||
+          f1.gastos_familiares_codeudor === '' || f1.gastos_familiares_codeudor == null ||
+          f1.numero_dependientes_codeudor === '') return true
+    }
+  }
+
+  // Validar codeudor 2
+  if (numCodudores.value >= 2) {
+    const p2 = personaCod2.value
+    const l2 = laboralCod2.value
+    const f2 = financieraCod2.value
+
+    if (!p2.tipo_documento_codeudor2 || !p2.numero_identificacion_codeudor2 ||
+        !p2.nombres_codeudor2 || !p2.apellidos_codeudor2 ||
+        !p2.correo_electronico_codeudor2 || !p2.celular_codeudor2 ||
+        !p2.fecha_nacimiento_codeudor2 || !p2.fecha_expedicion_documento_codeudor2 ||
+        !p2.nivel_educativo_codeudor2 ||
+        (!p2.direccion_residencia_codeudor2 && !direccionEstructuradaCod2.value.via_principal && !direccionEstructuradaCod2.value.numero_via) ||
+        !ubicacionCod2.value.municipio_codigo) return true
+
+    if (!l2.tipo_trabajador_codeudor2) return true
+    if (l2.tipo_trabajador_codeudor2 === 'empleado' &&
+        (!l2.nombre_empresa_codeudor2 || !l2.cargo_oficio_codeudor2 ||
+         !l2.tipo_contrato_codeudor2 || !l2.fecha_ingreso_codeudor2)) return true
+    if (l2.tipo_trabajador_codeudor2 === 'independiente' &&
+        (!l2.actividad_comercial_codeudor2 || !l2.ocupacion_codeudor2 ||
+         !l2.fecha_inicio_actividad_codeudor2)) return true
+    if (l2.tipo_trabajador_codeudor2 === 'pensionado' && !l2.entidad_pagadora_codeudor2) return true
+    if (l2.tipo_trabajador_codeudor2 === 'estudiante' &&
+        (!l2.institucion_educativa_codeudor2 || !l2.nivel_estudio_actual_codeudor2)) return true
+
+    if (l2.tipo_trabajador_codeudor2 === 'pensionado') {
+      if (f2.mesada_pensional_codeudor2 === '' || f2.mesada_pensional_codeudor2 == null ||
+          f2.numero_dependientes_codeudor2 === '') return true
+    } else if (l2.tipo_trabajador_codeudor2 === 'independiente') {
+      if (f2.ingresos_independiente_codeudor2 === '' || f2.ingresos_independiente_codeudor2 == null ||
+          f2.gastos_familiares_codeudor2 === '' || f2.gastos_familiares_codeudor2 == null ||
+          f2.numero_dependientes_codeudor2 === '') return true
+    } else if (l2.tipo_trabajador_codeudor2 === 'estudiante' || l2.tipo_trabajador_codeudor2 === 'cuidado_hogar') {
+      if (f2.salario_codeudor2 === '' || f2.salario_codeudor2 == null ||
+          !f2.fuente_ingresos_codeudor2 ||
+          f2.numero_dependientes_codeudor2 === '') return true
+    } else {
+      if (f2.salario_codeudor2 === '' || f2.salario_codeudor2 == null ||
+          f2.gastos_familiares_codeudor2 === '' || f2.gastos_familiares_codeudor2 == null ||
+          f2.numero_dependientes_codeudor2 === '') return true
+    }
+  }
+
+  return false
+})
 
 const firmaSolicitanteAplicada = computed(() => !!firma.value.firma_hash)
 
@@ -2331,6 +2422,23 @@ function onOtpValidado() {
           </div>
         </div>
 
+        <!-- Banner de campos faltantes codeudores -->
+        <div v-if="numCodudores > 0 && erroresPaso3.length > 0" :style="{ borderRadius: 'var(--r-md)', padding: 'var(--sp-md) var(--sp-lg)', background: '#fff8f0', display: 'flex', gap: 'var(--sp-md)' }">
+          <IconAlertTriangle :size="20" style="color: var(--color-impulso); flex-shrink: 0; margin-top: 2px;" />
+          <div>
+            <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-impulso)', marginBottom: 'var(--sp-xs)' }">
+              Faltan {{ erroresPaso3.length }} campo{{ erroresPaso3.length > 1 ? 's' : '' }} de codeudor por completar:
+            </div>
+            <div :style="{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-xs)' }">
+              <span
+                v-for="err in erroresPaso3"
+                :key="err"
+                :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-impulso)', background: 'rgba(254,153,50,0.12)', borderRadius: 'var(--r-sm)', padding: '2px 8px' }"
+              >{{ err }}</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Tabs codeudores (solo cuando hay 2) -->
         <div v-if="numCodudores === 2" :style="{ display: 'flex', borderBottom: '2px solid var(--color-border)' }">
           <button
@@ -3542,7 +3650,7 @@ function onOtpValidado() {
           :loading="loading"
           :disabled="
             (paso === 2 && (erroresPaso2.length > 0 || esMenorDeEdad)) ||
-            (paso === 3 && hayErroresDuplicidad) ||
+            (paso === 3 && (hayErroresDuplicidad || hayErroresCodeudoresPaso3)) ||
             (paso === 4 && (!documentosCompletos || !autorizaciones.autorizacion_aceptada))
           "
           @click="continuar()"

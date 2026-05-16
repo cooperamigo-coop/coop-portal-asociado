@@ -20,20 +20,21 @@ function actualizar(campo, valor) {
 }
 
 function clave(base) {
-  const conSufijo = base + '_codeudor'
-  return conSufijo in props.modelValue ? conSufijo : base
+  if ((base + '_codeudor2') in props.modelValue) return base + '_codeudor2'
+  if ((base + '_codeudor')  in props.modelValue) return base + '_codeudor'
+  return base
 }
 
 function claveSalario() {
-  return 'salario_codeudor' in props.modelValue
-    ? 'salario_codeudor'
-    : 'salario_ingresos_fijos'
+  if ('salario_codeudor2' in props.modelValue) return 'salario_codeudor2'
+  if ('salario_codeudor'  in props.modelValue) return 'salario_codeudor'
+  return 'salario_ingresos_fijos'
 }
 
 function claveFuente() {
-  return 'fuente_ingresos_codeudor' in props.modelValue
-    ? 'fuente_ingresos_codeudor'
-    : 'fuente_ingresos'
+  if ('fuente_ingresos_codeudor2' in props.modelValue) return 'fuente_ingresos_codeudor2'
+  if ('fuente_ingresos_codeudor'  in props.modelValue) return 'fuente_ingresos_codeudor'
+  return 'fuente_ingresos'
 }
 </script>
 
