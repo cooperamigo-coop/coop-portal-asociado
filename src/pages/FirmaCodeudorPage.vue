@@ -12,8 +12,9 @@ import {
 } from '@tabler/icons-vue'
 import { obtenerSolicitudPorToken, guardarFirmaCodeudor } from '@/services/firmaCodeudor.service'
 import { notificarTitularSolicitudRadicada } from '@/services/solicitudCredito.service'
-import PortalLayout from '@/components/layout/PortalLayout.vue'
-import CampoTexto   from '@/components/forms/CampoTexto.vue'
+import PortalLayout     from '@/components/layout/PortalLayout.vue'
+import CampoTexto       from '@/components/forms/CampoTexto.vue'
+import CapturaDocumento from '@/components/forms/CapturaDocumento.vue'
 
 // ── Constantes de Etiquetado (replicadas de SolicitudCredito) ─────────────────
 const LABEL_TIPO_DOC = {
@@ -71,6 +72,14 @@ const firmaCanvasRef     = ref(null)
 const firmaFileRef       = ref(null)
 const _dibujandoFirma    = ref(false)
 const _firmaTrazoPrev    = ref(null)
+
+// ── Cédula del codeudor ────────────────────────────────────────────────────────
+const cedulaUrl = ref('')
+const campoCedula = computed(() =>
+  solicitud.value?.num_codeudor === 2
+    ? 'doc_cedula_codeudor2_url'
+    : 'doc_cedula_codeudor_url'
+)
 
 // ── PDF ────────────────────────────────────────────────────────────────────────
 const pdfUrl   = ref('')
@@ -840,6 +849,36 @@ function descargarPdf() {
 
         <div :style="{ display: 'flex', flexDirection: 'column', gap: '18px' }">
 
+          <!-- Cédula del codeudor -->
+          <div :style="{
+            background: 'var(--color-bg-card)',
+            borderRadius: 'var(--r-lg)',
+            padding: '16px',
+            border: cedulaUrl ? '1.5px solid var(--color-success)' : '1.5px solid var(--color-border)',
+          }">
+            <p :style="{
+              fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)',
+              color: 'var(--color-text-1)', marginBottom: '12px', marginTop: 0,
+            }">
+              Foto de tu cédula
+              <span :style="{ color: 'var(--color-error)' }"> *</span>
+            </p>
+            <p :style="{
+              fontSize: 'var(--text-xs)', color: 'var(--color-text-3)',
+              marginBottom: '14px', marginTop: 0, lineHeight: '1.5',
+            }">
+              Toma una foto del frente y reverso de tu cédula de ciudadanía para completar tu identidad.
+            </p>
+            <CapturaDocumento
+              :solicitud-id="solicitud?.id || ''"
+              :campo="campoCedula"
+              label="Cédula del codeudor"
+              :required="true"
+              :initial-url="cedulaUrl"
+              @completado="cedulaUrl = $event"
+            />
+          </div>
+
           <!-- Nombre -->
           <div>
             <label :style="{
@@ -981,7 +1020,7 @@ function descargarPdf() {
           <PortalButton
             variant="primary"
             full
-            :disabled="!nombreFirma.trim() || !firmaImagen"
+            :disabled="!cedulaUrl || !nombreFirma.trim() || !firmaImagen"
             @click="enviarFirma"
           >
             Aplicar firma electrónica
