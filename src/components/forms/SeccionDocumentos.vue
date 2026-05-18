@@ -167,16 +167,14 @@ const todosObligatoriosCompletos = computed(() => {
   for (const doc of docsAdicionalesTitular.value) {
     if (!props.modelValue[doc.campo]) return false
   }
-  // Codeudor 1
+  // Codeudor 1 — la cédula la sube el propio codeudor en su correo de firma
   if (props.numCodeudores >= 1) {
-    if (!props.modelValue.doc_cedula_codeudor_url) return false
     for (const doc of docsAdicionalesCod1.value) {
       if (!props.modelValue[doc.campo]) return false
     }
   }
-  // Codeudor 2
+  // Codeudor 2 — la cédula la sube el propio codeudor en su correo de firma
   if (props.numCodeudores >= 2) {
-    if (!props.modelValue.doc_cedula_codeudor2_url) return false
     for (const doc of docsAdicionalesCod2.value) {
       if (!props.modelValue[doc.campo]) return false
     }
@@ -324,15 +322,20 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
         }">Codeudor 1</span>
       </div>
 
-      <CapturaDocumento
-        :solicitud-id="solicitudId"
-        campo="doc_cedula_codeudor_url"
-        label="Cédula del Codeudor 1"
-        :required="true"
-        :initial-url="modelValue.doc_cedula_codeudor_url"
-        @completado="emit('update:modelValue', { ...modelValue, doc_cedula_codeudor_url: $event })"
-        @sesion-creada="emit('sesion-creada', $event)"
-      />
+      <!-- La cédula del codeudor 1 se captura en la página de firma que le enviamos por correo -->
+      <div :style="{
+        border: '1px dashed var(--color-border)',
+        borderRadius: 'var(--r-md)',
+        padding: '14px 16px',
+        display: 'flex', alignItems: 'center', gap: '10px',
+        background: 'var(--color-bg-surface)',
+      }">
+        <IconUsers :size="18" :style="{ color: 'var(--color-text-3)', flexShrink: 0 }" />
+        <p :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', margin: 0, lineHeight: '1.5' }">
+          La foto de la cédula del codeudor 1 se solicitará directamente a él
+          a través del correo de firma que recibirá al radicar esta solicitud.
+        </p>
+      </div>
 
       <template v-for="doc in docsAdicionalesCod1" :key="doc.campo">
         <div :style="{
@@ -421,15 +424,20 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
         }">Codeudor 2</span>
       </div>
 
-      <CapturaDocumento
-        :solicitud-id="solicitudId"
-        campo="doc_cedula_codeudor2_url"
-        label="Cédula del Codeudor 2"
-        :required="true"
-        :initial-url="modelValue.doc_cedula_codeudor2_url"
-        @completado="emit('update:modelValue', { ...modelValue, doc_cedula_codeudor2_url: $event })"
-        @sesion-creada="emit('sesion-creada', $event)"
-      />
+      <!-- La cédula del codeudor 2 se captura en la página de firma que le enviamos por correo -->
+      <div :style="{
+        border: '1px dashed var(--color-border)',
+        borderRadius: 'var(--r-md)',
+        padding: '14px 16px',
+        display: 'flex', alignItems: 'center', gap: '10px',
+        background: 'var(--color-bg-surface)',
+      }">
+        <IconUsers :size="18" :style="{ color: 'var(--color-text-3)', flexShrink: 0 }" />
+        <p :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', margin: 0, lineHeight: '1.5' }">
+          La foto de la cédula del codeudor 2 se solicitará directamente a él
+          a través del correo de firma que recibirá al radicar esta solicitud.
+        </p>
+      </div>
 
       <template v-for="doc in docsAdicionalesCod2" :key="doc.campo">
         <div :style="{
