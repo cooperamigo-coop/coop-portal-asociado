@@ -175,12 +175,10 @@ async function confirmar() {
       alignItems:'center', justifyContent:'space-between', flexShrink:'0',
     }">
       <div>
-        <div :style="{ fontSize:'18px', fontWeight:'800', letterSpacing:'-0.03em' }">
-          Cooper<span :style="{ color:'#FFC801' }">amigó</span>
-        </div>
+        <img src="/logo-principal.svg" :style="{ height:'26px', filter:'brightness(0) invert(1)', display:'block' }" alt="Cooperamigó"/>
         <div :style="{
           fontSize:'10px', color:'rgba(255,255,255,0.35)',
-          fontWeight:'600', letterSpacing:'0.06em', textTransform:'uppercase', marginTop:'2px',
+          fontWeight:'600', letterSpacing:'0.06em', textTransform:'uppercase', marginTop:'4px',
         }">Captura de cédula</div>
       </div>
       <div v-if="['listo_frente','listo_reverso'].includes(fase)"
@@ -355,34 +353,131 @@ async function confirmar() {
         position:'absolute', inset:'0', width:'100%', height:'100%', objectFit:'cover',
       }"/>
 
-      <!-- Overlay CSS puro (compatible iOS Safari) -->
+      <!-- Silueta de cédula + overlay oscuro -->
       <div :style="{ position:'absolute', inset:'0', pointerEvents:'none' }">
-        <!-- Franjas oscuras arriba/abajo/lados -->
-        <div :style="{ position:'absolute', top:'0', left:'0', right:'0', height:'25%', background:'rgba(0,0,0,0.62)' }"/>
-        <div :style="{ position:'absolute', bottom:'0', left:'0', right:'0', height:'25%', background:'rgba(0,0,0,0.62)' }"/>
-        <div :style="{ position:'absolute', top:'25%', bottom:'25%', left:'0', width:'5%', background:'rgba(0,0,0,0.62)' }"/>
-        <div :style="{ position:'absolute', top:'25%', bottom:'25%', right:'0', width:'5%', background:'rgba(0,0,0,0.62)' }"/>
-        <!-- Borde del recuadro -->
+
+        <!-- Marco con proporción real de cédula colombiana (85.6 × 54 mm = 1.585:1) -->
+        <!-- box-shadow cubre toda la pantalla fuera del recuadro sin franjas adicionales -->
         <div :style="{
-          position:'absolute', top:'25%', bottom:'25%', left:'5%', right:'5%',
-          border:'1.5px solid rgba(255,255,255,0.3)', borderRadius:'6px',
-        }"/>
-      </div>
+          position:'absolute',
+          top:'40%', left:'50%',
+          transform:'translate(-50%, -50%)',
+          width:'84%',
+          aspectRatio:'1.585',
+          borderRadius:'10px',
+          boxShadow:'0 0 0 9999px rgba(0,0,0,0.7)',
+          border:'1.5px solid rgba(255,255,255,0.18)',
+          overflow:'hidden',
+        }">
 
-      <!-- Esquinas amarillas -->
-      <div :style="{ position:'absolute', top:'calc(25% - 1px)', left:'calc(5% - 1px)', width:'24px', height:'24px', pointerEvents:'none', borderTop:'3px solid #FFC801', borderLeft:'3px solid #FFC801', borderRadius:'3px 0 0 0' }"/>
-      <div :style="{ position:'absolute', top:'calc(25% - 1px)', right:'calc(5% - 1px)', width:'24px', height:'24px', pointerEvents:'none', borderTop:'3px solid #FFC801', borderRight:'3px solid #FFC801', borderRadius:'0 3px 0 0' }"/>
-      <div :style="{ position:'absolute', bottom:'calc(25% - 1px)', left:'calc(5% - 1px)', width:'24px', height:'24px', pointerEvents:'none', borderBottom:'3px solid #FFC801', borderLeft:'3px solid #FFC801', borderRadius:'0 0 0 3px' }"/>
-      <div :style="{ position:'absolute', bottom:'calc(25% - 1px)', right:'calc(5% - 1px)', width:'24px', height:'24px', pointerEvents:'none', borderBottom:'3px solid #FFC801', borderRight:'3px solid #FFC801', borderRadius:'0 0 3px 0' }"/>
+          <!-- Esquinas amarillas -->
+          <div :style="{ position:'absolute', top:'-1px', left:'-1px', width:'24px', height:'24px', borderTop:'3px solid #FFC801', borderLeft:'3px solid #FFC801', borderRadius:'4px 0 0 0', zIndex:2 }"/>
+          <div :style="{ position:'absolute', top:'-1px', right:'-1px', width:'24px', height:'24px', borderTop:'3px solid #FFC801', borderRight:'3px solid #FFC801', borderRadius:'0 4px 0 0', zIndex:2 }"/>
+          <div :style="{ position:'absolute', bottom:'-1px', left:'-1px', width:'24px', height:'24px', borderBottom:'3px solid #FFC801', borderLeft:'3px solid #FFC801', borderRadius:'0 0 0 4px', zIndex:2 }"/>
+          <div :style="{ position:'absolute', bottom:'-1px', right:'-1px', width:'24px', height:'24px', borderBottom:'3px solid #FFC801', borderRight:'3px solid #FFC801', borderRadius:'0 0 4px 0', zIndex:2 }"/>
 
-      <!-- Instrucción superior -->
-      <div :style="{ position:'absolute', top:'18%', left:'0', right:'0', textAlign:'center', pointerEvents:'none' }">
-        <span :style="{
-          background:'rgba(0,0,0,0.55)', WebkitBackdropFilter:'blur(10px)',
-          backdropFilter:'blur(10px)', borderRadius:'20px', padding:'7px 18px',
-          fontSize:'13px', fontWeight:'700', color:'#fff',
-          letterSpacing:'0.01em', display:'inline-block',
-        }">{{ labelPaso }} · Centra el documento</span>
+          <!-- Silueta FRENTE de cédula colombiana -->
+          <div v-if="!esReverso" :style="{
+            position:'absolute', inset:'0',
+            display:'flex', flexDirection:'column',
+            padding:'9% 7% 7%', gap:'7%',
+          }">
+            <!-- Cabecera: escudo + nombre institución -->
+            <div :style="{ display:'flex', alignItems:'center', gap:'4%' }">
+              <div :style="{
+                width:'11%', aspectRatio:'1',
+                borderRadius:'50%',
+                background:'rgba(255,255,255,0.05)',
+                border:'1px solid rgba(255,255,255,0.1)',
+                flexShrink:0,
+              }"/>
+              <div :style="{ flex:1, display:'flex', flexDirection:'column', gap:'4px' }">
+                <div :style="{ height:'4px', borderRadius:'2px', background:'rgba(255,255,255,0.1)', width:'60%' }"/>
+                <div :style="{ height:'3px', borderRadius:'2px', background:'rgba(255,255,255,0.06)', width:'40%' }"/>
+              </div>
+            </div>
+            <!-- Cuerpo: foto + datos -->
+            <div :style="{ flex:1, display:'flex', gap:'6%' }">
+              <!-- Foto -->
+              <div :style="{
+                width:'27%', flexShrink:0,
+                borderRadius:'4px',
+                background:'rgba(255,255,255,0.05)',
+                border:'1px solid rgba(255,255,255,0.1)',
+              }"/>
+              <!-- Líneas de datos -->
+              <div :style="{ flex:1, display:'flex', flexDirection:'column', justifyContent:'space-around', paddingTop:'3%' }">
+                <div v-for="(w, i) in ['82%','65%','72%','50%']" :key="i" :style="{
+                  height:'5px', borderRadius:'2px',
+                  background:'rgba(255,255,255,0.09)', width:w,
+                }"/>
+              </div>
+            </div>
+            <!-- Zona MRZ inferior -->
+            <div :style="{ display:'flex', flexDirection:'column', gap:'3px' }">
+              <div v-for="n in 2" :key="n" :style="{ height:'4px', borderRadius:'1px', background:'rgba(255,255,255,0.05)', width:'100%' }"/>
+            </div>
+          </div>
+
+          <!-- Silueta REVERSO de cédula colombiana -->
+          <div v-else :style="{
+            position:'absolute', inset:'0',
+            display:'flex', flexDirection:'column',
+            justifyContent:'space-between',
+            padding:'9% 7% 8%',
+          }">
+            <!-- Chip + datos -->
+            <div :style="{ display:'flex', gap:'5%', alignItems:'center' }">
+              <div :style="{
+                width:'17%', aspectRatio:'1.3',
+                borderRadius:'3px',
+                background:'rgba(255,200,1,0.06)',
+                border:'1px solid rgba(255,200,1,0.14)',
+                flexShrink:0,
+              }"/>
+              <div :style="{ flex:1, display:'flex', flexDirection:'column', gap:'5px' }">
+                <div v-for="w in ['75%','55%']" :key="w" :style="{ height:'4px', borderRadius:'2px', background:'rgba(255,255,255,0.08)', width:w }"/>
+              </div>
+            </div>
+            <!-- Código de barras -->
+            <div :style="{ display:'flex', gap:'2px', height:'16%', alignItems:'stretch' }">
+              <div v-for="n in 22" :key="n" :style="{
+                flex:n%5===0?2:1,
+                background:'rgba(255,255,255,0.07)',
+                borderRadius:'1px',
+              }"/>
+            </div>
+            <!-- MRZ -->
+            <div :style="{ display:'flex', flexDirection:'column', gap:'3px' }">
+              <div v-for="n in 3" :key="n" :style="{ height:'4px', borderRadius:'1px', background:'rgba(255,255,255,0.06)', width:'100%' }"/>
+            </div>
+          </div>
+
+          <!-- Línea de escaneo animada -->
+          <div class="scan-line" :style="{
+            position:'absolute', left:'0', right:'0', height:'2px',
+            background:'linear-gradient(90deg,transparent 0%,rgba(255,200,1,0.55) 20%,rgba(255,200,1,0.9) 50%,rgba(255,200,1,0.55) 80%,transparent 100%)',
+            boxShadow:'0 0 8px rgba(255,200,1,0.35)',
+          }"/>
+        </div>
+
+        <!-- Etiqueta instrucción sobre el marco -->
+        <div :style="{ position:'absolute', top:'18%', left:'0', right:'0', textAlign:'center' }">
+          <span :style="{
+            background:'rgba(0,0,0,0.6)', WebkitBackdropFilter:'blur(10px)',
+            backdropFilter:'blur(10px)', borderRadius:'20px', padding:'7px 18px',
+            fontSize:'13px', fontWeight:'700', color:'#fff',
+            letterSpacing:'0.01em', display:'inline-block',
+          }">{{ esReverso ? 'Reverso' : 'Frente' }} · Centra la cédula</span>
+        </div>
+
+        <!-- Hint debajo del marco -->
+        <div :style="{ position:'absolute', top:'58%', left:'0', right:'0', textAlign:'center' }">
+          <p :style="{
+            fontSize:'12px', fontWeight:'500',
+            color:'rgba(255,255,255,0.38)', letterSpacing:'0.01em', margin:0,
+          }">Mantén la cédula plana y sin reflejos</p>
+        </div>
       </div>
 
       <!-- Botón disparador con safe-area para iOS -->
@@ -588,6 +683,11 @@ async function confirmar() {
 
 <style scoped>
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes scan {
+  0%, 100% { top: 6%; }
+  50% { top: 88%; }
+}
+.scan-line { animation: scan 2.4s ease-in-out infinite; }
 * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
 video { transform: scaleX(1); }
 </style>
