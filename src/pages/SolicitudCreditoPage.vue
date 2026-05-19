@@ -2704,7 +2704,7 @@ function onOtpValidado() {
           </div>
         </div>
 
-        <ModalAutorizaciones v-model:visible="modalAutorizacionesVisible" :aceptado="autorizaciones.autorizacion_aceptada" @aceptar="autorizaciones.autorizacion_aceptada = true" @rechazar="autorizaciones.autorizacion_aceptada = false" />
+        <ModalAutorizaciones v-model:visible="modalAutorizacionesVisible" :aceptado="autorizaciones.autorizacion_aceptada" @aceptar="autorizaciones.autorizacion_aceptada = true; autorizaciones.fecha_aceptacion_autorizacion = new Date().toISOString()" @rechazar="autorizaciones.autorizacion_aceptada = false; autorizaciones.fecha_aceptacion_autorizacion = null" />
 
         <!-- Acompañamiento de asesor -->
         <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
