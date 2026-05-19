@@ -273,7 +273,7 @@ export function useCapturaDocumento() {
       return url
     } catch (e) {
       estado.value = 'error'
-      error.value = 'Error al subir el PDF.'
+      error.value = e.message
       throw e
     }
   }
