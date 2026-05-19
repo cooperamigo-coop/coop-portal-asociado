@@ -14,11 +14,24 @@ const EXT_PERMITIDAS  = new Set(['jpg', 'jpeg', 'png', 'webp', 'pdf'])
 
 let _bucketConfirmado = null
 
+async function validarPdfSinClave(archivo) {
+  if (archivo.type !== 'application/pdf') return
+  const buffer = await archivo.slice(0, 4096).arrayBuffer()
+  const texto = new TextDecoder('latin1').decode(buffer)
+  if (texto.includes('/Encrypt')) {
+    const err = new Error('Este documento está bloqueado con clave, elimínela y cárguelo nuevamente.')
+    err.esValidacion = true
+    throw err
+  }
+}
+
 export async function subirDocumentoSolicitud(solicitudId, tipo, archivo) {
   const ext = archivo.name.split('.').pop().toLowerCase()
   if (!EXT_PERMITIDAS.has(ext) || !MIME_PERMITIDOS.has(archivo.type)) {
     throw new Error('Solo se permiten imágenes (JPG, PNG, WebP) y PDF.')
   }
+
+  await validarPdfSinClave(archivo)
 
   const ruta = `${solicitudId}/${tipo}_${Date.now()}.${ext}`
 
@@ -56,6 +69,7 @@ export async function subirDocumentoSolicitud(solicitudId, tipo, archivo) {
 }
 
 export function obtenerMensajeErrorSubidaDocumento(error) {
+  if (error?.esValidacion) return error.message
   const msg = String(error?.message || '')
   if (msg.includes('row-level security policy')) {
     return 'No hay permisos de Storage (RLS) para subir al bucket "documentos". Ajuste las policies en Supabase.'
