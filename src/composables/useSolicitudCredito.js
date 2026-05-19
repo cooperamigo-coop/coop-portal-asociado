@@ -767,6 +767,7 @@ export function useSolicitudCredito() {
   function aplanarDatos() {
     return {
       fecha_solicitud: fechaSolicitud.value,
+      asociado_id: asociadoVerificado.value?.id ?? null,
       ...general.value,
       num_codeudores: numCodudores.value,
       tiene_codeudor: numCodudores.value > 0,
