@@ -257,6 +257,7 @@ export function useSolicitudCredito() {
   // ── Sección autorizaciones ────────────────────────────────
   const autorizaciones = ref({
     autorizacion_aceptada: false,
+    fecha_aceptacion_autorizacion: null,
     autorizacion_desembolso_directo_educativo: false,
   })
   
