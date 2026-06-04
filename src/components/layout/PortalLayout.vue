@@ -12,7 +12,7 @@ const router = useRouter()
     background: 'var(--color-bg-card)',
     display: 'flex', flexDirection: 'column',
     position: 'relative',
-    overflow: 'hidden'
+    overflow: 'clip'
   }">
     <!-- Topbar -->
     <header class="portal-topbar">

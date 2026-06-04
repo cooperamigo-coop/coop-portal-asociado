@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { IconCreditCard, IconUserPlus, IconUserMinus, IconClipboardList, IconFileText, IconArrowRight, IconArrowLeft, IconClock, IconWorld } from '@tabler/icons-vue'
 import PortalFooter from '@/components/layout/PortalFooter.vue'
@@ -9,10 +9,27 @@ const router = useRouter()
 const route = useRoute()
 const paso = ref('pregunta') // 'pregunta' | 'asociado' | 'no-asociado'
 
+// ── Horario hábil: lunes–viernes 08:00–20:00 hora Colombia ──
+const ahora = ref(new Date())
+let _timer
 
 onMounted(() => {
   if (route.query.vista === 'no-asociado') paso.value = 'no-asociado'
+  _timer = setInterval(() => { ahora.value = new Date() }, 60_000)
 })
+
+onUnmounted(() => clearInterval(_timer))
+
+const fueraDeHorario = computed(() => {
+  const bogota = new Date(ahora.value.toLocaleString('en-US', { timeZone: 'America/Bogota' }))
+  const dia  = bogota.getDay()  // 0=dom, 6=sáb
+  const hora = bogota.getHours()
+  if (dia === 0 || dia === 6) return true
+  if (hora < 8 || hora >= 20) return true
+  return false
+})
+
+const bloqueado = computed(() => proximamente || fueraDeHorario.value)
 
 
 const SERVICIOS_ASOCIADO = [
@@ -117,23 +134,45 @@ const SERVICIOS_NO_ASOCIADO = [
 
         <!-- ── Vista: pregunta inicial ───────────────────────── -->
         <div v-if="paso === 'pregunta'" class="vista animate-in">
-          <img src="/favicon.svg" alt="Cooperamigó" class="hero-favicon" />
-          <h1 class="hero-title">¡Te damos la bienvenida!</h1>
-          <p class="hero-question">¿Ya haces parte de Cooperamigó?<br>Accede a los trámites digitales o inicia tu
-            proceso de vinculación como asociado de la Cooperativa.</p>
-          <div class="opciones">
-            <button class="btn-opcion btn-opcion--primary" :class="{ 'btn-opcion--disabled': proximamente }"
-              :disabled="proximamente" @click="!proximamente && (paso = 'asociado')">
-              Soy asociado
-            </button>
-            <button class="btn-opcion btn-opcion--secondary" :class="{ 'btn-opcion--disabled': proximamente }"
-              :disabled="proximamente" @click="!proximamente && (paso = 'no-asociado')">
-              Quiero afiliarme
-            </button>
+          <div class="pregunta-layout">
+
+            <!-- Izquierda: identidad + texto -->
+            <div class="pregunta-left">
+              <img src="/favicon.svg" alt="Cooperamigó" class="hero-favicon" />
+              <h1 class="hero-title">¡Te damos la bienvenida!</h1>
+              <p class="hero-question">Accede a los trámites digitales o inicia tu proceso de vinculación como asociado de la Cooperativa.</p>
+            </div>
+
+            <!-- Divisor vertical -->
+            <div class="pregunta-divider" aria-hidden="true"></div>
+
+            <!-- Derecha: botones -->
+            <div class="pregunta-right">
+              <div class="opciones">
+                <button class="btn-opcion btn-opcion--primary" :class="{ 'btn-opcion--disabled': bloqueado }"
+                  :disabled="bloqueado" @click="!bloqueado && (paso = 'asociado')">
+                  <span><em class="btn-num">1.</em> Soy asociado</span>
+                  <span class="btn-circle"><IconArrowRight :size="14" /></span>
+                </button>
+                <button class="btn-opcion btn-opcion--secondary" :class="{ 'btn-opcion--disabled': bloqueado }"
+                  :disabled="bloqueado" @click="!bloqueado && (paso = 'no-asociado')">
+                  <span><em class="btn-num">2.</em> Quiero afiliarme</span>
+                  <span class="btn-circle"><IconArrowRight :size="14" /></span>
+                </button>
+              </div>
+              <p v-if="proximamente" class="proximamente-msg">
+                Pronto habilitaremos el acceso digital para nuestros asociados. ¡Estamos trabajando en ello!
+              </p>
+            </div>
+
           </div>
-          <p v-if="proximamente" class="proximamente-msg">
-            Pronto habilitaremos el acceso digital para nuestros asociados. ¡Estamos trabajando en ello!
+
+          <!-- Aviso horario: ancho completo, debajo de las columnas -->
+          <p v-if="fueraDeHorario && !proximamente" class="horario-msg">
+            <IconClock :size="13" style="display:inline;vertical-align:middle;margin-right:4px;" />
+            Las solicitudes a través de este portal podrán gestionarse de <strong>lunes a viernes</strong>, entre las <strong>8:00 a. m.</strong> y las <strong>8:00 p. m.</strong>
           </p>
+
         </div>
 
         <!-- ── Vista: servicios asociado ─────────────────────── -->
@@ -154,9 +193,7 @@ const SERVICIOS_NO_ASOCIADO = [
                 <div class="row-desc">{{ srv.descripcion }}</div>
               </div>
               <div class="row-action">
-                <span v-if="srv.disponible" class="row-arrow">
-                  <IconArrowRight :size="16" />
-                </span>
+                <span v-if="srv.disponible" class="row-circle-arrow"><IconArrowRight :size="14" /></span>
                 <span v-else class="row-soon">
                   <IconClock :size="9" />
                   Pronto
@@ -183,9 +220,7 @@ const SERVICIOS_NO_ASOCIADO = [
                 <div class="row-desc">{{ srv.descripcion }}</div>
               </div>
               <div class="row-action">
-                <span class="row-arrow">
-                  <IconArrowRight :size="16" />
-                </span>
+                <span class="row-circle-arrow"><IconArrowRight :size="14" /></span>
               </div>
             </div>
           </div>
@@ -260,9 +295,97 @@ const SERVICIOS_NO_ASOCIADO = [
 
 .home-content {
   width: 100%;
-  max-width: 480px;
+  max-width: 720px;
   position: relative;
   z-index: 1;
+}
+
+/* ─── Layout dos columnas (solo vista pregunta, desktop) ─── */
+.pregunta-layout {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  gap: 0;
+}
+
+.pregunta-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding-right: 48px;
+}
+
+.pregunta-left .hero-title {
+  text-align: left;
+}
+
+.pregunta-left .hero-question {
+  text-align: left;
+}
+
+.pregunta-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--color-border);
+  flex-shrink: 0;
+  min-height: 160px;
+}
+
+.pregunta-right {
+  flex-shrink: 0;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding-left: 48px;
+}
+
+.pregunta-right .opciones {
+  max-width: 100%;
+}
+
+@media (min-width: 1200px) {
+  .home-content {
+    max-width: 860px;
+  }
+
+  .pregunta-right {
+    width: 340px;
+  }
+}
+
+@media (max-width: 767px) {
+  .pregunta-layout {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .pregunta-left {
+    padding-right: 0;
+    align-items: center;
+  }
+
+  .hero-logo {
+    align-self: center;
+  }
+
+  .pregunta-left .hero-title,
+  .pregunta-left .hero-question {
+    text-align: center;
+  }
+
+  .pregunta-divider {
+    display: none;
+  }
+
+  .pregunta-right {
+    padding-left: 0;
+    width: 100%;
+  }
 }
 
 /* ─── Vista genérica ─── */
@@ -278,6 +401,12 @@ const SERVICIOS_NO_ASOCIADO = [
   width: 72px;
   height: 72px;
   object-fit: contain;
+}
+
+.hero-logo {
+  height: 36px;
+  object-fit: contain;
+  align-self: flex-start;
 }
 
 .hero-title {
@@ -308,7 +437,7 @@ const SERVICIOS_NO_ASOCIADO = [
 
 .btn-opcion {
   width: 100%;
-  height: 48px;
+  height: 52px;
   border-radius: var(--r-pill);
   font-family: var(--font-body);
   font-size: var(--text-base);
@@ -317,6 +446,26 @@ const SERVICIOS_NO_ASOCIADO = [
   transition: all var(--transition-base);
   border: none;
   letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  padding: 0 52px 0 36px;
+}
+
+.btn-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: transform var(--transition-base);
 }
 
 .btn-opcion--primary {
@@ -325,21 +474,39 @@ const SERVICIOS_NO_ASOCIADO = [
   box-shadow: var(--shadow-btn);
 }
 
+.btn-opcion--primary .btn-circle {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
 .btn-opcion--primary:hover {
   background: var(--color-primary-dark);
   transform: translateY(-1px);
 }
 
+.btn-opcion--primary:hover .btn-circle {
+  transform: translateY(-50%) translateX(2px);
+}
+
 .btn-opcion--secondary {
-  background: transparent;
-  color: var(--color-primary);
-  border: 1.5px solid var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff;
+  box-shadow: var(--shadow-btn);
+  border: none;
+}
+
+.btn-opcion--secondary .btn-circle {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
 }
 
 .btn-opcion--secondary:hover {
-  background: var(--color-primary);
-  color: #ffffff;
-  border-color: var(--color-primary);
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-opcion--secondary:hover .btn-circle {
+  transform: translateY(-50%) translateX(2px);
 }
 
 .btn-opcion--disabled,
@@ -351,6 +518,33 @@ const SERVICIOS_NO_ASOCIADO = [
   color: var(--color-text-3);
   border-color: var(--color-border);
   box-shadow: none;
+}
+
+.btn-num {
+  font-style: normal;
+  opacity: 0.5;
+  font-weight: var(--fw-medium);
+  margin-right: 2px;
+}
+
+.btn-opcion--disabled .btn-circle,
+.btn-opcion--disabled:hover .btn-circle {
+  background: var(--color-border);
+  color: var(--color-text-3);
+  transform: translateY(-50%);
+}
+
+.horario-msg {
+  width: 100%;
+  text-align: center;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  color: var(--color-text-3);
+  margin: var(--sp-xl) 0 0;
+  padding: var(--sp-sm) 0;
+  line-height: 1.5;
+  background: none;
+  border: none;
 }
 
 .proximamente-msg {
@@ -472,6 +666,23 @@ const SERVICIOS_NO_ASOCIADO = [
   display: flex;
   color: var(--color-text-3);
   transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.row-circle-arrow {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform var(--transition-base);
+}
+
+.service-row--on:hover .row-circle-arrow {
+  transform: translateX(2px);
 }
 
 .row-soon {

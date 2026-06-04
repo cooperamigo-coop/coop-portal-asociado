@@ -151,3 +151,30 @@ export async function notificarTitularSolicitudRadicada({
 
   if (lastError) throw lastError
 }
+
+export async function notificarEquipoCreditos({
+  radicado,
+  nombre,
+  cedula,
+  correo,
+  telefono,
+  tipo_operacion,
+  monto,
+  plazo,
+  fecha_radicacion,
+}) {
+  const { error } = await supabase.functions.invoke('notificar-equipo-creditos', {
+    body: {
+      radicado,
+      nombre,
+      cedula,
+      correo,
+      telefono,
+      tipo_operacion,
+      monto,
+      plazo,
+      fecha_radicacion,
+    },
+  })
+  if (error) throw error
+}

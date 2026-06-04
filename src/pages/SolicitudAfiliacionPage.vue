@@ -20,7 +20,7 @@ import CapturaDocumento from '@/components/forms/CapturaDocumento.vue'
 import { useAfiliacion }  from '@/composables/useAfiliacion'
 import { useBreakpoint }  from '@/composables/useBreakpoint'
 import { subirDocumentoSolicitud, obtenerMensajeErrorSubidaDocumento } from '@/services/documentos.service'
-import { IconCircleCheck, IconUserCheck, IconCheck, IconMapPin, IconX, IconUpload, IconEye, IconRefresh, IconFileDescription, IconLoader2, IconRotateClockwise2, IconHome, IconCar, IconShieldCheck } from '@tabler/icons-vue'
+import { IconCircleCheck, IconUserCheck, IconCheck, IconMapPin, IconX, IconUpload, IconEye, IconRefresh, IconFileDescription, IconLoader2, IconRotateClockwise2, IconHome, IconCar, IconShieldCheck, IconArrowRight } from '@tabler/icons-vue'
 import { ENTIDADES_PENSIONES, TIPOS_CONTRATO } from '@/data/formularioCredito'
 
 const router = useRouter()
@@ -986,9 +986,9 @@ onBeforeUnmount(() => {
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- PASO 0: Verificación inicial                                        -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <div v-if="paso === 0" :style="{ maxWidth: '420px', width: '100%', margin: '0 auto' }">
+    <div v-if="paso === 0" class="paso0-container">
 
-      <div :style="{ marginBottom: 'var(--sp-2xl)' }">
+      <div :style="{ marginBottom: '40px' }">
         <div class="step-greeting-title">
           <span class="greeting-hi">¡Saludos!</span> <span class="greeting-sub">Comencemos con tu solicitud</span>
         </div>
@@ -1060,92 +1060,95 @@ onBeforeUnmount(() => {
 
       <!-- Formulario de verificación -->
       <template v-else>
-        <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)', padding: '0 var(--sp-xl)' }">
+        <div class="paso0-layout">
 
-          <CampoTexto
-            v-model="emailInicial"
-            label="Correo electrónico"
-            type="email"
-            placeholder="su.correo@ejemplo.com"
-            required
-            :error="errorEmail"
-            @keyup.enter="onVerificarYContinuarClick"
-          />
+          <!-- Columna izquierda: campos -->
+          <div class="paso0-fields">
+            <CampoTexto
+              v-model="emailInicial"
+              label="1. Correo electrónico"
+              type="email"
+              placeholder="su.correo@ejemplo.com"
+              required
+              :error="errorEmail"
+              @keyup.enter="onVerificarYContinuarClick"
+            />
 
-          <!-- Selector de Tipo de Documento -->
-          <CampoSelect
-            v-model="tipoDocumentoInicial"
-            label="Tipo de documento"
-            required
-            :opciones="opsTipoDocVerificacion"
-            @click="onDocumentoAreaClick"
-          />
+            <CampoSelect
+              v-model="tipoDocumentoInicial"
+              label="2. Tipo de documento"
+              required
+              :opciones="opsTipoDocVerificacion"
+              @click="onDocumentoAreaClick"
+            />
 
-          <!-- Número de Documento -->
-          <CampoTexto
-            v-model="numeroDocumentoInicial"
-            label="Número de documento"
-            placeholder="Sin puntos ni espacios"
-            required
-            solo-numeros
-            :maxlength="15"
-            :error="errorNumeroDoc"
-            @click="onDocumentoAreaClick"
-          />
+            <CampoTexto
+              v-model="numeroDocumentoInicial"
+              label="3. Número de documento"
+              placeholder="Sin puntos ni espacios"
+              required
+              solo-numeros
+              :maxlength="15"
+              :error="errorNumeroDoc"
+              @click="onDocumentoAreaClick"
+            />
 
-          <!-- Badge: correo verificado -->
-          <div v-if="emailValidado" :style="{
-            display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)',
-            padding: 'var(--sp-sm) var(--sp-md)',
-            borderRadius: 'var(--r-md)',
-            background: 'var(--color-success-bg)',
-          }">
-            <IconCircleCheck :size="15" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
-            <span :style="{
-              fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)',
-              color: 'var(--color-success)',
-            }">Correo electrónico verificado</span>
+            <!-- Badge: correo verificado -->
+            <div v-if="emailValidado" :style="{
+              display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)',
+              padding: 'var(--sp-sm) var(--sp-md)',
+              borderRadius: 'var(--r-md)',
+              background: 'var(--color-success-bg)',
+            }">
+              <IconCircleCheck :size="15" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
+              <span :style="{
+                fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)',
+                color: 'var(--color-success)',
+              }">Correo electrónico verificado</span>
+            </div>
           </div>
 
-          <label :style="{
-            display: 'flex', alignItems: 'flex-start',
-            gap: 'var(--sp-sm)', cursor: 'pointer',
-          }">
-            <input
-              type="checkbox"
-              v-model="aceptaAutorizacion"
-              class="auth-checkbox"
-              :style="{
-                marginTop: '3px', flexShrink: '0', cursor: 'pointer',
-                accentColor: 'var(--color-primary)', width: '15px', height: '15px',
-              }"
-            />
-            <span :style="{
-              fontSize: 'var(--text-xs)', color: 'var(--color-text-2)',
-              fontWeight: 'var(--fw-medium)', lineHeight: '1.7',
-            }">
-              Autorizo a Cooperamigó para tratar mis datos personales con la finalidad de gestionar mi proceso de afiliación, contactarme y suministrarme información relacionada con los servicios y beneficios de la cooperativa.
-              Asimismo, autorizo, cuando sea necesario, la consulta de mi información en operadores de información y riesgo, con el fin de validar mis datos.
-              Declaro que conozco mis derechos como titular de la información. Igualmente, manifiesto que he leído y acepto los
-              <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">Términos y condiciones</a>
-              y la
-              <a href="https://cooperamigo.coop/politica-tratamiento-datos" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">Política de tratamiento de datos personales</a>.
-            </span>
-          </label>
+          <!-- Divisor vertical -->
+          <div class="paso0-divider" aria-hidden="true"></div>
 
-          <div :style="{ marginTop: 'var(--sp-sm)', width: '100%', maxWidth: '340px', margin: 'var(--sp-sm) auto 0' }">
-            <PortalButton
-              variant="primary"
-              pill
-              small
-              :style="{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--sp-xs)' }"
-              :loading="loadingVerificacion"
-              :disabled="!aceptaAutorizacion || !!errorEmail || !emailValidado"
+          <!-- Columna derecha: autorización + botón -->
+          <div class="paso0-auth">
+            <label :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-sm)', cursor: 'pointer' }">
+              <input
+                type="checkbox"
+                v-model="aceptaAutorizacion"
+                class="auth-checkbox"
+                :style="{
+                  marginTop: '3px', flexShrink: '0', cursor: 'pointer',
+                  accentColor: 'var(--color-primary)', width: '15px', height: '15px',
+                }"
+              />
+              <span :style="{
+                fontSize: 'var(--text-xs)', color: 'var(--color-text-2)',
+                fontWeight: 'var(--fw-medium)', lineHeight: '1.7',
+              }">
+                Autorizo a Cooperamigó para tratar mis datos personales con la finalidad de gestionar mi proceso de afiliación, contactarme y suministrarme información relacionada con los servicios y beneficios de la cooperativa.
+                Asimismo, autorizo, cuando sea necesario, la consulta de mi información en operadores de información y riesgo, con el fin de validar mis datos.
+                Declaro que conozco mis derechos como titular de la información. Igualmente, manifiesto que he leído y acepto los
+                <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">Términos y condiciones</a>
+                y la
+                <a href="https://cooperamigo.coop/politica-tratamiento-datos" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">Política de tratamiento de datos personales</a>.
+              </span>
+            </label>
+
+            <button
+              class="paso0-verify-btn"
+              :disabled="!aceptaAutorizacion || !!errorEmail || !emailValidado || loadingVerificacion"
               @click="onVerificarYContinuarClick"
             >
-              Verificar y continuar
-            </PortalButton>
+              <span v-if="loadingVerificacion" class="paso0-spinner" />
+              <template v-else>
+                <span>Verificar y continuar</span>
+                <span class="paso0-btn-circle"><IconArrowRight :size="14" /></span>
+              </template>
+            </button>
           </div>
+
         </div>
       </template>
     </div>
@@ -2937,4 +2940,127 @@ onBeforeUnmount(() => {
 .sheet-modal-leave-to     { opacity: 0; }
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ─── Paso 0: layout ─── */
+.paso0-container {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.paso0-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-lg);
+  padding: 0 var(--sp-xl);
+}
+
+.paso0-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-lg);
+}
+
+.paso0-divider {
+  display: none;
+}
+
+.paso0-auth {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-lg);
+}
+
+.paso0-verify-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 44px;
+  border-radius: var(--r-pill);
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--fw-semibold);
+  padding: 0 8px 0 28px;
+  box-shadow: var(--shadow-btn);
+  transition: all var(--transition-base);
+}
+
+.paso0-verify-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.paso0-verify-btn:not(:disabled):hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+.paso0-verify-btn:not(:disabled):hover .paso0-btn-circle {
+  transform: translateX(2px);
+}
+
+.paso0-btn-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform var(--transition-base);
+}
+
+.paso0-spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  border-top-color: rgba(255, 255, 255, 0.9);
+  border-right-color: rgba(255, 255, 255, 0.25);
+  animation: spin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .paso0-container {
+    max-width: 780px;
+  }
+
+  .paso0-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0;
+    padding: 0;
+  }
+
+  .paso0-fields {
+    flex: 1;
+    padding-right: 40px;
+  }
+
+  .paso0-divider {
+    display: block;
+    width: 1px;
+    align-self: stretch;
+    background: var(--color-border);
+    flex-shrink: 0;
+  }
+
+  .paso0-auth {
+    flex: 1;
+    padding-left: 40px;
+    justify-content: space-between;
+  }
+
+  .paso0-verify-btn {
+    width: 260px;
+    margin-left: calc(15px + var(--sp-sm));
+  }
+}
 </style>

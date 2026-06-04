@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { VIAS_PRINCIPALES, DEPARTAMENTOS, getMunicipios } from '@/data/colombiaData.js'
-import { IconMapPin, IconX, IconCheck } from '@tabler/icons-vue'
+import { IconMapPin, IconX, IconCheck, IconArrowRight } from '@tabler/icons-vue'
 import PortalButton        from '@/components/ui/PortalButton.vue'
 import CampoSelectBuscable from './CampoSelectBuscable.vue'
 import CampoTexto          from './CampoTexto.vue'
@@ -264,10 +264,13 @@ function cerrar() { emit('update:visible', false) }
             borderRadius: '0 0 var(--r-md) var(--r-md)',
             flexShrink: '0',
           }">
-            <PortalButton variant="secondary" @click="cerrar()">Cancelar</PortalButton>
-            <PortalButton variant="primary" :disabled="!preview" @click="confirmar()">
-              <IconCheck :size="15" /> Confirmar
-            </PortalButton>
+            <button class="modal-dir-btn modal-dir-btn--secondary" @click="cerrar()">
+              Cancelar
+            </button>
+            <button class="modal-dir-btn modal-dir-btn--primary" :disabled="!preview" @click="confirmar()">
+              <span>Confirmar</span>
+              <span class="modal-dir-circle"><IconArrowRight :size="13" /></span>
+            </button>
           </div>
         </div>
       </div>
@@ -276,6 +279,71 @@ function cerrar() { emit('update:visible', false) }
 </template>
 
 <style scoped>
+.modal-dir-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 44px;
+  border-radius: var(--r-pill);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition-base);
+}
+
+.modal-dir-btn--secondary {
+  padding: 0 var(--sp-xl);
+  background: transparent;
+  color: var(--color-text-2);
+  box-shadow: 0 0 0 1px rgba(23,43,54,0.2);
+}
+
+.modal-dir-btn--secondary:hover {
+  background: var(--color-bg-surface-alt);
+}
+
+.modal-dir-btn--primary {
+  padding: 0 50px 0 24px;
+  background: var(--color-primary);
+  color: #ffffff;
+  box-shadow: var(--shadow-btn);
+  min-width: 140px;
+  gap: 10px;
+}
+
+.modal-dir-btn--primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.modal-dir-btn--primary:not(:disabled):hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+.modal-dir-btn--primary:not(:disabled):hover .modal-dir-circle {
+  transform: translateY(-50%) translateX(2px);
+}
+
+.modal-dir-circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: transform var(--transition-base);
+}
+
 .fade-modal-enter-active { transition: opacity 0.2s ease; }
 .fade-modal-leave-active { transition: opacity 0.15s ease; }
 .fade-modal-enter-from,
