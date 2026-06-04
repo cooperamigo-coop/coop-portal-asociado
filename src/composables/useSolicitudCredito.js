@@ -6,6 +6,7 @@ import {
   verificarAsociado,
   notificarCodudores,
   notificarTitularSolicitudRadicada,
+  notificarEquipoCreditos,
   obtenerConsecutivoRadicado,
 } from '@/services/solicitudCredito.service'
 import { actualizarCamposAsociado, buscarAsociadoPorCedula, actualizarEmailAsociado } from '@/services/afiliacion.service'
@@ -26,6 +27,7 @@ export function useSolicitudCredito() {
   const error = ref(null)
   const solicitudId = ref(null)
   const enviado = ref(false)
+  const radicadoFinal = ref('')
   const fechaSolicitud = ref(new Date().toISOString().split('T')[0])
 
   // ── Paso previo: verificación ─────────────────────────────
@@ -1243,15 +1245,46 @@ export function useSolicitudCredito() {
         const fechaStr = new Intl.DateTimeFormat('fr-CA', { timeZone: 'America/Bogota' }).format(fechaEnvio).replaceAll('-', '')
         const consecutivo = await obtenerConsecutivoRadicado(solicitudId.value)
         const radicado = `RAD-${fechaStr}-${String(consecutivo).padStart(3, '0')}`
+        radicadoFinal.value = radicado
+        const nombreTitular = `${persona.value.nombres || ''} ${persona.value.apellidos || ''}`.trim()
         notificarTitularSolicitudRadicada({
           solicitudId: solicitudId.value,
           emailTitular: verificacion.value.correo,
-          nombreTitular: `${persona.value.nombres || ''} ${persona.value.apellidos || ''}`.trim(),
+          nombreTitular,
           radicado,
           requiereCodeudores: false,
           numCodeudores: 0,
           fechaSolicitudIso: fechaSolicitud.value,
         }).catch(e => console.warn('[SolicitudCredito] Error notificando titular:', e))
+
+        // Notificar equipo de crédito (fire-and-forget)
+        const tipoOp = general.value.tipo_operacion
+        const modalidad = general.value.modalidad_credito
+
+        const tipoLabel = modalidad === 'educativo'
+          ? 'Crédito Educativo'
+          : tipoOp === 'credito_nuevo'      ? 'Crédito Ordinario/Consumo — Crédito nuevo'
+          : tipoOp === 'reestructura'       ? 'Crédito Ordinario/Consumo — Reestructura'
+          : tipoOp === 'reestructura_desembolso' ? 'Crédito Ordinario/Consumo — Reestructura con desembolso'
+          : 'Crédito Ordinario/Consumo'
+
+        const montoPayload = tipoOp === 'reestructura'
+          ? { monto: general.value.valor_reestructura }
+          : tipoOp === 'reestructura_desembolso'
+            ? { monto: general.value.valor_reestructura, monto_desembolso: general.value.valor_desembolso }
+            : { monto: general.value.valor_credito }
+
+        notificarEquipoCreditos({
+          radicado,
+          nombre:           nombreTitular,
+          cedula:           verificacion.value.numero_documento,
+          correo:           verificacion.value.correo,
+          telefono:         persona.value.celular || '',
+          tipo_operacion:   tipoLabel,
+          plazo:            general.value.plazo_solicitado,
+          fecha_radicacion: solicitudEnviada?.updated_at || new Date().toISOString(),
+          ...montoPayload,
+        }).catch(e => console.warn('[SolicitudCredito] Error notificando equipo crédito:', e))
       }
 
       await registrarIntento(supabase, verificacion.value.numero_documento, 'envio_credito')
@@ -1275,7 +1308,7 @@ export function useSolicitudCredito() {
   }
 
   return {
-    paso, loading, error, enviado,
+    paso, loading, error, enviado, radicadoFinal,
     solicitudId,
     fechaSolicitud,
     porcentaje, pasosActivos, pasoActual, esUltimoPaso,
