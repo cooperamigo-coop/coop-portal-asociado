@@ -97,8 +97,11 @@ const SERVICIOS_NO_ASOCIADO = [
           <IconWorld :size="14" />Cooperamigo.coop
         </a>
       </div>
-      <!-- Mobile: botón volver -->
-      <button class="topbar-back" @click="paso = 'pregunta'" aria-label="Volver">
+      <!-- Mobile: flecha siempre visible; en pregunta va a cooperamigo.coop, en otros pasos vuelve -->
+      <a v-if="paso === 'pregunta'" href="https://cooperamigo.coop" target="_blank" rel="noopener noreferrer" class="topbar-back" aria-label="Ir a Cooperamigo.coop">
+        <IconArrowLeft :size="18" />
+      </a>
+      <button v-else class="topbar-back" @click="paso = 'pregunta'" aria-label="Volver">
         <IconArrowLeft :size="18" />
       </button>
     </header>
@@ -246,6 +249,7 @@ const SERVICIOS_NO_ASOCIADO = [
   background: white;
   font-family: var(--font-body);
   position: relative;
+  overflow: hidden;
 }
 
 /* ─── Main ─── */
@@ -257,7 +261,6 @@ const SERVICIOS_NO_ASOCIADO = [
   justify-content: center;
   padding: 40px 32px;
   position: relative;
-  overflow: hidden;
 }
 
 /* ─── Anillos decorativos ─── */
@@ -386,6 +389,7 @@ const SERVICIOS_NO_ASOCIADO = [
     padding-left: 0;
     width: 100%;
   }
+
 }
 
 /* ─── Vista genérica ─── */
@@ -853,10 +857,13 @@ const SERVICIOS_NO_ASOCIADO = [
     color: var(--color-primary);
   }
 
-  /* Main ocupa toda la pantalla → footer queda fuera del viewport (hay que hacer scroll) */
   .home-main {
-    min-height: calc(100vh - 52px);
     align-items: center;
+  }
+
+  .btn-opcion {
+    justify-content: center;
+    padding: 0 52px;
   }
 }
 </style>
