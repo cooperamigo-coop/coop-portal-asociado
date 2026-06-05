@@ -20,7 +20,10 @@
           <span class="footer-email">info@cooperamigo.coop</span>
         </p>
         <!-- Mobile: simplificado -->
-        <p class="footer-info-row footer-info--mobile">© 2026 Cooperativa Multiactiva Luis Amigó</p>
+        <div class="footer-mobile-copy">
+          <p class="footer-info-row footer-info--mobile">© 2026 Cooperativa Multiactiva Luis Amigó</p>
+          <p class="footer-info-row footer-info--mobile footer-info--tagline">Portal de servicios digitales. All rights reserved.</p>
+        </div>
 
         <div class="footer-info-row footer-links">
           <a href="https://cooperamigo.coop/aviso-privacidad" target="_blank" rel="noopener noreferrer" class="footer-link">
@@ -90,7 +93,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
+  gap: 2px;
 }
 
 /* Línea de info genérica */
@@ -162,8 +165,9 @@
   .footer-inner   { display: flex; flex-direction: column; align-items: center; gap: 12px; }
   .footer-col-logo   { display: none; }
   .footer-col-spacer { display: none; }
-  .footer-col-copy   { gap: 10px; align-items: center; text-align: center; }
+  .footer-col-copy   { gap: 4px; align-items: center; text-align: center; }
   .footer-info--desktop { display: none; }
+  .footer-mobile-copy { display: flex; flex-direction: column; align-items: center; gap: 1px; }
   .footer-info--mobile  { display: flex; }
   .footer-info--mobile {
     font-size: 0.68rem;
