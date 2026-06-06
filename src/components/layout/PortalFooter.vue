@@ -2,13 +2,6 @@
   <footer class="portal-footer">
     <div class="footer-inner">
 
-      <!-- Col 1: logo con enlace -->
-      <div class="footer-col-logo">
-        <a href="https://cooperamigo.coop" target="_blank" rel="noopener noreferrer" class="footer-logo-link">
-          <img src="/logo-principal.svg" alt="Cooperamigó" class="footer-logo" />
-        </a>
-      </div>
-
       <!-- Col 2: copyright + NIT + email (una línea en desktop) -->
       <div class="footer-col-copy">
         <!-- Desktop: una sola línea -->
@@ -64,6 +57,60 @@
   margin: 0 auto;
 }
 
+.footer-col-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.footer-info-row {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: var(--fw-medium);
+  margin: 0;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+}
+
+.footer-sep { opacity: 1; color: rgba(255, 255, 255, 0.45); }
+
+.footer-email {
+  color: rgba(255, 255, 255, 0.45);
+  text-decoration: none;
+  font-weight: var(--fw-medium);
+}
+.footer-email:hover { color: rgba(255, 255, 255, 0.8); }
+
+.footer-info-tagline {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.footer-links {
+  margin-top: 4px;
+}
+
+.footer-link {
+  color: rgba(255, 255, 255, 0.45);
+  text-decoration: none;
+  font-weight: var(--fw-medium);
+  transition: color 0.15s ease;
+}
+
+.footer-link:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.text-mobile {
+  display: none;
+}
+
+.footer-info--mobile { display: none; }
+
 .footer-col-logo {
   display: flex;
   align-items: center;
@@ -83,106 +130,67 @@
   filter: brightness(0) invert(1);
 }
 
-@media (min-width: 961px) {
-  .footer-logo {
-    height: 34px;
-  }
-}
-
-.footer-col-copy {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-/* Línea de info genérica */
-.footer-info-row {
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.38);
-  font-weight: var(--fw-medium);
-  margin: 0;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 5px;
-}
-
-.footer-sep { opacity: 0.4; }
-
-.footer-email {
-  color: rgba(255, 255, 255, 0.38);
-  text-decoration: none;
-  font-weight: var(--fw-medium);
-}
-.footer-email:hover { color: rgba(255, 255, 255, 0.7); }
-
-.footer-info-tagline {
-  color: rgba(255, 255, 255, 0.38);
-}
-
-.footer-links {
-  margin-top: 4px;
-}
-
-.footer-link {
-  color: rgba(255, 255, 255, 0.5);
-  text-decoration: none;
-  font-weight: var(--fw-medium);
-  transition: color 0.15s ease;
-}
-
-.footer-link:hover {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.text-mobile {
-  display: none;
-}
-
+/* ─── Mobile ─── */
 @media (max-width: 960px) {
-  .text-desktop {
-    display: none;
+  .text-desktop { display: none; }
+  .text-mobile  { display: inline; }
+
+  .footer-info-tagline { line-height: 1.3; }
+
+  .portal-footer {
+    padding: 16px 24px;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
-  .text-mobile {
-    display: inline;
-  }
-
-  .footer-info-tagline {
-    line-height: 1.3;
-  }
-}
-
-/* Mobile: ocultar versión desktop de las líneas */
-.footer-info--mobile { display: none; }
-
-.footer-col-spacer { /* balance visual */ }
-
-@media (max-width: 960px) {
-  .portal-footer { padding: 16px 24px; }
-  .footer-inner   { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .footer-inner  { flex-direction: column; align-items: center; gap: 12px; }
   .footer-col-logo   { display: none; }
-  .footer-col-spacer { display: none; }
   .footer-col-copy   { gap: 4px; align-items: center; text-align: center; }
   .footer-info--desktop { display: none; }
   .footer-mobile-copy { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-  .footer-info--mobile  { display: flex; }
-  .footer-info--mobile {
-    font-size: 0.68rem;
-    color: rgba(255, 255, 255, 0.5);
+  .footer-info--mobile { display: flex; font-size: 0.68rem; color: rgba(255, 255, 255, 0.45); }
+  .footer-links { margin-top: 2px; gap: 8px; }
+  .footer-link  { font-size: 0.68rem; color: rgba(255, 255, 255, 0.45); }
+}
+
+/* ─── Desktop ─── */
+@media (min-width: 961px) {
+  .portal-footer {
+    background: transparent;
   }
-  .footer-email-mobile {
-    color: rgba(255, 255, 255, 0.5);
-    text-decoration: none;
+
+  .footer-inner {
+    justify-content: flex-start;
+    max-width: 100%;
   }
+
+  .footer-col-copy {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 5px;
+    width: 100%;
+  }
+
+  .footer-info--desktop {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+  }
+
   .footer-links {
-    margin-top: 2px;
-    gap: 8px;
+    margin-top: 0;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
   }
-  .footer-link {
-    font-size: 0.68rem;
+
+  .footer-links::before {
+    content: '·';
+    opacity: 1;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.72rem;
   }
+
+  .footer-logo { height: 34px; }
 }
 </style>
