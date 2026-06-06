@@ -8,7 +8,7 @@ const router = useRouter()
 
 <template>
   <div :style="{
-    minHeight: '100vh',
+    minHeight: '100dvh',
     background: 'var(--color-bg-card)',
     backgroundImage: 'url(/imagen1.png)',
     backgroundSize: 'cover',
