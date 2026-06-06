@@ -21,11 +21,12 @@ onMounted(() => {
 onUnmounted(() => clearInterval(_timer))
 
 const fueraDeHorario = computed(() => {
+  if (import.meta.env.DEV) return false
   const bogota = new Date(ahora.value.toLocaleString('en-US', { timeZone: 'America/Bogota' }))
   const dia  = bogota.getDay()  // 0=dom, 6=sáb
   const hora = bogota.getHours()
   if (dia === 0 || dia === 6) return true
-  if (hora < 8 || hora >= 20) return true
+  if (hora < 8 || hora >= 17) return true
   return false
 })
 
@@ -94,7 +95,7 @@ const SERVICIOS_NO_ASOCIADO = [
       <!-- Desktop: Visitar sitio, izquierda -->
       <div class="topbar-desktop">
         <a href="https://cooperamigo.coop" target="_blank" rel="noopener noreferrer" class="topbar-visit">
-          <IconWorld :size="14" />Cooperamigo.coop
+          <IconWorld :size="14" /><span style="font-weight: var(--fw-regular)">Visítanos en </span><span style="font-weight: var(--fw-semibold)">www.cooperamigo.coop</span>
         </a>
       </div>
       <!-- Mobile: flecha siempre visible; en pregunta va a cooperamigo.coop, en otros pasos vuelve -->
@@ -139,18 +140,16 @@ const SERVICIOS_NO_ASOCIADO = [
         <div v-if="paso === 'pregunta'" class="vista animate-in">
           <div class="pregunta-layout">
 
-            <!-- Izquierda: identidad + texto -->
-            <div class="pregunta-left">
-              <img src="/favicon.svg" alt="Cooperamigó" class="hero-favicon" />
+            <!-- Columna izquierda vacía -->
+            <div class="pregunta-spacer" aria-hidden="true"></div>
+
+            <!-- Columna derecha: título + descripción + botones -->
+            <div class="pregunta-card">
+            <div class="pregunta-right">
+              <img src="/logo-principal.svg" alt="Cooperamigó" class="hero-logo--mobile" />
               <h1 class="hero-title">¡Te damos la bienvenida!</h1>
               <p class="hero-question">Accede a los trámites digitales o inicia tu proceso de vinculación como asociado de la Cooperativa.</p>
-            </div>
 
-            <!-- Divisor vertical -->
-            <div class="pregunta-divider" aria-hidden="true"></div>
-
-            <!-- Derecha: botones -->
-            <div class="pregunta-right">
               <div class="opciones">
                 <button class="btn-opcion btn-opcion--primary" :class="{ 'btn-opcion--disabled': bloqueado }"
                   :disabled="bloqueado" @click="!bloqueado && (paso = 'asociado')">
@@ -163,23 +162,35 @@ const SERVICIOS_NO_ASOCIADO = [
                   <span class="btn-circle"><IconArrowRight :size="14" /></span>
                 </button>
               </div>
+
               <p v-if="proximamente" class="proximamente-msg">
                 Pronto habilitaremos el acceso digital para nuestros asociados. ¡Estamos trabajando en ello!
               </p>
+
+              <p v-if="fueraDeHorario && !proximamente" class="horario-msg">
+                <IconClock :size="13" style="display:inline;vertical-align:middle;margin-right:4px;" />
+                Las solicitudes a través de este portal podrán gestionarse de <strong>lunes a viernes</strong>, entre las <strong>8:00 a. m.</strong> y las <strong>5:00 p. m.</strong>
+              </p>
+              <div class="card-footer-info">
+                <p class="card-footer-copy">© 2026 Cooperativa Multiactiva Luis Amigó · NIT 800.191.482-7</p>
+                <div class="card-footer-links">
+                  <a href="https://cooperamigo.coop/aviso-privacidad" target="_blank" rel="noopener noreferrer">Aviso de privacidad</a>
+                  <span>·</span>
+                  <a href="https://cooperamigo.coop/politica-tratamiento-datos" target="_blank" rel="noopener noreferrer">Política de datos</a>
+                  <span>·</span>
+                  <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer">Términos y condiciones</a>
+                </div>
+              </div>
+            </div>
             </div>
 
           </div>
-
-          <!-- Aviso horario: ancho completo, debajo de las columnas -->
-          <p v-if="fueraDeHorario && !proximamente" class="horario-msg">
-            <IconClock :size="13" style="display:inline;vertical-align:middle;margin-right:4px;" />
-            Las solicitudes a través de este portal podrán gestionarse de <strong>lunes a viernes</strong>, entre las <strong>8:00 a. m.</strong> y las <strong>8:00 p. m.</strong>
-          </p>
 
         </div>
 
         <!-- ── Vista: servicios asociado ─────────────────────── -->
         <div v-else-if="paso === 'asociado'" class="vista animate-in">
+          <div class="services-group">
           <button class="btn-volver" @click="paso = 'pregunta'">
             <IconArrowLeft :size="13" />
             Volver
@@ -204,10 +215,12 @@ const SERVICIOS_NO_ASOCIADO = [
               </div>
             </div>
           </div>
+          </div>
         </div>
 
         <!-- ── Vista: no asociado ─────────────────────────────── -->
         <div v-else-if="paso === 'no-asociado'" class="vista animate-in">
+          <div class="services-group">
           <button class="btn-volver" @click="paso = 'pregunta'">
             <IconArrowLeft :size="13" />
             Volver
@@ -227,13 +240,14 @@ const SERVICIOS_NO_ASOCIADO = [
               </div>
             </div>
           </div>
+          </div>
         </div>
 
       </div>
     </main>
 
-    <!-- ── Footer ─────────────────────────────────────────── -->
-    <PortalFooter />
+    <!-- ── Footer (solo desktop) ─────────────────────────── -->
+    <PortalFooter class="footer--desktop-only" />
 
   </div>
 </template>
@@ -246,11 +260,15 @@ const SERVICIOS_NO_ASOCIADO = [
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  background: white;
+  background-image: url('/imagen1.png');
+  background-size: cover;
+  background-position: center 60%;
+  background-repeat: no-repeat;
   font-family: var(--font-body);
   position: relative;
   overflow: hidden;
 }
+
 
 /* ─── Main ─── */
 .home-main {
@@ -261,6 +279,7 @@ const SERVICIOS_NO_ASOCIADO = [
   justify-content: center;
   padding: 40px 32px;
   position: relative;
+  z-index: 1;
 }
 
 /* ─── Anillos decorativos ─── */
@@ -269,6 +288,10 @@ const SERVICIOS_NO_ASOCIADO = [
   pointer-events: none;
   z-index: 0;
   opacity: 0.18;
+}
+
+.deco-ring {
+  display: none;
 }
 
 /* Anillo primary: esquina inferior derecha */
@@ -290,9 +313,21 @@ const SERVICIOS_NO_ASOCIADO = [
   z-index: 2;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 960px) {
   .home-main {
-    padding: 28px 32px;
+    justify-content: flex-end;
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .home-content {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .home-page {
+    background-position: 40% 50%;
+    background-size: auto 130%;
   }
 }
 
@@ -303,52 +338,48 @@ const SERVICIOS_NO_ASOCIADO = [
   z-index: 1;
 }
 
-/* ─── Layout dos columnas (solo vista pregunta, desktop) ─── */
+
+/* ─── Layout dos columnas: izquierda vacía, derecha con contenido ─── */
 .pregunta-layout {
   display: flex;
   flex-direction: row;
   align-items: center;
   width: 100%;
-  gap: 0;
 }
 
-.pregunta-left {
+.pregunta-spacer {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 16px;
-  padding-right: 48px;
-}
-
-.pregunta-left .hero-title {
-  text-align: left;
-}
-
-.pregunta-left .hero-question {
-  text-align: left;
-}
-
-.pregunta-divider {
-  width: 1px;
-  align-self: stretch;
-  background: var(--color-border);
-  flex-shrink: 0;
-  min-height: 160px;
 }
 
 .pregunta-right {
-  flex-shrink: 0;
-  width: 260px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding-left: 48px;
+  gap: 20px;
+  width: 420px;
+  flex-shrink: 0;
 }
 
-.pregunta-right .opciones {
-  max-width: 100%;
+@media (max-width: 960px) {
+  .pregunta-layout {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .pregunta-spacer {
+    display: none;
+  }
+
+  .pregunta-right {
+    width: 100%;
+  }
+}
+
+@media (min-width: 961px) {
+  .home-main {
+    align-items: flex-end;
+    padding-right: 14%;
+  }
 }
 
 @media (min-width: 1200px) {
@@ -357,40 +388,10 @@ const SERVICIOS_NO_ASOCIADO = [
   }
 
   .pregunta-right {
-    width: 340px;
+    width: 420px;
   }
 }
 
-@media (max-width: 767px) {
-  .pregunta-layout {
-    flex-direction: column;
-    gap: 24px;
-  }
-
-  .pregunta-left {
-    padding-right: 0;
-    align-items: center;
-  }
-
-  .hero-logo {
-    align-self: center;
-  }
-
-  .pregunta-left .hero-title,
-  .pregunta-left .hero-question {
-    text-align: center;
-  }
-
-  .pregunta-divider {
-    display: none;
-  }
-
-  .pregunta-right {
-    padding-left: 0;
-    width: 100%;
-  }
-
-}
 
 /* ─── Vista genérica ─── */
 .vista {
@@ -401,10 +402,19 @@ const SERVICIOS_NO_ASOCIADO = [
 }
 
 /* ─── Vista pregunta ─── */
+
 .hero-favicon {
-  width: 72px;
-  height: 72px;
+  width: auto;
+  height: 48px;
   object-fit: contain;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 960px) {
+  .hero-favicon {
+    height: 40px;
+    margin-bottom: 4px;
+  }
 }
 
 .hero-logo {
@@ -413,22 +423,92 @@ const SERVICIOS_NO_ASOCIADO = [
   align-self: flex-start;
 }
 
+.hero-logo--mobile {
+  display: none;
+}
+
+@media (max-width: 960px) {
+  .hero-logo--mobile {
+    display: block;
+    height: 32px;
+    object-fit: contain;
+    margin-bottom: 8px;
+  }
+}
+
+.pregunta-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: none;
+  border-radius: 24px 24px 0 0;
+  padding: 32px 24px 24px;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 60vh;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 961px) {
+  .pregunta-card {
+    border-radius: 24px;
+    padding: 72px 40px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+    min-height: unset;
+    width: auto;
+  }
+}
+
 .hero-title {
   font-family: var(--font-display);
   font-size: var(--text-2xl);
   font-weight: var(--fw-extrabold);
-  color: var(--color-text-1);
+  color: var(--color-dark);
   margin: 0;
   text-align: center;
-  line-height: 1.2;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 .hero-question {
   font-size: 16px;
-  font-weight: var(--fw-regular);
+  font-weight: var(--fw-medium);
   color: var(--color-text-2);
   margin: 0;
   text-align: center;
+  line-height: 1.6;
+  max-width: 380px;
+}
+
+@media (min-width: 961px) {
+  .pregunta-right {
+    align-items: center;
+    width: 420px;
+  }
+
+  .hero-title {
+    color: var(--color-dark);
+    font-size: 32px;
+    text-align: center;
+  }
+
+  .hero-question {
+    color: var(--color-text-2);
+    text-align: center;
+    font-size: 17px;
+  }
+
+  .pregunta-right .opciones {
+    align-self: center;
+  }
+
+  .pregunta-right .btn-opcion {
+    height: 60px;
+    font-size: 15px;
+  }
 }
 
 .opciones {
@@ -436,7 +516,7 @@ const SERVICIOS_NO_ASOCIADO = [
   flex-direction: column;
   gap: 12px;
   width: 100%;
-  max-width: 320px;
+  max-width: 380px;
 }
 
 .btn-opcion {
@@ -475,42 +555,48 @@ const SERVICIOS_NO_ASOCIADO = [
 .btn-opcion--primary {
   background: var(--color-primary);
   color: #ffffff;
-  box-shadow: var(--shadow-btn);
+  box-shadow: 0 4px 14px rgba(17, 76, 90, 0.25);
 }
 
 .btn-opcion--primary .btn-circle {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
   color: #ffffff;
 }
 
 .btn-opcion--primary:hover {
-  background: var(--color-primary-dark);
-  transform: translateY(-1px);
+  background: var(--color-primary-dark, #0d3a45);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(17, 76, 90, 0.3);
 }
 
 .btn-opcion--primary:hover .btn-circle {
-  transform: translateY(-50%) translateX(2px);
+  transform: translateY(-50%) translateX(3px);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .btn-opcion--secondary {
-  background: var(--color-primary);
-  color: #ffffff;
-  box-shadow: var(--shadow-btn);
-  border: none;
+  background: #ffffff;
+  color: var(--color-primary);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  border: 1.5px solid var(--color-p-light);
 }
 
 .btn-opcion--secondary .btn-circle {
-  background: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
+  background: var(--color-p-light);
+  color: var(--color-primary);
 }
 
 .btn-opcion--secondary:hover {
-  background: var(--color-primary-dark);
-  transform: translateY(-1px);
+  background: #ffffff;
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 
 .btn-opcion--secondary:hover .btn-circle {
-  transform: translateY(-50%) translateX(2px);
+  transform: translateY(-50%) translateX(3px);
+  background: var(--color-primary);
+  color: #ffffff;
 }
 
 .btn-opcion--disabled,
@@ -541,14 +627,13 @@ const SERVICIOS_NO_ASOCIADO = [
 .horario-msg {
   width: 100%;
   text-align: center;
-  font-size: var(--text-sm);
+  font-size: 13px;
   font-weight: var(--fw-medium);
   color: var(--color-text-3);
-  margin: var(--sp-xl) 0 0;
-  padding: var(--sp-sm) 0;
+  margin-top: 8px;
   line-height: 1.5;
-  background: none;
-  border: none;
+  max-width: 320px;
+  opacity: 0.8;
 }
 
 .proximamente-msg {
@@ -571,7 +656,9 @@ const SERVICIOS_NO_ASOCIADO = [
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--color-bg-surface);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-radius: var(--r-pill);
   cursor: pointer;
   font-family: var(--font-body);
@@ -584,8 +671,7 @@ const SERVICIOS_NO_ASOCIADO = [
 }
 
 .btn-volver:hover {
-  background: var(--color-bg-card);
-  border-color: var(--color-primary);
+  background: rgba(255, 255, 255, 1);
   color: var(--color-primary);
 }
 
@@ -594,9 +680,27 @@ const SERVICIOS_NO_ASOCIADO = [
   width: 100%;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--color-border-card);
-  border-radius: var(--r-lg);
+  border: none;
+  border-radius: 24px;
   overflow: hidden;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.services-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 961px) {
+  .services-group {
+    max-width: 500px;
+    margin-left: auto;
+  }
 }
 
 .service-row {
@@ -609,7 +713,7 @@ const SERVICIOS_NO_ASOCIADO = [
 }
 
 .service-row+.service-row {
-  border-top: 1px solid var(--color-border-card);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .service-row--on {
@@ -617,7 +721,7 @@ const SERVICIOS_NO_ASOCIADO = [
 }
 
 .service-row--on:hover {
-  background: var(--color-bg-surface);
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .service-row--on:hover .row-arrow {
@@ -760,6 +864,16 @@ const SERVICIOS_NO_ASOCIADO = [
   text-decoration: underline;
 }
 
+@media (min-width: 961px) {
+  .topbar-visit {
+    color: var(--color-dark);
+  }
+
+  .topbar-visit:hover {
+    color: var(--color-primary);
+  }
+}
+
 /* Mobile: ocultos en desktop */
 .topbar-back {
   display: none;
@@ -815,6 +929,69 @@ const SERVICIOS_NO_ASOCIADO = [
   font-weight: var(--fw-regular);
   letter-spacing: 0.06em;
   color: var(--color-primary);
+}
+
+@media (min-width: 961px) {
+  .vigilada-badge {
+    display: none;
+  }
+}
+
+:deep(.footer-info-row),
+:deep(.footer-sep),
+:deep(.footer-email),
+:deep(.footer-link) {
+  color: var(--color-dark) !important;
+  opacity: 0.7;
+}
+
+.card-footer-info {
+  display: none;
+}
+
+@media (max-width: 960px) {
+  .footer--desktop-only {
+    display: none;
+  }
+
+  .card-footer-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    margin-top: auto;
+    padding-top: 20px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .card-footer-copy {
+    font-size: 0.6rem;
+    color: var(--color-text-3);
+    text-align: center;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .card-footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 0.6rem;
+    color: var(--color-text-3);
+  }
+
+  .card-footer-links a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: var(--fw-medium);
+  }
+
+  .card-footer-links span {
+    opacity: 0.4;
+  }
 }
 
 /* ─── Responsive ─── */

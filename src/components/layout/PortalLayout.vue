@@ -10,6 +10,10 @@ const router = useRouter()
   <div :style="{
     minHeight: '100vh',
     background: 'var(--color-bg-card)',
+    backgroundImage: 'url(/imagen1.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
     display: 'flex', flexDirection: 'column',
     position: 'relative',
     overflow: 'clip'
@@ -50,21 +54,7 @@ const router = useRouter()
 
     <!-- Contenido -->
     <main class="portal-main">
-
-      <!-- Anillos decorativos permanentes -->
-      <div class="deco-container" aria-hidden="true">
-        <div class="deco-ring deco-ring--primary">
-          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">
-            <circle cx="100" cy="100" r="80" fill="none" stroke="var(--color-primary)" stroke-width="30"/>
-          </svg>
-        </div>
-        <div class="deco-ring deco-ring--accent">
-          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">
-            <circle cx="100" cy="100" r="80" fill="none" stroke="var(--color-accent)" stroke-width="30"/>
-          </svg>
-        </div>
-      </div>
-
+      <div class="portal-main__spacer" aria-hidden="true"></div>
       <div class="portal-main__inner">
         <slot />
       </div>
@@ -85,6 +75,39 @@ const router = useRouter()
   justify-content: center;
   padding: 40px 32px;
   position: relative;
+}
+
+@media (min-width: 961px) {
+  :deep(.footer-info-row),
+  :deep(.footer-sep),
+  :deep(.footer-email),
+  :deep(.footer-link) {
+    color: var(--color-dark) !important;
+    opacity: 0.7;
+  }
+
+  .portal-main {
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 60px 48px 40px;
+  }
+
+  .portal-main__spacer {
+    display: block;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .portal-main__inner {
+    width: 50%;
+    flex-shrink: 0;
+    margin: 0;
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
 }
 
 /* ─── Anillos decorativos ─── */
@@ -118,6 +141,10 @@ const router = useRouter()
   left: 0;
   transform: translate(-50%, -50%);
   z-index: 2;
+}
+
+.portal-main__spacer {
+  display: none;
 }
 
 .portal-main__inner {
@@ -186,15 +213,9 @@ const router = useRouter()
 .topbar-back { display: none; }
 .topbar-logo { display: none; }
 
-/* ─── Badge VIGILADA lateral (position fixed, solo desktop) ─── */
+/* ─── Badge VIGILADA lateral ─── */
 .vigilada-badge {
-  position: fixed;
-  top: 50%;
-  left: 12px;
-  z-index: 40;
-  transform: rotate(-90deg) translateX(-50%);
-  transform-origin: 0 0;
-  white-space: nowrap;
+  display: none;
 }
 
 .vb-inner {

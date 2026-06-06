@@ -970,7 +970,18 @@ async function onVerificarYContinuarClick() {
 }
 
 // Lifecycle para canvas de firma
+function esFueraDeHorario() {
+  if (import.meta.env.DEV) return false
+  const bogota = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }))
+  const dia = bogota.getDay()
+  const hora = bogota.getHours()
+  if (dia === 0 || dia === 6) return true
+  if (hora < 8 || hora >= 17) return true
+  return false
+}
+
 onMounted(() => {
+  if (esFueraDeHorario()) { router.replace('/'); return }
   window.addEventListener('resize', _onResizeFirma)
   prepararCanvasFirmaOnMount()
 })
@@ -986,11 +997,12 @@ onBeforeUnmount(() => {
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- PASO 0: Verificación inicial                                        -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <div v-if="paso === 0" class="paso0-container">
+    <div v-if="paso === 0" class="paso0-wrapper">
+    <div class="paso0-container">
 
       <div :style="{ marginBottom: '40px' }">
         <div class="step-greeting-title">
-          <span class="greeting-hi">¡Saludos!</span> <span class="greeting-sub">Comencemos con tu solicitud</span>
+          <span class="greeting-hi">¡Saludos!</span><span class="greeting-sub">Comencemos con tu solicitud</span>
         </div>
       </div>
 
@@ -1125,7 +1137,7 @@ onBeforeUnmount(() => {
               />
               <span :style="{
                 fontSize: 'var(--text-xs)', color: 'var(--color-text-2)',
-                fontWeight: 'var(--fw-medium)', lineHeight: '1.7',
+                fontWeight: 'var(--fw-medium)', lineHeight: '1.6',
               }">
                 Autorizo a Cooperamigó para tratar mis datos personales con la finalidad de gestionar mi proceso de afiliación, contactarme y suministrarme información relacionada con los servicios y beneficios de la cooperativa.
                 Asimismo, autorizo, cuando sea necesario, la consulta de mi información en operadores de información y riesgo, con el fin de validar mis datos.
@@ -1151,6 +1163,7 @@ onBeforeUnmount(() => {
 
         </div>
       </template>
+    </div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
@@ -2857,6 +2870,17 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+
+/* ─── Ampliar contenedor para dar espacio al sidebar ─── */
+:deep(.portal-main__inner) {
+  max-width: 1020px;
+}
+
+@media (max-width: 960px) {
+  :deep(.portal-main__inner) {
+    max-width: 800px;
+  }
+}
 .auth-checkbox {
   appearance: none;
   -webkit-appearance: none;
@@ -2892,32 +2916,31 @@ onBeforeUnmount(() => {
 
 .step-greeting-title {
   font-family: var(--font-display);
-  font-size: var(--text-xl);
-  font-weight: var(--fw-extrabold);
-  color: var(--color-text-1);
-  line-height: 1.2;
   text-align: center;
+  margin-bottom: 0;
+  line-height: 1.2;
 }
 
 .greeting-hi {
+  font-size: var(--text-xl);
+  font-weight: var(--fw-extrabold);
   color: var(--color-text-1);
+  display: block;
 }
 
 .greeting-sub {
+  font-size: var(--text-xl);
+  font-weight: var(--fw-semibold);
   color: var(--color-text-1);
-  font-weight: var(--fw-medium);
 }
 
 @media (max-width: 480px) {
-  .step-greeting-title {
+  .greeting-hi {
     font-size: var(--text-lg);
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
   }
 
   .greeting-sub {
+    font-size: var(--text-lg);
     white-space: nowrap;
   }
 }
@@ -2942,10 +2965,20 @@ onBeforeUnmount(() => {
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 /* ─── Paso 0: layout ─── */
+.paso0-wrapper {
+  width: 100%;
+}
+
 .paso0-container {
   width: 100%;
   max-width: 420px;
   margin: 0 auto;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 40px 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
 }
 
 .paso0-layout {
@@ -3028,39 +3061,27 @@ onBeforeUnmount(() => {
 }
 
 @media (min-width: 768px) {
+  .paso0-wrapper {
+    width: 100%;
+  }
+
   .paso0-container {
-    max-width: 780px;
+    max-width: 480px;
+    margin: 0 0 0 auto;
   }
 
   .paso0-layout {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 0;
+    flex-direction: column;
     padding: 0;
   }
 
-  .paso0-fields {
-    flex: 1;
-    padding-right: 40px;
-  }
-
   .paso0-divider {
-    display: block;
-    width: 1px;
-    align-self: stretch;
-    background: var(--color-border);
-    flex-shrink: 0;
-  }
-
-  .paso0-auth {
-    flex: 1;
-    padding-left: 40px;
-    justify-content: space-between;
+    display: none;
   }
 
   .paso0-verify-btn {
-    width: 260px;
-    margin-left: calc(15px + var(--sp-sm));
-  }
+      width: 50%;
+      margin: 0 0 0 auto;
+    }
 }
 </style>

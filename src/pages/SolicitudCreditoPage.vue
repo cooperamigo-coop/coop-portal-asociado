@@ -852,7 +852,18 @@ function _onResizeFirma() {
   prepararCanvasFirma()
 }
 
+function esFueraDeHorario() {
+  if (import.meta.env.DEV) return false
+  const bogota = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }))
+  const dia = bogota.getDay()
+  const hora = bogota.getHours()
+  if (dia === 0 || dia === 6) return true
+  if (hora < 8 || hora >= 17) return true
+  return false
+}
+
 onMounted(() => {
+  if (esFueraDeHorario()) { router.replace('/'); return }
   window.addEventListener('resize', _onResizeFirma)
 })
 onBeforeUnmount(() => {
@@ -1688,14 +1699,14 @@ function onOtpValidado() {
     </div>
 
     <!-- ═══ PANTALLA PREVIA — Verificación de identidad ═════ -->
-    <div v-else-if="!verificado">
+    <div v-else-if="!verificado" class="paso0-wrapper">
 
       <div class="paso0-container">
 
         <!-- Título -->
         <div :style="{ marginBottom: '40px' }">
           <div class="step-greeting-title">
-            <span class="greeting-hi">¡Saludos!</span> <span class="greeting-sub">Comencemos con algunos datos</span>
+            <span class="greeting-hi">¡Saludos!</span><span class="greeting-sub">Comencemos con algunos datos</span>
           </div>
         </div>
 
@@ -1769,7 +1780,7 @@ function onOtpValidado() {
               />
               <span :style="{
                 fontSize: 'var(--text-xs)', color: 'var(--color-text-2)',
-                fontWeight: 'var(--fw-medium)', lineHeight: '1.7',
+                fontWeight: 'var(--fw-medium)', lineHeight: '1.6',
               }">
                 Autorizo a Cooperamigó para tratar mis datos personales, incluyendo contacto y correo electrónico, con la finalidad de contactarme, gestionar mi solicitud, realizar seguimiento y enviarme información relacionada con los productos y servicios ofrecidos.
                 Asimismo, autorizo la consulta, reporte y actualización de mi información en centrales de información financiera y crediticia, con el fin de verificar mis datos y evaluar mi comportamiento crediticio.
@@ -4078,23 +4089,31 @@ function onOtpValidado() {
 
 .step-greeting-title {
   font-family: var(--font-display);
+  text-align: center;
+  margin-bottom: 0;
+  line-height: 1.2;
+}
+
+.greeting-hi {
   font-size: var(--text-xl);
   font-weight: var(--fw-extrabold);
   color: var(--color-text-1);
-  line-height: 1.2;
-  text-align: center;
+  display: block;
+}
+
+.greeting-sub {
+  font-size: var(--text-xl);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-1);
 }
 
 @media (max-width: 480px) {
-  .step-greeting-title {
+  .greeting-hi {
     font-size: var(--text-lg);
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
   }
 
   .greeting-sub {
+    font-size: var(--text-lg);
     white-space: nowrap;
   }
 
@@ -4811,10 +4830,20 @@ function onOtpValidado() {
 }
 
 /* ─── Paso 0: layout ─── */
+.paso0-wrapper {
+  width: 100%;
+}
+
 .paso0-container {
   width: 100%;
   max-width: 420px;
   margin: 0 auto;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 40px 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
 }
 
 .paso0-layout {
@@ -4902,39 +4931,33 @@ function onOtpValidado() {
 }
 
 @media (min-width: 768px) {
+  .paso0-wrapper {
+    width: 100%;
+  }
+
   .paso0-container {
-    max-width: 780px;
+    max-width: 480px;
+    margin: 0 0 0 auto;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 40px 32px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
   }
 
   .paso0-layout {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 0;
+    flex-direction: column;
     padding: 0;
   }
 
-  .paso0-fields {
-    flex: 1;
-    padding-right: 40px;
-  }
-
   .paso0-divider {
-    display: block;
-    width: 1px;
-    align-self: stretch;
-    background: var(--color-border);
-    flex-shrink: 0;
-  }
-
-  .paso0-auth {
-    flex: 1;
-    padding-left: 40px;
-    justify-content: space-between;
+    display: none;
   }
 
   .paso0-verify-btn {
-    width: 260px;
-    margin-left: calc(15px + var(--sp-sm));
-  }
+      width: 50%;
+      margin: 0 0 0 auto;
+    }
 }
 </style>
