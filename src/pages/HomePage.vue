@@ -153,12 +153,12 @@ const SERVICIOS_NO_ASOCIADO = [
               <div class="opciones">
                 <button class="btn-opcion btn-opcion--primary" :class="{ 'btn-opcion--disabled': bloqueado }"
                   :disabled="bloqueado" @click="!bloqueado && (paso = 'asociado')">
-                  <span><em class="btn-num">1.</em> Soy asociado</span>
+                  <span>Soy asociado</span>
                   <span class="btn-circle"><IconArrowRight :size="14" /></span>
                 </button>
                 <button class="btn-opcion btn-opcion--secondary" :class="{ 'btn-opcion--disabled': bloqueado }"
                   :disabled="bloqueado" @click="!bloqueado && (paso = 'no-asociado')">
-                  <span><em class="btn-num">2.</em> Quiero afiliarme</span>
+                  <span>Quiero afiliarme</span>
                   <span class="btn-circle"><IconArrowRight :size="14" /></span>
                 </button>
               </div>
@@ -264,6 +264,7 @@ const SERVICIOS_NO_ASOCIADO = [
   background-size: cover;
   background-position: center 60%;
   background-repeat: no-repeat;
+  background-attachment: fixed;
   font-family: var(--font-body);
   position: relative;
   overflow: hidden;
@@ -364,6 +365,7 @@ const SERVICIOS_NO_ASOCIADO = [
   .pregunta-layout {
     flex-direction: column;
     width: 100%;
+    flex: 1;
   }
 
   .pregunta-spacer {
@@ -372,6 +374,7 @@ const SERVICIOS_NO_ASOCIADO = [
 
   .pregunta-right {
     width: 100%;
+    flex: 1;
   }
 }
 
@@ -475,11 +478,11 @@ const SERVICIOS_NO_ASOCIADO = [
 
 .hero-question {
   font-size: 16px;
-  font-weight: var(--fw-medium);
+  font-weight: var(--fw-regular);
   color: var(--color-text-2);
   margin: 0;
   text-align: center;
-  line-height: 1.6;
+  line-height: 1.4;
   max-width: 380px;
 }
 
@@ -681,7 +684,7 @@ const SERVICIOS_NO_ASOCIADO = [
   display: flex;
   flex-direction: column;
   border: none;
-  border-radius: 24px;
+  border-radius: 24px 24px 0 0;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
@@ -700,6 +703,10 @@ const SERVICIOS_NO_ASOCIADO = [
   .services-group {
     max-width: 500px;
     margin-left: auto;
+  }
+
+  .services-list {
+    border-radius: 24px;
   }
 }
 
@@ -960,7 +967,7 @@ const SERVICIOS_NO_ASOCIADO = [
     align-items: center;
     gap: 4px;
     width: 100%;
-    margin-top: auto;
+    margin-top: 24px;
     padding-top: 20px;
     border-top: 1px solid rgba(0, 0, 0, 0.08);
   }
@@ -1041,6 +1048,10 @@ const SERVICIOS_NO_ASOCIADO = [
   .btn-opcion {
     justify-content: center;
     padding: 0 52px;
+  }
+
+  .pregunta-card {
+    min-height: auto;
   }
 }
 </style>

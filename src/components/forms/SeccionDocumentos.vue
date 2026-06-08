@@ -257,10 +257,10 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
                 <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
               </div>
               <div :style="{ minWidth: '0' }">
-                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
+                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)', lineHeight: '1.2' }">
                   {{ doc.titulo }}<span v-if="!getEstado(doc.campo).url" :style="{ color: 'var(--color-error)' }"> *</span>
                 </div>
-                <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '2px' }">
+                <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '0', lineHeight: '1.3' }">
                   {{ getEstado(doc.campo).url ? 'Documento cargado correctamente' : doc.descripcion }}
                 </div>
               </div>
@@ -269,7 +269,7 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
               <IconLoader2 :size="16" class="spin" />
             </div>
             <div v-else-if="getEstado(doc.campo).url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
-              <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview(getEstado(doc.campo).url, doc.titulo)">
+              <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: 'none', background: 'var(--color-success-bg)', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview(getEstado(doc.campo).url, doc.titulo)">
                 <IconEye :size="13" /> Visualizar
               </button>
               <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--sp-xs)', display: 'flex', color: 'var(--color-success-text)' }" @click="quitarArchivo(doc.campo)">
@@ -359,10 +359,10 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
                 <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
               </div>
               <div :style="{ minWidth: '0' }">
-                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
+                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)', lineHeight: '1.2' }">
                   {{ doc.titulo }}<span v-if="!getEstado(doc.campo).url" :style="{ color: 'var(--color-error)' }"> *</span>
                 </div>
-                <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '2px' }">
+                <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '0', lineHeight: '1.3' }">
                   {{ getEstado(doc.campo).url ? 'Documento cargado correctamente' : doc.descripcion }}
                 </div>
               </div>
@@ -371,7 +371,7 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
               <IconLoader2 :size="16" class="spin" />
             </div>
             <div v-else-if="getEstado(doc.campo).url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
-              <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview(getEstado(doc.campo).url, doc.titulo)">
+              <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: 'none', background: 'var(--color-success-bg)', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview(getEstado(doc.campo).url, doc.titulo)">
                 <IconEye :size="13" /> Visualizar
               </button>
               <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--sp-xs)', display: 'flex', color: 'var(--color-success-text)' }" @click="quitarArchivo(doc.campo)">
@@ -461,10 +461,10 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
                 <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
               </div>
               <div :style="{ minWidth: '0' }">
-                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
+                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)', lineHeight: '1.2' }">
                   {{ doc.titulo }}<span v-if="!getEstado(doc.campo).url" :style="{ color: 'var(--color-error)' }"> *</span>
                 </div>
-                <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '2px' }">
+                <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '0', lineHeight: '1.3' }">
                   {{ getEstado(doc.campo).url ? 'Documento cargado correctamente' : doc.descripcion }}
                 </div>
               </div>
@@ -473,7 +473,7 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
               <IconLoader2 :size="16" class="spin" />
             </div>
             <div v-else-if="getEstado(doc.campo).url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
-              <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview(getEstado(doc.campo).url, doc.titulo)">
+              <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: 'none', background: 'var(--color-success-bg)', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview(getEstado(doc.campo).url, doc.titulo)">
                 <IconEye :size="13" /> Visualizar
               </button>
               <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--sp-xs)', display: 'flex', color: 'var(--color-success-text)' }" @click="quitarArchivo(doc.campo)">

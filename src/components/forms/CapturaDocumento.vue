@@ -18,6 +18,7 @@ const props = defineProps({
   required: { type: Boolean, default: false },
   error: { type: String, default: null },
   initialUrl: { type: String, default: null },
+  sinPdf: { type: Boolean, default: false },
 })
 const emit = defineEmits(['completado', 'sesion-creada'])
 
@@ -158,7 +159,7 @@ const LADOS = [
 
       <!-- Acciones (Estado Idle o Completado) -->
       <div v-if="urlFinal" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
-        <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview">
+        <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: 'none', background: 'var(--color-success-bg)', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview">
           <IconEye :size="13" /> Visualizar
         </button>
         <button :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-success-text)', padding: 'var(--sp-xs)', display: 'flex' }" @click="cancelarConPreview">
@@ -167,13 +168,13 @@ const LADOS = [
       </div>
 
       <div v-else-if="estado === 'idle' || estado === 'error'" :style="{ display: 'flex', gap: 'var(--sp-sm)' }">
-        <!-- Botón PDF -->
-        <label :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '6px 12px', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)', flex: isMobile ? '1' : 'unset' }">
+        <!-- Botón PDF (oculto si sinPdf) -->
+        <label v-if="!sinPdf" :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '6px 12px', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)', flex: isMobile ? '1' : 'unset' }">
           <IconUpload :size="14" /> Subir PDF
           <input type="file" accept=".pdf" :style="{ display: 'none' }" @change="onPdfSeleccionado" />
         </label>
         <!-- Botón Cámara -->
-        <button @click="esMovil ? iniciarCapturaMovil() : iniciarQR()" :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '6px 12px', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-primary)', background: 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)', flex: isMobile ? '1' : 'unset' }">
+        <button @click="esMovil ? iniciarCapturaMovil() : iniciarQR()" :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '6px 12px', borderRadius: 'var(--r-pill)', border: sinPdf ? '1px solid var(--color-border)' : '1px solid var(--color-primary)', background: 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: sinPdf ? 'var(--color-text-2)' : 'var(--color-primary)', flex: isMobile ? '1' : 'unset' }">
           <IconCamera :size="14" /> Tomar fotografía
         </button>
       </div>
@@ -187,26 +188,43 @@ const LADOS = [
     <div v-if="!urlFinal && estado !== 'idle' && estado !== 'subiendo'" :style="{ padding: 'var(--sp-lg)', background: 'var(--color-bg-card)' }">
       
       <!-- Flujo QR/Móvil -->
-      <div v-if="['esperando_qr', 'capturando_movil'].includes(estado)" :style="{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-lg)', alignItems: 'center' }">
-        <div v-if="!esMovil && qrDataUrl" :style="{ flexShrink: '0', textAlign: 'center' }">
-          <img :src="qrDataUrl" alt="QR" :style="{ width: '100px', height: '100px', borderRadius: 'var(--r-lg)' }" />
-          <div :style="{ fontSize: '10px', color: 'var(--color-text-3)', marginTop: '4px' }">Escanee con el celular</div>
+      <div v-if="['esperando_qr', 'capturando_movil'].includes(estado)" :style="{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--sp-lg)', padding: 'var(--sp-md) 0' }">
+
+        <!-- QR -->
+        <div v-if="!esMovil && qrDataUrl" :style="{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ padding: '10px', borderRadius: 'var(--r-lg)', background: 'white', boxShadow: '0 2px 12px rgba(0,0,0,0.10)', display: 'inline-flex' }">
+            <img :src="qrDataUrl" alt="QR" :style="{ width: '110px', height: '110px', display: 'block' }" />
+          </div>
+          <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-semibold)' }">Escanee con su celular</span>
         </div>
 
-        <div :style="{ flex: '1', minWidth: '180px' }">
-          <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: '8px' }">
+        <!-- Estado e instrucción -->
+        <div :style="{ textAlign: 'center' }">
+          <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: '4px' }">
             {{ estado === 'capturando_movil' ? 'Capturando fotos…' : 'Siga las instrucciones en su celular' }}
           </div>
-          <div :style="{ display: 'flex', gap: 'var(--sp-sm)' }">
-            <div v-for="lado in LADOS" :key="lado.key" :style="{ flex: '1', padding: '6px', borderRadius: 'var(--r-md)', border: '1px solid var(--color-border)', background: (lado.key === 'frente' ? urlFrente : urlReverso) ? 'var(--color-success-bg)' : 'var(--color-bg-surface)', textAlign: 'center' }">
-              <IconCircleCheck v-if="(lado.key === 'frente' ? urlFrente : urlReverso)" :size="14" :style="{ color: 'var(--color-success)' }" />
-              <div v-else :style="{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-3)' }">{{ lado.label }}</div>
-            </div>
+          <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)' }">
+            {{ estado === 'capturando_movil' ? 'Espere mientras se toman las fotos' : 'Se capturará el frente y reverso del documento' }}
           </div>
         </div>
 
-        <button :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-3)', padding: 'var(--sp-xs)' }" @click="cancelarConPreview">
-          <IconX :size="18" />
+        <!-- Indicadores Frente / Reverso -->
+        <div :style="{ display: 'flex', gap: 'var(--sp-sm)' }">
+          <div v-for="lado in LADOS" :key="lado.key" :style="{
+            display: 'flex', alignItems: 'center', gap: '5px',
+            padding: '5px 12px', borderRadius: 'var(--r-pill)',
+            background: (lado.key === 'frente' ? urlFrente : urlReverso) ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
+            border: '1px solid ' + ((lado.key === 'frente' ? urlFrente : urlReverso) ? 'var(--color-success)' : 'var(--color-border)'),
+          }">
+            <IconCircleCheck v-if="(lado.key === 'frente' ? urlFrente : urlReverso)" :size="13" :style="{ color: 'var(--color-success)' }" />
+            <span v-else :style="{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-border)', display: 'inline-block' }" />
+            <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)', color: (lado.key === 'frente' ? urlFrente : urlReverso) ? 'var(--color-success-text)' : 'var(--color-text-3)' }">{{ lado.label }}</span>
+          </div>
+        </div>
+
+        <!-- Cancelar -->
+        <button :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-3)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)', display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 8px' }" @click="cancelarConPreview">
+          <IconX :size="14" /> Cancelar
         </button>
       </div>
 

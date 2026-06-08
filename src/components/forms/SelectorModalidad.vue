@@ -1,11 +1,11 @@
 <script setup>
 import { CreditCard, GraduationCap } from 'lucide-vue-next'
-import { IconCheck } from '@tabler/icons-vue'
+import { IconCheck, IconArrowRight } from '@tabler/icons-vue'
 
 defineProps({
   modelValue: { type: String, default: '' },
 })
-defineEmits(['update:modelValue'])
+defineEmits(['update:modelValue', 'continuar'])
 
 const iconos = { CreditCard, GraduationCap }
 
@@ -30,7 +30,7 @@ const opciones = [
 
     <!-- Encabezado -->
     <div class="selector-header">
-      <h2 class="selector-titulo">Solicitud de crédito</h2>
+      <h2 class="selector-titulo">Elige el tipo de crédito</h2>
       <p class="selector-subtitulo">¿Qué modalidad de crédito deseas solicitar?</p>
     </div>
 
@@ -62,6 +62,14 @@ const opciones = [
       </div>
     </div>
 
+    <!-- Botón continuar: solo visible en móvil cuando hay selección -->
+    <Transition name="slide-up">
+      <button v-if="modelValue" class="selector-continuar-btn" @click="$emit('continuar')">
+        <span>Continuar</span>
+        <span class="selector-continuar-circle"><IconArrowRight :size="14" /></span>
+      </button>
+    </Transition>
+
   </div>
 </template>
 
@@ -69,7 +77,24 @@ const opciones = [
 .selector-wrap {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-2xl);
+  gap: var(--sp-lg);
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 40px 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .selector-wrap {
+    max-width: 480px;
+    margin: 0 0 0 auto;
+  }
 }
 
 /* ─── Encabezado ─── */
@@ -77,6 +102,7 @@ const opciones = [
   display: flex;
   flex-direction: column;
   gap: var(--sp-xs);
+  text-align: center;
 }
 
 .selector-titulo {
@@ -99,8 +125,8 @@ const opciones = [
 /* ─── Grid ─── */
 .selector-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--sp-lg);
+  grid-template-columns: 1fr;
+  gap: 6px;
 }
 
 /* ─── Card ─── */
@@ -178,7 +204,7 @@ const opciones = [
 .card-body {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-xs);
+  gap: 2px;
   flex: 1;
   min-width: 0;
 }
@@ -198,14 +224,72 @@ const opciones = [
   line-height: 1.5;
 }
 
+/* ─── Botón continuar (solo móvil) ─── */
+.selector-continuar-btn {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .selector-continuar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 52px;
+    border-radius: var(--r-pill);
+    background: var(--color-primary);
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--fw-semibold);
+    padding: 0 8px 0 8px;
+    box-shadow: var(--shadow-btn);
+    transition: all var(--transition-base);
+  }
+
+  .selector-continuar-btn span:first-child {
+    flex: 1;
+    text-align: center;
+  }
+
+  .selector-continuar-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+}
+
 /* ─── Mobile ─── */
 @media (max-width: 600px) {
+  .selector-wrap {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+    padding: 28px 22px calc(32px + env(safe-area-inset-bottom, 0px));
+    gap: var(--sp-lg);
+  }
+
   .selector-grid {
     grid-template-columns: 1fr;
+    gap: var(--sp-md);
   }
 
   .selector-header {
-    text-align: left;
+    text-align: center;
   }
 
   .selector-titulo {
@@ -217,12 +301,12 @@ const opciones = [
   }
 
   .modalidad-card {
-    padding: var(--sp-xl);
+    padding: var(--sp-lg) var(--sp-xl);
   }
 
   .card-icon {
-    width: 52px;
-    height: 52px;
+    width: 48px;
+    height: 48px;
   }
 }
 </style>

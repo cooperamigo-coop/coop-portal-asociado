@@ -18,6 +18,7 @@ const props = defineProps({
   // letras, números, espacios, guion, punto, coma — para campos laborales
   soloTextoLaboral:  { type: Boolean, default: false },
   labelWrap:         { type: Boolean, default: false },
+  max:               { type: Number, default: null },
 })
 const emit = defineEmits(['update:modelValue', 'blur'])
 
@@ -32,7 +33,14 @@ function onInput(e) {
   let val = e.target.value
   if (props.soloNumeros) {
     val = val.replace(/\D/g, '')
+    if (props.max !== null && val !== '') {
+      val = String(Math.min(Number(val), props.max))
+    }
     e.target.value = val
+  }
+  if (props.type === 'number' && props.max !== null && val !== '') {
+    const capped = String(Math.min(Number(val), props.max))
+    if (capped !== val) { val = capped; e.target.value = capped }
   }
   if (props.soloLetras) {
     val = val.replace(/[^a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s\-]/g, '')
@@ -106,7 +114,7 @@ function onBlur()  { focused.value = false; emit('blur') }
   display: block;
   width: 100%;
   height: 54px;
-  padding: 22px 12px 6px 12px; /* Acomoda el texto y da un margen lateral suave */
+  padding: 22px 12px 6px 16px;
   border: none;
   border-bottom: 1px solid var(--color-border);
   border-radius: var(--r-md); /* Curvatura para que la línea suba en las puntas */
@@ -123,7 +131,7 @@ function onBlur()  { focused.value = false; emit('blur') }
 @media (max-width: 768px) {
   .campo-input {
     height: 48px;
-    padding: 18px 10px 4px 10px;
+    padding: 18px 10px 4px 16px;
   }
 }
 
@@ -142,16 +150,22 @@ function onBlur()  { focused.value = false; emit('blur') }
 /* Estado deshabilitado */
 .campo-input--disabled {
   background: transparent;
-  color: var(--color-text-3);
-  border-bottom-style: dashed;
-  cursor: not-allowed;
+  color: var(--color-text-3) !important;
+  border-bottom-color: var(--color-border) !important;
+  border-bottom-style: solid !important;
+  cursor: default;
+}
+
+.campo-field--disabled .campo-label,
+.campo-field--disabled.campo-field--floated .campo-label {
+  color: var(--color-text-3) !important;
 }
 .campo-input--uppercase { text-transform: uppercase; }
 
 /* ── Label Minimalista ── */
 .campo-label {
   position: absolute;
-  left: 12px; /* Alineado con el padding del texto */
+  left: 16px;
   top: 35px; /* Alineado con el centro óptico del área de texto */
   transform: translateY(-50%);
   font-size: var(--text-base);

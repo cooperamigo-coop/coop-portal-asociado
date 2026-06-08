@@ -91,7 +91,6 @@ function claveFuente() {
         <CampoMoneda
           :model-value="modelValue[clave('obligaciones_financieras')]"
           label="Pago mensual de deudas"
-          helper="¿Cuánto pagas por deudas cada mes?"
           :error="errores[clave('obligaciones_financieras')]"
           @update:model-value="actualizar(clave('obligaciones_financieras'), $event)"
         />
@@ -102,6 +101,7 @@ function claveFuente() {
           type="number"
           required
           placeholder="0"
+          :max="10"
           :error="errores[clave('numero_dependientes')]"
           @update:model-value="actualizar(clave('numero_dependientes'), $event)"
         />
@@ -145,7 +145,6 @@ function claveFuente() {
         <CampoMoneda
           :model-value="modelValue[clave('obligaciones_financieras')]"
           label="Pago mensual de deudas"
-          helper="¿Cuánto pagas por deudas cada mes?"
           :error="errores[clave('obligaciones_financieras')]"
           @update:model-value="actualizar(clave('obligaciones_financieras'), $event)"
         />
@@ -156,6 +155,7 @@ function claveFuente() {
           type="number"
           required
           placeholder="0"
+          :max="10"
           :error="errores[clave('numero_dependientes')]"
           @update:model-value="actualizar(clave('numero_dependientes'), $event)"
         />
@@ -183,6 +183,7 @@ function claveFuente() {
           type="number"
           required
           placeholder="0"
+          :max="10"
           :error="errores[clave('numero_dependientes')]"
           @update:model-value="actualizar(clave('numero_dependientes'), $event)"
         />
@@ -218,6 +219,7 @@ function claveFuente() {
           type="number"
           required
           placeholder="0"
+          :max="10"
           :error="errores[clave('numero_dependientes')]"
           @update:model-value="actualizar(clave('numero_dependientes'), $event)"
         />
@@ -253,6 +255,7 @@ function claveFuente() {
           type="number"
           required
           placeholder="0"
+          :max="10"
           :error="errores[clave('numero_dependientes')]"
           @update:model-value="actualizar(clave('numero_dependientes'), $event)"
         />

@@ -274,6 +274,9 @@ export function useAfiliacion() {
     }
     if (paso.value === 1) {
       const dp = datosPersonales.value
+      const otroEmail = (dp.otro_email || '').trim().toLowerCase()
+      const emailPrincipal = (emailInicial.value || '').trim().toLowerCase()
+      if (otroEmail && otroEmail === emailPrincipal) return false
       return !!(
         fechaSolicitud.value &&
         oficina.value &&
@@ -382,12 +385,15 @@ export function useAfiliacion() {
     if (paso.value === 5) {
       const d = declaraciones.value
       const asesoriaValida = d.tuvo_asesoria === false || (d.tuvo_asesoria === true && String(d.codigo_asesor).length === 5)
-      
+      const skipDocs = import.meta.env.VITE_SKIP_DOCS === 'true'
       return (
+        d.maneja_dinero_publico !== null &&
+        d.es_contratista_estado !== null &&
+        d.es_lider_politico !== null &&
         d.autoriza_tratamiento_datos === true &&
         asesoriaValida &&
-        String(documentos.value.doc_cedula_solicitante_url || '').trim().length > 0 &&
-        String(documentos.value.doc_soporte_ingresos_laboral_url || '').trim().length > 0
+        (skipDocs || String(documentos.value.doc_cedula_solicitante_url || '').trim().length > 0) &&
+        (skipDocs || String(documentos.value.doc_soporte_ingresos_laboral_url || '').trim().length > 0)
       )
     }
     return true
@@ -638,11 +644,12 @@ export function useAfiliacion() {
       return
     }
 
-    if (!String(documentos.value.doc_cedula_solicitante_url || '').trim()) {
+    const skipDocs = import.meta.env.VITE_SKIP_DOCS === 'true'
+    if (!skipDocs && !String(documentos.value.doc_cedula_solicitante_url || '').trim()) {
       error.value = 'Debe cargar la cédula de ciudadanía para continuar.'
       return
     }
-    if (!String(documentos.value.doc_soporte_ingresos_laboral_url || '').trim()) {
+    if (!skipDocs && !String(documentos.value.doc_soporte_ingresos_laboral_url || '').trim()) {
       error.value = 'Debe cargar la certificación laboral o la certificación de ingresos para continuar.'
       return
     }
