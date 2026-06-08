@@ -226,7 +226,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
               background:   'var(--color-primary)',
               color:        '#fff',
               border:       'none',
-              borderRadius: 'var(--r-md)',
+              borderRadius: 'var(--r-pill)',
               padding:      'var(--sp-md) var(--sp-xl)',
               fontSize:     'var(--text-base)',
               fontWeight:   'var(--fw-semibold)',
@@ -268,12 +268,13 @@ onUnmounted(() => { document.body.style.overflow = '' })
         <template v-else>
           <!-- Ícono -->
           <div :style="{
-            width: '48px', height: '48px', borderRadius: 'var(--r-xl)',
-            background: 'var(--color-bg-card)',
+            width: '64px', height: '64px', borderRadius: '50%',
+            background: 'var(--color-primary)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            marginBottom: 'var(--sp-lg)',
+            margin: '0 auto var(--sp-lg)',
+            flexShrink: '0',
           }">
-            <IconShieldCheck :size="24" :style="{ color: 'var(--color-primary)' }" />
+            <IconShieldCheck :size="30" :style="{ color: '#ffffff' }" />
           </div>
 
           <!-- Título -->
@@ -282,7 +283,8 @@ onUnmounted(() => { document.body.style.overflow = '' })
             fontSize:     'var(--text-lg)',
             fontWeight:   'var(--fw-extrabold)',
             color:        'var(--color-text-1)',
-            marginBottom: 'var(--sp-sm)',
+            marginBottom: '2px',
+            textAlign:    'center',
           }">Verifica tu correo</p>
 
           <!-- Subtítulo -->
@@ -292,6 +294,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
             fontWeight:   'var(--fw-medium)',
             lineHeight:   '1.6',
             marginBottom: 'var(--sp-xl)',
+            textAlign:    'center',
           }">
             Hemos enviado un código de 4 dígitos a
             <strong :style="{ color: 'var(--color-text-1)', display: 'block', marginTop: '2px' }">
@@ -304,7 +307,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
             :class="{ 'otp-sacudir': sacudiendo }"
             :style="{
               display: 'flex', justifyContent: 'center',
-              gap: 'var(--sp-md)', marginBottom: 'var(--sp-lg)',
+              gap: '8px', marginBottom: 'var(--sp-lg)',
             }"
           >
             <input
@@ -351,14 +354,16 @@ onUnmounted(() => { document.body.style.overflow = '' })
           >{{ mensajeError }}</p>
 
           <!-- Reenviar -->
-          <p :style="{ textAlign: 'center', fontSize: 'var(--text-sm)', color: 'var(--color-text-3)' }">
-            ¿No recibiste el código?
+          <div :style="{ textAlign: 'center' }">
+            <p :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', marginBottom: 'var(--sp-xs)' }">
+              ¿No recibiste el código?
+            </p>
             <button
               :disabled="cooldown > 0 || fase === 'verificando'"
               :style="{
                 background: 'none',
                 border: 'none',
-                padding: '0 0 0 var(--sp-xs)',
+                padding: '0',
                 cursor: cooldown > 0 ? 'default' : 'pointer',
                 color: cooldown > 0 ? 'var(--color-text-3)' : 'var(--color-primary)',
                 fontWeight: 'var(--fw-semibold)',
@@ -373,7 +378,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
               <IconRefresh :size="13" />
               {{ cooldown > 0 ? `Reenviar en ${cooldown}s` : 'Reenviar código' }}
             </button>
-          </p>
+          </div>
         </template>
 
       </div>

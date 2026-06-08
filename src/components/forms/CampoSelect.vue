@@ -37,18 +37,29 @@ function calcularPosicion() {
   if (!containerRef.value) return
   const rect = containerRef.value.getBoundingClientRect()
   const viewportHeight = window.innerHeight
-  const dropdownHeight = Math.min(props.opciones.length * 50, 250)
+  const naturalHeight = Math.min(props.opciones.length * 50, 250)
 
-  let top = rect.bottom + 4
-  if (top + dropdownHeight > viewportHeight && rect.top > dropdownHeight) {
-    top = rect.top - dropdownHeight - 4
+  const spaceBelow = viewportHeight - rect.bottom - 8
+  const spaceAbove = rect.top - 8
+
+  let top, maxHeight
+
+  if (spaceBelow >= 150 || spaceBelow >= spaceAbove) {
+    top = rect.bottom + 4
+    maxHeight = Math.min(naturalHeight, spaceBelow)
+  } else {
+    maxHeight = Math.min(naturalHeight, spaceAbove)
+    top = rect.top - maxHeight - 4
   }
+
+  top = Math.max(10, top)
 
   dropdownStyle.value = {
     position: 'fixed',
     top: `${top}px`,
     left: `${rect.left}px`,
     width: `${rect.width}px`,
+    maxHeight: `${maxHeight}px`,
     zIndex: '9999',
   }
 }
@@ -197,8 +208,22 @@ onUnmounted(() => {
 
 .campo-field--disabled {
   background-color: transparent;
-  border-bottom-style: dashed;
-  cursor: not-allowed;
+  border-bottom-color: var(--color-border) !important;
+  border-bottom-style: solid !important;
+  cursor: default;
+}
+
+.campo-field--disabled .campo-label,
+.campo-field--disabled.campo-field--floated .campo-label {
+  color: var(--color-text-3) !important;
+}
+
+.campo-field--disabled .campo-value {
+  color: var(--color-text-3) !important;
+}
+
+.campo-field--disabled .campo-chevron {
+  opacity: 0;
 }
 
 .campo-select-trigger {

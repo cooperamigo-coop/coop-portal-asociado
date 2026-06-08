@@ -50,26 +50,28 @@ function calcularPosicion() {
   const rect = containerRef.value.getBoundingClientRect()
   const viewportHeight = window.innerHeight
   const viewportWidth = window.innerWidth
-  const dropdownHeight = 300 
+  const maxDropdownHeight = 300
 
-  let top = rect.bottom + 4
-  if (top + dropdownHeight > viewportHeight && rect.top > dropdownHeight) {
-    top = rect.top - dropdownHeight - 4
+  const spaceBelow = viewportHeight - rect.bottom - 8
+  const spaceAbove = rect.top - 8
+
+  let top, maxHeight
+
+  if (spaceBelow >= 150 || spaceBelow >= spaceAbove) {
+    top = rect.bottom + 4
+    maxHeight = Math.min(maxDropdownHeight, spaceBelow)
+  } else {
+    maxHeight = Math.min(maxDropdownHeight, spaceAbove)
+    top = rect.top - maxHeight - 4
   }
 
-  // Si el input es muy estrecho (como en el modal de dirección), 
-  // le damos un ancho mínimo al dropdown para que no se vea "mocho"
+  top = Math.max(10, top)
+
   const minWidth = 220
   const width = Math.max(rect.width, minWidth)
-  
-  // Calculamos el left intentando que quede alineado a la izquierda del input,
-  // pero si se sale por la derecha, lo empujamos hacia la izquierda.
-  let left = rect.left
-  if (left + width > viewportWidth - 20) {
-    left = viewportWidth - width - 20
-  }
 
-  // Si aún así se sale por la izquierda, lo pegamos al borde
+  let left = rect.left
+  if (left + width > viewportWidth - 20) left = viewportWidth - width - 20
   if (left < 10) left = 10
 
   dropdownStyle.value = {
@@ -77,6 +79,7 @@ function calcularPosicion() {
     top: `${top}px`,
     left: `${left}px`,
     width: `${width}px`,
+    maxHeight: `${maxHeight}px`,
     zIndex: '10000',
   }
 }
@@ -345,10 +348,24 @@ onUnmounted(() => {
   box-shadow: 0 1px 0 0 var(--color-error) !important;
 }
 
-.csb-field--disabled { 
-  background: transparent; 
-  border-bottom-style: dashed;
-  cursor: not-allowed; 
+.csb-field--disabled {
+  background: transparent;
+  border-bottom-color: var(--color-border) !important;
+  border-bottom-style: solid !important;
+  cursor: default;
+}
+
+.csb-field--disabled .csb-label,
+.csb-field--disabled.csb-field--floated .csb-label {
+  color: var(--color-text-3) !important;
+}
+
+.csb-field--disabled .csb-value {
+  color: var(--color-text-3) !important;
+}
+
+.csb-field--disabled .csb-chevron {
+  opacity: 0;
 }
 
 /* ── Valor ── */

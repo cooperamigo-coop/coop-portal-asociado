@@ -34,7 +34,7 @@ import {
   IconUser, IconUserX, IconMail, IconRotate, IconUsers, IconUserCheck, IconFileDescription,
   IconCheck, IconUpload, IconCamera, IconX, IconLoader2,
   IconPencil, IconAlertTriangle, IconFileCheck, IconFile, IconRotateClockwise2,
-  IconArrowRight,
+  IconArrowRight, IconClock, IconEye,
 } from '@tabler/icons-vue'
 import { useSolicitudCredito } from '@/composables/useSolicitudCredito'
 import { useBreakpoint } from '@/composables/useBreakpoint'
@@ -47,6 +47,8 @@ import { TIPOS_CONTRATO, ENTIDADES_PENSIONES } from '@/data/formularioCredito'
 import { ENTIDADES_BANCARIAS } from '@/data/colombiaData.js'
 
 const router = useRouter()
+
+const devPreviewExito = false
 
 const {
   paso, loading, error, enviado, radicadoFinal,
@@ -1646,10 +1648,10 @@ function onOtpValidado() {
 </script>
 
 <template>
-  <PortalLayout>
+  <PortalLayout :hide-nav="enviado || devPreviewExito" :bg-image="(enviado || devPreviewExito) ? '/imagen2.png' : '/imagen1.png'" :bg-position-mobile="(enviado || devPreviewExito) ? '0% 75%' : 'center'">
 
     <!-- ═══ PANTALLA DE ÉXITO ═══════════════════════════════ -->
-    <div v-if="enviado" class="exito-wrap">
+    <div v-if="enviado || devPreviewExito" class="exito-wrap">
 
       <!-- Card principal -->
       <div class="exito-card">
@@ -1659,35 +1661,29 @@ function onOtpValidado() {
           <div class="exito-check">
             <IconCircleCheck :size="32" />
           </div>
-          <h1 class="exito-titulo">¡Solicitud radicada exitosamente!</h1>
-          <p class="exito-subtitulo">Tu solicitud de crédito fue recibida y está siendo procesada.</p>
-        </div>
-
-        <!-- Pasos siguientes -->
-        <div class="exito-pasos">
-          <p class="exito-pasos-titulo">¿Qué sigue?</p>
-          <ol class="exito-pasos-lista">
-            <li>Recepción de la solicitud y validación inicial.</li>
-            <li>Revisión de información y documentos.</li>
-            <li>Análisis de riesgo y capacidad de pago.</li>
-            <li>Aprobación y formalización del crédito.</li>
-            <li>Desembolso (si aplica) y notificación de resultado.</li>
-          </ol>
-        </div>
-
-        <!-- Nota -->
-        <p class="exito-nota">
-          Te recomendamos estar atento al correo y contacto proporcionado. En caso de presentarse alguna novedad, un asesor de Cooperamigó se comunicará oportunamente.
-        </p>
-
-        <!-- Aviso codeudores -->
-        <div v-if="numCodudores > 0" class="exito-codeudor">
-          <IconMail :size="15" class="exito-codeudor-icon" />
-          <div>
-            <div class="exito-codeudor-titulo">Enlace de firma enviado al codeudor</div>
-            <div class="exito-codeudor-texto">Se enviará un enlace al correo del codeudor para que firme la solicitud. El proceso continúa una vez todos los codeudores hayan firmado.</div>
+          <div :style="{ display: 'flex', flexDirection: 'column', gap: '4px' }">
+            <h1 class="exito-titulo">¡Solicitud radicada exitosamente!</h1>
+            <p class="exito-subtitulo">Tu solicitud de crédito fue recibida y está siendo procesada.</p>
           </div>
         </div>
+
+        <!-- Contenido central -->
+        <div class="exito-cuerpo">
+          <!-- Nota -->
+          <div class="exito-nota">
+            <p class="exito-nota-titulo">¿Ahora qué sigue?</p>
+            <p>Hemos recibido tu solicitud. A partir de este momento iniciaremos el proceso de evaluación y análisis. Te recomendamos estar atento a tu correo electrónico y teléfono registrados, ya que podremos contactarte para solicitar información adicional o informarte sobre el resultado.</p>
+          </div>
+
+          <!-- Aviso codeudores -->
+          <div v-if="numCodudores > 0" class="exito-codeudor">
+            <IconMail :size="15" class="exito-codeudor-icon" />
+            <div>
+              <div class="exito-codeudor-titulo">Enlace de firma enviado al codeudor</div>
+              <div class="exito-codeudor-texto">Se enviará un enlace al correo del codeudor para que firme la solicitud. El proceso continúa una vez todos los codeudores hayan firmado.</div>
+            </div>
+          </div>
+        </div><!-- /exito-cuerpo -->
 
         <!-- Botón -->
         <button class="exito-btn" @click="router.push('/')">
@@ -1696,6 +1692,7 @@ function onOtpValidado() {
         </button>
 
       </div>
+
     </div>
 
     <!-- ═══ PANTALLA PREVIA — Verificación de identidad ═════ -->
@@ -1704,7 +1701,7 @@ function onOtpValidado() {
       <div class="paso0-container">
 
         <!-- Título -->
-        <div :style="{ marginBottom: '40px' }">
+        <div :style="{ marginBottom: '20px' }">
           <div class="step-greeting-title">
             <span class="greeting-hi">¡Saludos!</span><span class="greeting-sub">Comencemos con algunos datos</span>
           </div>
@@ -1730,6 +1727,7 @@ function onOtpValidado() {
               label="2. Tipo de documento"
               required
               :opciones="opsTipoDocVerificacion"
+              :disabled="!verificacion.correo || !!errorCorreo"
             />
 
             <CampoTexto
@@ -1739,6 +1737,7 @@ function onOtpValidado() {
               required
               solo-numeros
               :maxlength="15"
+              :disabled="!verificacion.tipo_documento"
               @click="onDocumentoAreaClick"
             />
 
@@ -1820,7 +1819,7 @@ function onOtpValidado() {
     </div>
 
     <!-- ═══ FORMULARIO ACTIVO (3 pasos) ════════════════════ -->
-    <div v-else :style="{ width: '100%', margin: '0 auto', paddingTop: 'var(--sp-xl)' }">
+    <div v-else class="form-activo" :class="{ 'form-activo--borrador': mostrarOpcionBorrador && paso === 1 }">
 
       <!-- Banner: borrador encontrado (solo pasos > 1) -->
       <div v-if="mostrarOpcionBorrador && paso !== 1" class="banner-borrador animate-in">
@@ -1882,38 +1881,41 @@ function onOtpValidado() {
           v-if="!mostrarOpcionBorrador"
           :model-value="general.modalidad_credito"
           @update:model-value="seleccionarModalidad"
+          @continuar="siguiente()"
         />
 
         <!-- Borrador encontrado: reemplaza las cards, mantiene el encabezado -->
-        <template v-if="mostrarOpcionBorrador">
-          <div class="selector-header-standalone">
-            <h2 class="selector-titulo-standalone">Solicitud de crédito</h2>
-            <p class="selector-subtitulo-standalone">¿Qué modalidad de crédito deseas solicitar?</p>
+        <div v-if="mostrarOpcionBorrador" class="borrador-wrapper animate-in">
+
+          <!-- Ícono circular -->
+          <div class="borrador-icono">
+            <IconRotateClockwise2 :size="28" />
           </div>
-          <div class="banner-borrador animate-in">
-            <div class="banner-borrador-icon">
-              <IconRotateClockwise2 :size="20" />
-            </div>
-            <div class="banner-borrador-content">
-              <div class="banner-borrador-title">Tienes una solicitud en curso</div>
-              <div class="banner-borrador-text">
-                Progreso guardado el {{ formatearFecha(fechaBorrador) }}
-              </div>
-            </div>
-            <div class="banner-borrador-actions">
-              <button @click="empezarDeNuevo" class="btn-borrador-reset">
-                Empezar de nuevo
-              </button>
-              <button class="modalidad-continuar-btn" @click="continuarConBorrador">
-                <span>Continuar solicitud</span>
-                <span class="modalidad-continuar-circle"><IconArrowRight :size="14" /></span>
-              </button>
-            </div>
+
+          <!-- Título -->
+          <div class="borrador-titulo">Tienes una solicitud en curso</div>
+
+          <!-- Badge fecha -->
+          <div class="borrador-fecha">
+            <IconClock :size="12" />
+            Progreso guardado el <strong>{{ formatearFecha(fechaBorrador) }}</strong>
           </div>
-        </template>
+
+          <!-- Botón principal -->
+          <button class="borrador-btn-continuar" @click="continuarConBorrador">
+            <span>Continuar solicitud</span>
+            <span class="borrador-btn-circle"><IconArrowRight :size="14" /></span>
+          </button>
+
+          <!-- Link secundario -->
+          <button class="borrador-btn-reset" @click="empezarDeNuevo">
+            Empezar de nuevo
+          </button>
+
+        </div>
 
         <Transition name="slide-up">
-          <div v-if="general.modalidad_credito && !mostrarOpcionBorrador" class="modalidad-continuar">
+          <div v-if="general.modalidad_credito && !mostrarOpcionBorrador && !isMobile" class="modalidad-continuar">
             <button class="modalidad-continuar-btn" @click="siguiente()">
               <span>Continuar</span>
               <span class="modalidad-continuar-circle"><IconArrowRight :size="14" /></span>
@@ -1921,6 +1923,11 @@ function onOtpValidado() {
           </div>
         </Transition>
 
+      </div>
+
+      <!-- Mobile: StepIndicator fuera de la card -->
+      <div v-if="paso !== 1 && isMobile" class="step-indicator-mobile">
+        <StepIndicator :pasos="secciones" :actual="seccionActual" />
       </div>
 
       <!-- ── Layout dos columnas: sidebar + contenido (pasos 2-5) ── -->
@@ -1937,12 +1944,7 @@ function onOtpValidado() {
         <!-- Columna de contenido -->
         <div class="formulario-content">
 
-          <!-- Mobile: StepIndicator compacto -->
-          <div v-if="isMobile" :style="{ marginTop: 'var(--sp-lg)', marginBottom: 'var(--sp-lg)' }">
-            <StepIndicator :pasos="secciones" :actual="seccionActual" />
-          </div>
-
-          <h2 class="paso2-titulo">Solicitud de crédito (Diligenciar formulario)</h2>
+          <h2 class="paso2-titulo">Solicitud de crédito<span class="paso2-subtitulo"> (Diligenciar formulario)</span></h2>
 
       <!-- ── PASO 2: Formulario Completo (Estilo PDF) ───────── -->
       <div v-if="paso === 2" :style="{
@@ -1973,7 +1975,7 @@ function onOtpValidado() {
               Información de la solicitud
             </div>
 
-            <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
               
               <!-- Fila: Tipo de operación (siempre full width en móvil) -->
               <CampoSelectBuscable
@@ -2034,7 +2036,7 @@ function onOtpValidado() {
                       <CampoMoneda
                         v-if="mostrarValorCredito"
                         :model-value="general.valor_credito"
-                        label="Valor del crédito"
+                        label="Valor matrícula"
                         required
                         @update:model-value="actualizarGeneral('valor_credito', $event)"
                         :style="{ width: '100%' }"
@@ -2048,6 +2050,7 @@ function onOtpValidado() {
                         solo-numeros
                         :maxlength="2"
                         :error="errorPlazo"
+                        :disabled="!general.valor_credito"
                         @update:model-value="actualizarPlazo($event)"
                         :style="{ width: '100%' }"
                       />
@@ -2057,7 +2060,7 @@ function onOtpValidado() {
                     <CampoMoneda
                       v-if="mostrarValorCredito"
                       :model-value="general.valor_credito"
-                      label="Valor del crédito"
+                      label="Valor matrícula"
                       required
                       @update:model-value="actualizarGeneral('valor_credito', $event)"
                     />
@@ -2068,6 +2071,7 @@ function onOtpValidado() {
                       solo-numeros
                       :maxlength="2"
                       :error="errorPlazo"
+                      :disabled="!general.valor_credito"
                       @update:model-value="actualizarPlazo($event)"
                     />
                     <CampoSelectBuscable
@@ -2268,7 +2272,9 @@ function onOtpValidado() {
             <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
               <template v-if="esEducativo">
                 <div :style="{ padding: 'var(--sp-xl)', borderRadius: 'var(--r-xl)', background: 'white', display: 'flex', flexDirection:'column', gap: 'var(--sp-lg)' }">
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', fontWeight: 'var(--fw-regular)', lineHeight: '1.7', textAlign: 'justify' }">
+                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', fontWeight: 'var(--fw-regular)', lineHeight: '1.5', textAlign: 'justify' }">
+                    Medellín, {{ new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) }}
+                    <br /><br />
                     Señores
                     <br />
                     <span :style="{ fontWeight: 'var(--fw-bold)' }">COOPERATIVA MULTIACTIVA LUIS AMIGÓ</span>
@@ -2302,7 +2308,7 @@ function onOtpValidado() {
                       }"
                       @input="actualizarGeneral('beneficiario_nombre', $event.target.value ? $event.target.value.toUpperCase() : $event.target.value)"
                     />,
-                    para {{ general.tipo_estudio === 'pregrado' ? 'pregrado' : 'posgrado' }}
+                    para {{ LABEL_TIPO_ESTUDIO[general.tipo_estudio] || general.tipo_estudio || '—' }}
                     en el programa de <span :style="{ fontWeight: 'var(--fw-bold)' }">{{ general.denominacion_carrera || '—' }}</span>,
                     por un valor total de <span :style="{ fontWeight: 'var(--fw-bold)' }">{{ formatMonto(general.valor_credito) }}</span>
                     según consta en la liquidación de matrícula anexa.
@@ -2310,9 +2316,10 @@ function onOtpValidado() {
 
                   <label :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-sm)', cursor: 'pointer' }">
                     <input
-                      v-model="autorizaciones.autorizacion_desembolso_directo_educativo"
+                      :checked="autorizaciones.autorizacion_desembolso_directo_educativo"
                       type="checkbox"
                       :style="{ marginTop: '3px', flexShrink: '0', accentColor: 'var(--color-primary)', width: '15px', height: '15px', cursor: 'pointer' }"
+                      @change="autorizaciones.autorizacion_desembolso_directo_educativo = $event.target.checked; autorizaciones.fecha_autorizacion_desembolso_directo_educativo = $event.target.checked ? new Date().toISOString() : null"
                     />
                     <span :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', fontWeight: 'var(--fw-medium)', lineHeight: '1.6' }">
                       Autorizo el desembolso directo del crédito a la institución educativa.<span :style="{ color: 'var(--color-error)' }"> *</span>
@@ -2328,42 +2335,50 @@ function onOtpValidado() {
                 <CampoTexto v-if="cuenta.entidad_bancaria === 'otro'" :model-value="cuenta.entidad_bancaria_otro" label="Especifique entidad" required @update:model-value="actualizarCuenta('entidad_bancaria_otro', $event)" />
                 <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)', alignItems: 'center' }">
                   <CampoTexto :model-value="cuenta.numero_cuenta" label="Número de cuenta" required solo-numeros :maxlength="18" :disabled="!cuenta.entidad_bancaria" @update:model-value="actualizarCuenta('numero_cuenta', $event)" />
-                  <CampoCheck :model-value="cuenta.cuenta_tercero" label="La cuenta pertenece a un tercero" @update:model-value="actualizarCuenta('cuenta_tercero', $event)" />
+                  <label :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', cursor: 'pointer', userSelect: 'none' }">
+                    <input type="checkbox" :checked="cuenta.cuenta_tercero" :style="{ display: 'none' }" @change="actualizarCuenta('cuenta_tercero', !cuenta.cuenta_tercero)" />
+                    <span :style="{ width: '36px', height: '20px', borderRadius: '999px', background: cuenta.cuenta_tercero ? 'var(--color-primary)' : 'var(--color-border)', position: 'relative', transition: 'background var(--transition-fast)', flexShrink: '0' }">
+                      <span :style="{ position: 'absolute', top: '2px', left: cuenta.cuenta_tercero ? '18px' : '2px', width: '16px', height: '16px', borderRadius: '50%', background: '#fff', transition: 'left var(--transition-fast)' }" />
+                    </span>
+                    <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: cuenta.cuenta_tercero ? 'var(--color-primary)' : 'var(--color-text-3)' }">La cuenta pertenece a un tercero</span>
+                  </label>
                 </div>
                 <template v-if="cuenta.cuenta_tercero">
-                  <div :style="{ padding: 'var(--sp-xl)', borderRadius: 'var(--r-xl)', border: '1px solid var(--color-border)', background: 'var(--color-bg-surface)', display: 'flex', flexDirection:'column', gap: 'var(--sp-lg)' }">
+                  <div :style="{ padding: 'var(--sp-xl)', borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'var(--color-bg-surface)', display: 'flex', flexDirection:'column', gap: 'var(--sp-lg)' }">
                     <div :style="{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)' }">Datos del titular</div>
                     <CampoTexto :model-value="cuenta.nombre_tercero" label="Nombre completo" required @update:model-value="actualizarCuenta('nombre_tercero', $event ? $event.toUpperCase() : $event)" />
                     <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
                       <CampoSelect :model-value="cuenta.tipo_doc_tercero" label="Tipo documento" required :opciones="opsTipoDocTitular" @update:model-value="actualizarCuenta('tipo_doc_tercero', $event)" />
-                      <CampoTexto :model-value="cuenta.numero_doc_tercero" label="Número documento" required solo-numeros @update:model-value="actualizarCuenta('numero_doc_tercero', $event)" />
+                      <CampoTexto :model-value="cuenta.numero_doc_tercero" label="Número documento" required solo-numeros :maxlength="10" :max="9999999999" @update:model-value="actualizarCuenta('numero_doc_tercero', $event)" />
                     </div>
                   </div>
 
                   <!-- Carta de autorización -->
-                  <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }">
+                  <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }">
                     <div :style="{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 'var(--sp-md)', padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', background: 'var(--color-bg-surface)' }">
                       <div :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-md)', flex: '1' }">
                         <div :style="{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--color-impulso)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
                           <IconUpload :size="18" :style="{ color: '#fff' }" />
                         </div>
                         <div :style="{ minWidth: '0' }">
-                          <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
-                            Carta de autorización<span :style="{ color: 'var(--color-error)' }">*</span>
+                          <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)', lineHeight: '1.2' }">
+                            Carta de autorización <span :style="{ color: 'var(--color-error)' }">*</span>
                           </div>
-                          <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)', marginTop: 'var(--sp-xs)' }">Debe anexar carta firmada autorizando el desembolso de los recursos en cuenta de titularidad de un tercero.</div>
+                          <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)', marginTop: '0', lineHeight: '1.3' }">Debe anexar carta firmada autorizando el desembolso de los recursos en cuenta de titularidad de un tercero.</div>
                         </div>
                       </div>
                       <div v-if="cartaAutorizacion.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
                         <IconLoader2 :size="15" :style="{ animation: 'spin 1s linear infinite' }" /> Subiendo…
                       </div>
-                      <div v-else-if="cartaAutorizacion.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)' }">
-                        <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-lg)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)', maxWidth: '190px' }">
+                      <div v-else-if="cartaAutorizacion.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+                        <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', background: 'var(--color-success-bg)', border: 'none' }">
                           <IconCheck :size="13" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
-                          <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-semibold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ cartaAutorizacion.nombre?.length > 16 ? cartaAutorizacion.nombre.substring(0, 13) + '...' : cartaAutorizacion.nombre }}</span>
-                          <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', borderRadius: 'var(--r-sm)', flexShrink: '0' }" @click="quitarCarta"><IconX :size="13" :style="{ color: 'var(--color-success-text)' }" /></button>
+                          <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-semibold)', whiteSpace: 'nowrap' }">Cargado</span>
+                          <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px', display: 'flex', borderRadius: 'var(--r-sm)', flexShrink: '0', marginLeft: '2px' }" @click="quitarCarta"><IconX :size="12" :style="{ color: 'var(--color-success-text)' }" /></button>
                         </div>
-                        <button :style="{ border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)', flexShrink: '0' }" @click="abrirPreviewDoc(cartaAutorizacion.url, 'Carta de autorización')">Visualizar</button>
+                        <button :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', border: 'none', background: 'var(--color-success-bg)', color: 'var(--color-success-text)', borderRadius: '50%', cursor: 'pointer', flexShrink: '0', padding: '0' }" @click="abrirPreviewDoc(cartaAutorizacion.url, 'Carta de autorización')">
+                          <IconEye :size="15" />
+                        </button>
                       </div>
                       <button v-else-if="cartaAutorizacion.error" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-error)', background: 'var(--color-error-bg)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-error)' }" @click="refCartaUpload?.click()">
                         <IconUpload :size="13" /> Reintentar
@@ -2378,29 +2393,31 @@ function onOtpValidado() {
                   </div>
 
                   <!-- Certificación bancaria -->
-                  <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }">
+                  <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }">
                     <div :style="{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 'var(--sp-md)', padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', background: 'var(--color-bg-surface)' }">
                       <div :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-md)', flex: '1' }">
                         <div :style="{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--color-impulso)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
                           <IconUpload :size="18" :style="{ color: '#fff' }" />
                         </div>
                         <div :style="{ minWidth: '0' }">
-                          <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
-                            Certificación bancaria<span :style="{ color: 'var(--color-error)' }">*</span>
+                          <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)', lineHeight: '1.2' }">
+                            Certificación bancaria <span :style="{ color: 'var(--color-error)' }">*</span>
                           </div>
-                          <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)', marginTop: 'var(--sp-xs)' }">Por favor, anexe la certificación bancaria de la cuenta indicada.</div>
+                          <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)', marginTop: '0', lineHeight: '1.3' }">Por favor, anexe la certificación bancaria de la cuenta indicada.</div>
                         </div>
                       </div>
                       <div v-if="certBancaria.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
                         <IconLoader2 :size="15" :style="{ animation: 'spin 1s linear infinite' }" /> Subiendo…
                       </div>
-                      <div v-else-if="certBancaria.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)' }">
-                        <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-lg)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)', maxWidth: '190px' }">
+                      <div v-else-if="certBancaria.url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+                        <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', background: 'var(--color-success-bg)', border: 'none' }">
                           <IconCheck :size="13" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
-                          <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-semibold)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ certBancaria.nombre?.length > 16 ? certBancaria.nombre.substring(0, 13) + '...' : certBancaria.nombre }}</span>
-                          <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', borderRadius: 'var(--r-sm)', flexShrink: '0' }" @click="quitarCert"><IconX :size="13" :style="{ color: 'var(--color-success-text)' }" /></button>
+                          <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-success-text)', fontWeight: 'var(--fw-semibold)', whiteSpace: 'nowrap' }">Cargado</span>
+                          <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px', display: 'flex', borderRadius: 'var(--r-sm)', flexShrink: '0', marginLeft: '2px' }" @click="quitarCert"><IconX :size="12" :style="{ color: 'var(--color-success-text)' }" /></button>
                         </div>
-                        <button :style="{ border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)', flexShrink: '0' }" @click="abrirPreviewDoc(certBancaria.url, 'Certificación bancaria')">Visualizar</button>
+                        <button :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', border: 'none', background: 'var(--color-success-bg)', color: 'var(--color-success-text)', borderRadius: '50%', cursor: 'pointer', flexShrink: '0', padding: '0' }" @click="abrirPreviewDoc(certBancaria.url, 'Certificación bancaria')">
+                          <IconEye :size="15" />
+                        </button>
                       </div>
                       <button v-else-if="certBancaria.error" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', padding: '4px var(--sp-md)', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-error)', background: 'var(--color-error-bg)', cursor: 'pointer', fontSize: 'var(--text-xs)', fontFamily: 'var(--font-body)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-error)' }" @click="refCertUpload?.click()">
                         <IconUpload :size="13" /> Reintentar
@@ -2766,32 +2783,19 @@ function onOtpValidado() {
           </div>
           <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
 
-            <!-- Desktop -->
-            <div v-if="!isMobile" :style="{
-              display: 'grid',
-              gridTemplateColumns: asesoria.tuvo_asesoria === true ? '1fr 70px 70px 140px' : '1fr 70px 70px',
-              gap: 'var(--sp-md)',
-              alignItems: 'center',
-            }">
-              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)' }">
-                ¿Tuvo acompañamiento de un asesor para diligenciar la solicitud? *
+            <div :style="{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 'var(--sp-md)', flexWrap: 'wrap' }">
+              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', flex: '1', minWidth: '180px' }">
+                ¿Tuvo acompañamiento de un asesor{{ isMobile ? '?' : ' para diligenciar la solicitud?' }}
               </div>
-              <CampoCheck :model-value="asesoria.tuvo_asesoria === true" label="Sí" @update:model-value="(v) => { asesoria.tuvo_asesoria = v ? true : null; if (!v) asesoria.codigo_asesor = '' }" />
-              <CampoCheck :model-value="asesoria.tuvo_asesoria === false" label="No" @update:model-value="(v) => { asesoria.tuvo_asesoria = v ? false : null; if (v) asesoria.codigo_asesor = '' }" />
+              <label :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', cursor: 'pointer', userSelect: 'none', flexShrink: '0' }">
+                <input type="checkbox" :checked="!!asesoria.tuvo_asesoria" :style="{ display: 'none' }" @change="() => { asesoria.tuvo_asesoria = !asesoria.tuvo_asesoria; if (!asesoria.tuvo_asesoria) asesoria.codigo_asesor = '' }" />
+                <span :style="{ width: '36px', height: '20px', borderRadius: '999px', background: asesoria.tuvo_asesoria ? 'var(--color-primary)' : 'var(--color-border)', position: 'relative', transition: 'background var(--transition-fast)', flexShrink: '0' }">
+                  <span :style="{ position: 'absolute', top: '2px', left: asesoria.tuvo_asesoria ? '18px' : '2px', width: '16px', height: '16px', borderRadius: '50%', background: '#fff', transition: 'left var(--transition-fast)' }" />
+                </span>
+                <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: asesoria.tuvo_asesoria ? 'var(--color-primary)' : 'var(--color-text-3)' }">{{ asesoria.tuvo_asesoria ? 'Sí' : 'No' }}</span>
+              </label>
               <CampoTexto v-if="asesoria.tuvo_asesoria === true" v-model="asesoria.codigo_asesor" label="Código del asesor" placeholder="00000" required solo-numeros :maxlength="5" />
             </div>
-
-            <!-- Móvil -->
-            <template v-else>
-              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)' }">
-                ¿Tuvo acompañamiento de un asesor? *
-              </div>
-              <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-md)' }">
-                <div :style="{ minWidth: 0 }"><CampoCheck compact :model-value="asesoria.tuvo_asesoria === true" label="Sí" @update:model-value="(v) => { asesoria.tuvo_asesoria = v ? true : null; if (!v) asesoria.codigo_asesor = '' }" /></div>
-                <div :style="{ minWidth: 0 }"><CampoCheck compact :model-value="asesoria.tuvo_asesoria === false" label="No" @update:model-value="(v) => { asesoria.tuvo_asesoria = v ? false : null; if (v) asesoria.codigo_asesor = '' }" /></div>
-              </div>
-              <CampoTexto v-if="asesoria.tuvo_asesoria === true" v-model="asesoria.codigo_asesor" label="Código del asesor" placeholder="00000" required solo-numeros :maxlength="5" />
-            </template>
 
           </div>
         </div>
@@ -3127,20 +3131,22 @@ function onOtpValidado() {
               </div>
             </div>
             <div :style="{ padding: 'var(--sp-lg) calc(var(--sp-xl) + 6px)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
-              <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-regular)', color: 'var(--color-text-2)', lineHeight: '1.7', textAlign: 'justify' }">
+              <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-regular)', color: 'var(--color-text-2)', lineHeight: '1.5', textAlign: 'justify' }">
+                Medellín, {{ new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) }}
+                <br /><br />
                 Señores
                 <br />
                 <span :style="{ fontWeight: 'var(--fw-bold)' }">COOPERATIVA MULTIACTIVA LUIS AMIGÓ</span>
                 <br /><br />
-                Yo, <span :style="{ fontWeight: 'var(--fw-semibold)' }">{{ (persona.nombres + ' ' + persona.apellidos).trim() || '—' }}</span>,
-                identificado(a) con la cédula de ciudadanía No. <span :style="{ fontWeight: 'var(--fw-semibold)' }">{{ persona.numero_identificacion || '—' }}</span>,
-                en mi calidad de asociado(a) y como titular del crédito bajo la línea <span :style="{ fontWeight: 'var(--fw-semibold)' }">CRÉDITO EDUCATIVO</span>
-                otorgado para estudios en la <span :style="{ fontWeight: 'var(--fw-semibold)' }">UNIVERSIDAD CATÓLICA LUIS AMIGÓ</span>,
+                Yo, <span :style="{ fontWeight: 'var(--fw-bold)' }">{{ (persona.nombres + ' ' + persona.apellidos).trim() || '—' }}</span>,
+                identificado(a) con la cédula de ciudadanía No. <span :style="{ fontWeight: 'var(--fw-bold)' }">{{ persona.numero_identificacion || '—' }}</span>,
+                en mi calidad de asociado(a) y como titular del crédito bajo la línea <span :style="{ fontWeight: 'var(--fw-bold)' }">CRÉDITO EDUCATIVO</span>
+                otorgado para estudios en la <span :style="{ fontWeight: 'var(--fw-bold)' }">UNIVERSIDAD CATÓLICA LUIS AMIGÓ</span>,
                 autorizo de manera expresa a la Cooperativa para que efectúe directamente a la institución el pago de la matrícula a nombre del/la señor(a)
-                <span :style="{ fontWeight: 'var(--fw-semibold)' }">{{ general.beneficiario_nombre || '—' }}</span>,
-                para {{ general.tipo_estudio === 'pregrado' ? 'pregrado' : 'posgrado' }}
-                en el programa de <span :style="{ fontWeight: 'var(--fw-semibold)' }">{{ general.denominacion_carrera || '—' }}</span>,
-                por un valor total de <span :style="{ fontWeight: 'var(--fw-semibold)' }">{{ formatMonto(general.valor_credito) }}</span>
+                <span :style="{ fontWeight: 'var(--fw-bold)' }">{{ general.beneficiario_nombre || '—' }}</span>,
+                para {{ LABEL_TIPO_ESTUDIO[general.tipo_estudio] || general.tipo_estudio || '—' }}
+                en el programa de <span :style="{ fontWeight: 'var(--fw-bold)' }">{{ general.denominacion_carrera || '—' }}</span>,
+                por un valor total de <span :style="{ fontWeight: 'var(--fw-bold)' }">{{ formatMonto(general.valor_credito) }}</span>
                 según consta en la liquidación de matrícula anexa.
               </div>
             </div>
@@ -3800,7 +3806,7 @@ function onOtpValidado() {
           <div :style="{
             position: 'relative',
             width: '100%',
-            maxWidth: isMobile ? '100%' : '520px',
+            maxWidth: isMobile ? '100%' : '440px',
             background: 'var(--color-bg-card)',
             borderRadius: isMobile ? 'var(--r-md) var(--r-md) 0 0' : 'var(--r-md)',
             boxShadow: 'var(--shadow-modal)',
@@ -3833,7 +3839,7 @@ function onOtpValidado() {
                 fontSize: 'var(--text-base)',
                 color: 'var(--color-text-2)',
                 fontWeight: 'var(--fw-regular)',
-                lineHeight: '1.6',
+                lineHeight: '1.4',
               }">
                 El documento <strong :style="{ color: 'var(--color-text-1)' }">{{ verificacion.numero_documento || '—' }}</strong> no fue encontrado en nuestra base de datos.
                 Para acceder a los servicios de Cooperamigo, debes estar afiliado como asociado activo.
@@ -3865,29 +3871,69 @@ function onOtpValidado() {
 <style scoped>
 /* ─── Pantalla de éxito ─── */
 .exito-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 48px 16px;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 48px 220px;
+  overflow-y: auto;
+}
+
+@media (max-width: 767px) {
+  .exito-wrap {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .exito-card {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92dvh;
+    overflow-y: auto;
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  }
 }
 
 .exito-card {
   width: 100%;
-  max-width: 560px;
+  max-width: 480px;
+  min-height: 480px;
   background: var(--color-bg-card);
   border-radius: var(--r-xl);
   overflow: hidden;
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.10);
+  display: flex;
+  flex-direction: column;
 }
 
 .exito-header {
   background: var(--color-primary);
-  padding: 36px 32px 28px;
+  padding: 24px 32px 20px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--sp-md);
+  gap: var(--sp-sm);
+}
+
+@media (max-width: 767px) {
+  .exito-header {
+    padding: 20px 24px 16px;
+    gap: var(--sp-sm);
+  }
+  .exito-check {
+    width: 44px;
+    height: 44px;
+  }
+  .exito-titulo {
+    font-size: var(--text-lg);
+  }
 }
 
 .exito-check {
@@ -3972,15 +4018,41 @@ function onOtpValidado() {
   line-height: 1.55;
 }
 
+.exito-cuerpo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .exito-nota {
-  margin: var(--sp-xl) var(--sp-2xl);
-  font-size: var(--text-xs);
+  margin: 0 var(--sp-2xl) var(--sp-xl);
+  font-size: var(--text-base);
   color: var(--color-text-3);
   line-height: 1.6;
-  padding: var(--sp-md);
-  background: var(--color-bg-surface);
-  border-radius: var(--r-md);
-  border: 1px solid var(--color-border-card);
+  padding: var(--sp-lg) var(--sp-xl);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: var(--r-lg);
+}
+
+.exito-nota-titulo {
+  font-size: var(--text-base);
+  font-weight: var(--fw-bold);
+  color: var(--color-text-1);
+  margin: 0;
+  text-align: center;
+}
+
+
+.exito-nota p {
+  margin: 0;
 }
 
 .exito-codeudor {
@@ -4018,7 +4090,7 @@ function onOtpValidado() {
   justify-content: center;
   position: relative;
   width: calc(100% - var(--sp-2xl) * 2);
-  margin: 0 var(--sp-2xl) var(--sp-2xl);
+  margin: auto var(--sp-2xl) var(--sp-2xl);
   height: 52px;
   border-radius: var(--r-pill);
   background: var(--color-primary);
@@ -4611,7 +4683,46 @@ function onOtpValidado() {
   color: var(--color-text-1);
   margin: 0;
   line-height: 1.1;
-  padding-top: 52px;
+  padding-top: 0;
+}
+
+.paso2-subtitulo {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-regular);
+  color: var(--color-text-2);
+  margin-top: 2px;
+}
+
+.step-indicator-mobile {
+  padding: var(--sp-md) 0 var(--sp-sm);
+  width: 100%;
+}
+
+@media (max-width: 960px) {
+  .paso2-titulo {
+    font-size: var(--text-lg);
+    text-align: center;
+  }
+
+  .paso2-subtitulo {
+    font-size: var(--text-xs);
+    text-align: center;
+  }
+}
+
+@media (min-width: 961px) {
+  .paso2-subtitulo {
+    display: inline;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    margin-top: 0;
+  }
+
+  .step-indicator-mobile {
+    display: none;
+  }
 }
 
 /* ─── Botón Continuar navegación ─── */
@@ -4672,12 +4783,37 @@ function onOtpValidado() {
 }
 
 /* ─── Layout dos columnas pasos 2-5 ─── */
+.form-activo {
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 960px) {
+  .form-activo {
+    padding-top: var(--sp-xl);
+  }
+}
+
 .formulario-layout {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
   gap: 0;
   width: 100%;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 24px 32px 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+@media (max-width: 960px) {
+  .formulario-layout {
+    border-radius: 16px;
+    padding: 20px 16px 28px;
+  }
 }
 
 .formulario-sidebar {
@@ -4690,7 +4826,7 @@ function onOtpValidado() {
 }
 
 .formulario-sidebar-inner {
-  padding-top: 52px;
+  padding-top: 0;
 }
 
 .sidebar-proceso-label {
@@ -4723,6 +4859,136 @@ function onOtpValidado() {
   .formulario-content {
     width: 100%;
     max-width: none;
+  }
+}
+
+.borrador-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-lg);
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 40px 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+.borrador-icono {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.borrador-titulo {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--fw-extrabold);
+  color: var(--color-text-1);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.borrador-fecha {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--color-bg-surface-alt);
+  border-radius: var(--r-pill);
+  padding: 5px 12px;
+  font-size: var(--text-xs);
+  color: var(--color-text-2);
+  font-weight: var(--fw-medium);
+  text-align: center;
+  line-height: 1.4;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.borrador-fecha strong {
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-1);
+}
+
+.borrador-btn-continuar {
+  width: 100%;
+  height: 52px;
+  border-radius: var(--r-pill);
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--fw-semibold);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 0 8px;
+  box-shadow: var(--shadow-btn);
+  transition: all var(--transition-base);
+  margin-top: var(--sp-sm);
+}
+
+.borrador-btn-continuar span:first-child {
+  flex: 1;
+  text-align: center;
+}
+
+.borrador-btn-continuar:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+.borrador-btn-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform var(--transition-base);
+}
+
+.borrador-btn-continuar:hover .borrador-btn-circle {
+  transform: translateX(2px);
+}
+
+.borrador-btn-reset {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  color: var(--color-text-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 0;
+  transition: color var(--transition-fast);
+}
+
+.borrador-btn-reset:hover {
+  color: var(--color-text-2);
+}
+
+@media (min-width: 768px) {
+  .borrador-wrapper {
+    max-width: 480px;
+    margin: 0 0 0 auto;
   }
 }
 
@@ -4928,6 +5194,46 @@ function onOtpValidado() {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
+}
+
+@media (max-width: 767px) {
+  .paso0-container {
+    padding: 26px;
+    border-radius: 16px;
+  }
+
+  .paso0-layout {
+    padding: 0;
+  }
+
+  .borrador-wrapper {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 24px 24px 0 0;
+    padding: 32px 26px calc(36px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+    z-index: 50;
+  }
+
+  .borrador-wrapper .banner-borrador {
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    margin-bottom: 0;
+    background: transparent;
+  }
+
+  .paso0-verify-btn {
+    width: auto;
+    align-self: flex-end;
+    padding: 0 8px 0 20px;
+    justify-content: flex-start;
+    gap: 10px;
+  }
 }
 
 @media (min-width: 768px) {

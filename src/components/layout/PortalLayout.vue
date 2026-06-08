@@ -3,6 +3,11 @@ import { useRouter } from 'vue-router'
 import { IconArrowLeft, IconWorld } from '@tabler/icons-vue'
 import PortalFooter from '@/components/layout/PortalFooter.vue'
 
+const props = defineProps({
+  hideNav:        { type: Boolean, default: false },
+  bgImage:        { type: String, default: '/imagen1.png' },
+  bgPositionMobile: { type: String, default: 'center' },
+})
 const router = useRouter()
 </script>
 
@@ -10,18 +15,19 @@ const router = useRouter()
   <div :style="{
     minHeight: '100dvh',
     background: 'var(--color-bg-card)',
-    backgroundImage: 'url(/imagen1.png)',
+    backgroundImage: `url(${props.bgImage})`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
+    backgroundAttachment: 'fixed',
     display: 'flex', flexDirection: 'column',
     position: 'relative',
-    overflow: 'clip'
-  }">
+    '--bg-pos-mobile': props.bgPositionMobile,
+  }" class="portal-root">
     <!-- Topbar -->
     <header class="portal-topbar">
       <!-- Desktop: Inicio + Visitar sitio -->
-      <div class="topbar-desktop">
+      <div v-if="!hideNav" class="topbar-desktop">
         <RouterLink to="/" class="topbar-home">
           <IconArrowLeft :size="14" />
           Inicio
@@ -35,8 +41,9 @@ const router = useRouter()
         ><IconWorld :size="14" />Cooperamigo.coop</a>
       </div>
       <!-- Mobile: botón retroceso -->
-      <button class="topbar-back" @click="router.push('/')" aria-label="Inicio">
+      <button v-if="!hideNav" class="topbar-back" @click="router.push('/')" aria-label="Inicio">
         <IconArrowLeft :size="18" />
+        <span>Inicio</span>
       </button>
     </header>
 
@@ -60,11 +67,18 @@ const router = useRouter()
       </div>
     </main>
 
-    <PortalFooter />
+    <PortalFooter class="footer--desktop-only" />
   </div>
 </template>
 
 <style scoped>
+
+@media (max-width: 767px) {
+  .portal-root {
+    background-position: var(--bg-pos-mobile, center) !important;
+    background-attachment: scroll !important;
+  }
+}
 
 /* ─── Main ─── */
 .portal-main {
@@ -256,7 +270,7 @@ const router = useRouter()
 
 @media (max-width: 960px) {
   .portal-topbar {
-    position: absolute;
+    position: relative;
     background: transparent;
     justify-content: flex-start;
     padding: 0 16px;
@@ -273,14 +287,18 @@ const router = useRouter()
   .topbar-back {
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 36px;
+    gap: 6px;
+    width: auto;
     height: 36px;
     border-radius: var(--r-pill);
     background: transparent;
     border: none;
     cursor: pointer;
     color: var(--color-text-2);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--fw-semibold);
+    padding: 0 10px 0 6px;
     flex-shrink: 0;
     transition: background var(--transition-fast), color var(--transition-fast);
   }
@@ -289,7 +307,8 @@ const router = useRouter()
     color: var(--color-primary);
   }
 
-  .portal-main { padding: 28px 20px; }
+  .portal-main { padding: 8px 12px 20px; }
   .portal-main__inner { margin: auto; }
+  .footer--desktop-only { display: none; }
 }
 </style>

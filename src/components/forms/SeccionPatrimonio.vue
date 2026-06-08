@@ -117,11 +117,5 @@ function toggleActivo(tipo) {
       </div>
     </div>
 
-    <div
-      v-if="!esActivo('tiene_propiedad_raiz') && !esActivo('tiene_vehiculo')"
-      :style="{ marginTop: 'var(--sp-sm)', fontSize: '12px', color: 'var(--color-text-3)' }"
-    >
-      Si no posee ninguno, puede continuar sin seleccionar.
-    </div>
   </div>
 </template>

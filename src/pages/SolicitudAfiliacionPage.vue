@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import PortalLayout       from '@/components/layout/PortalLayout.vue'
 import StepIndicator      from '@/components/ui/StepIndicator.vue'
@@ -20,11 +20,13 @@ import CapturaDocumento from '@/components/forms/CapturaDocumento.vue'
 import { useAfiliacion }  from '@/composables/useAfiliacion'
 import { useBreakpoint }  from '@/composables/useBreakpoint'
 import { subirDocumentoSolicitud, obtenerMensajeErrorSubidaDocumento } from '@/services/documentos.service'
-import { IconCircleCheck, IconUserCheck, IconCheck, IconMapPin, IconX, IconUpload, IconEye, IconRefresh, IconFileDescription, IconLoader2, IconRotateClockwise2, IconHome, IconCar, IconShieldCheck, IconArrowRight } from '@tabler/icons-vue'
+import { IconCircleCheck, IconUserCheck, IconCheck, IconMapPin, IconX, IconUpload, IconEye, IconRefresh, IconFileDescription, IconLoader2, IconRotateClockwise2, IconHome, IconCar, IconShieldCheck, IconArrowRight, IconAlertTriangle, IconClock } from '@tabler/icons-vue'
 import { ENTIDADES_PENSIONES, TIPOS_CONTRATO } from '@/data/formularioCredito'
 
 const router = useRouter()
 const { isMobile } = useBreakpoint()
+
+const devPreviewExito = false
 
 const opsPropiedadRaiz = [
   { value: 'Casa',            label: 'Casa'            },
@@ -389,6 +391,7 @@ const firmaSolicitanteAplicada = computed(() => !!firma.value?.firma_hash)
 const firmaCanvasRef = ref(null)
 const firmaFileRef = ref(null)
 const firmaArchivoNombre = ref('')
+const mostrarModalSubirFirma = ref(false)
 const _dibujandoFirma = ref(false)
 const _firmaTrazoPrev = ref(null)
 const _firmaCanvasCssHeight = 140
@@ -532,6 +535,24 @@ function prepararCanvasFirmaOnMount() {
     setTimeout(() => prepararCanvasFirma(), 100)
   }
 }
+
+watch(
+  () => paso.value,
+  (p) => {
+    if (p === 5 && firmaMetodo.value === 'dibujar') {
+      nextTick(() => { prepararCanvasFirma() })
+    }
+  }
+)
+
+watch(
+  () => firmaMetodo.value,
+  (m) => {
+    if (m !== 'dibujar') return
+    nextTick(() => { prepararCanvasFirma() })
+  },
+  { immediate: true }
+)
 
 async function _sha256Hex(texto) {
   const data = new TextEncoder().encode(texto)
@@ -910,6 +931,13 @@ const continuarDespuesOtp = ref(false)
 
 const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+const errorOtroEmail = computed(() => {
+  const alt = (datosPersonales.value?.otro_email || '').trim().toLowerCase()
+  const principal = (emailInicial.value || '').trim().toLowerCase()
+  if (alt && alt === principal) return 'El correo alternativo no puede ser igual al correo personal.'
+  return null
+})
+
 function onRestaurarBorrador() {
   try {
     restaurarBorrador()
@@ -992,7 +1020,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <PortalLayout>
+  <PortalLayout
+    :hide-nav="paso === 6 || devPreviewExito"
+    :bg-image="(paso === 6 || devPreviewExito) ? '/imagen2.png' : '/imagen1.png'"
+    :bg-position-mobile="(paso === 6 || devPreviewExito) ? '0% 75%' : 'center'"
+  >
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- PASO 0: Verificación inicial                                        -->
@@ -1000,7 +1032,7 @@ onBeforeUnmount(() => {
     <div v-if="paso === 0" class="paso0-wrapper">
     <div class="paso0-container">
 
-      <div :style="{ marginBottom: '40px' }">
+      <div v-if="!borradorDisponible" :style="{ marginBottom: '20px' }">
         <div class="step-greeting-title">
           <span class="greeting-hi">¡Saludos!</span><span class="greeting-sub">Comencemos con tu solicitud</span>
         </div>
@@ -1008,65 +1040,33 @@ onBeforeUnmount(() => {
 
       <!-- Borrador disponible -->
       <template v-if="borradorDisponible">
-        <div :style="{
-          background: 'var(--color-bg-surface)',
-          border: '1px solid var(--color-p-light)',
-          borderRadius: 'var(--r-md)',
-          padding: 'var(--sp-xl)',
-          marginBottom: 'var(--sp-xl)',
-          textAlign: 'center',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.05)'
-        }">
-          <div :style="{
-            width: '48px',
-            height: '48px',
-            borderRadius: '50%',
-            background: 'var(--color-p-light)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto var(--sp-md)',
-            color: 'var(--color-primary)'
-          }">
-            <IconRotateClockwise2 :size="24" />
+        <div class="borrador-wrapper animate-in">
+
+          <div class="borrador-icono">
+            <IconRotateClockwise2 :size="28" />
           </div>
-          <div :style="{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 'var(--fw-bold)',
-            color: 'var(--color-primary)',
-            fontSize: 'var(--text-lg)',
-            marginBottom: '4px'
-          }">¡Hola de nuevo!</div>
-          <div :style="{
-            fontSize: 'var(--text-sm)',
-            color: 'var(--color-text-2)',
-            fontWeight: 'var(--fw-medium)',
-            marginBottom: 'var(--sp-xl)',
-            lineHeight: '1.5'
-          }">
+
+          <div class="borrador-titulo">Tienes una solicitud en curso</div>
+
+          <div class="borrador-desc">
             Encontramos una solicitud que empezaste anteriormente.<br>
-            <strong>¿Te gustaría retomar desde donde quedaste?</strong>
+            ¿Te gustaría retomar desde donde quedaste?
           </div>
-          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)' }">
-            <PortalButton variant="primary" :full="true" @click="onRestaurarBorrador">
-              Sí, continuar mi solicitud
-            </PortalButton>
-            <button 
-              @click="descartarBorrador"
-              :style="{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--color-text-3)',
-                fontSize: 'var(--text-xs)',
-                fontWeight: 'var(--fw-semibold)',
-                cursor: 'pointer',
-                padding: 'var(--sp-sm)',
-                textDecoration: 'underline'
-              }"
-            >
-              No, prefiero empezar de cero
-            </button>
+
+          <div v-if="borradorDisponible?.guardadoEn" class="borrador-fecha">
+            <IconClock :size="12" />
+            Progreso guardado el <strong>{{ formatearFecha(borradorDisponible.guardadoEn) }}</strong>
           </div>
+
+          <button class="borrador-btn-continuar" @click="onRestaurarBorrador">
+            <span>Continuar solicitud</span>
+            <span class="borrador-btn-circle"><IconArrowRight :size="14" /></span>
+          </button>
+
+          <button class="borrador-btn-reset" @click="descartarBorrador">
+            Empezar de nuevo
+          </button>
+
         </div>
       </template>
 
@@ -1091,6 +1091,7 @@ onBeforeUnmount(() => {
               label="2. Tipo de documento"
               required
               :opciones="opsTipoDocVerificacion"
+              :disabled="!emailInicial || !!errorEmail"
               @click="onDocumentoAreaClick"
             />
 
@@ -1101,6 +1102,7 @@ onBeforeUnmount(() => {
               required
               solo-numeros
               :maxlength="15"
+              :disabled="!tipoDocumentoInicial"
               :error="errorNumeroDoc"
               @click="onDocumentoAreaClick"
             />
@@ -1169,42 +1171,46 @@ onBeforeUnmount(() => {
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- PASO 6: Éxito                                                       -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <div v-else-if="paso === 6" :style="{
-      background: 'var(--color-bg-card)',
-      border: '1px solid var(--color-border-card)',
-      borderRadius: 'var(--r-md)',
-      padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)',
-      boxShadow: 'var(--shadow-card)',
-      textAlign: 'center',
-    }">
-      <div :style="{
-        width: '72px', height: '72px', borderRadius: '50%',
-        background: 'var(--color-success-bg)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        margin: '0 auto var(--sp-xl)',
-      }">
-        <IconCircleCheck :size="36" :style="{ color: 'var(--color-success)' }" />
+    <div v-else-if="paso === 6 || devPreviewExito" class="af-exito-wrap">
+
+      <!-- Card principal -->
+      <div class="af-exito-card">
+
+        <!-- Header verde -->
+        <div class="af-exito-header">
+          <div class="af-exito-check">
+            <IconCircleCheck :size="32" />
+          </div>
+          <div :style="{ display: 'flex', flexDirection: 'column', gap: '4px' }">
+            <h1 class="af-exito-titulo">¡Solicitud de afiliación enviada!</h1>
+            <p class="af-exito-subtitulo">Tu solicitud fue recibida y está siendo procesada.</p>
+          </div>
+        </div>
+
+        <!-- Contenido central -->
+        <div class="af-exito-cuerpo">
+          <div class="af-exito-nota">
+            <p class="af-exito-nota-titulo">¿Ahora qué sigue?</p>
+            <p>Hemos recibido tu solicitud de afiliación. A partir de este momento iniciaremos el proceso de revisión y validación de tus datos. Te recomendamos estar atento a tu correo electrónico y teléfono registrados, ya que podremos contactarte para solicitar información adicional o informarte sobre el resultado.</p>
+            <p :style="{ marginTop: 'var(--sp-md)' }">¡Gracias por tu interés en Cooperamigó!</p>
+          </div>
+        </div>
+
+        <!-- Botón -->
+        <button class="af-exito-btn" @click="router.push('/')">
+          Regresar al inicio
+          <span class="af-exito-btn-circle"><IconArrowRight :size="14" /></span>
+        </button>
+
       </div>
-      <div :style="{
-        fontFamily: 'var(--font-display)',
-        fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-extrabold)',
-        color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)',
-      }">¡Solicitud de afiliación enviada!</div>
-      <div :style="{
-        fontSize: 'var(--text-lg)', color: 'var(--color-text-2)',
-        fontWeight: 'var(--fw-medium)', lineHeight: '1.6',
-        maxWidth: '480px', margin: '0 auto var(--sp-xl)',
-      }">
-        Su solicitud está en proceso de revisión. Le notificaremos por correo electrónico.
-      </div>
-      <PortalButton variant="primary" @click="router.push('/')">Volver al inicio</PortalButton>
+
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- PASOS 1–6: Formulario principal                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <template v-else>
-      <div :style="{ width: '100%', margin: '0 auto', paddingTop: isMobile ? '0' : 'var(--sp-xl)' }">
+      <div class="af-form-activo">
 
         <!-- Banner: datos recuperados -->
         <div v-if="bannerRecuperadoVisible" :style="{
@@ -1224,16 +1230,26 @@ onBeforeUnmount(() => {
           }">Sus datos anteriores fueron recuperados. Continúa desde donde lo dejó.</span>
         </div>
 
-      <div :style="{ marginBottom: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)' }">
-        <div :style="{
-          fontSize: isMobile ? 'var(--text-xs)' : 'var(--text-sm)',
-          color: 'var(--color-text-2)',
-          fontWeight: 'var(--fw-bold)',
-          letterSpacing: '0.02em',
-          marginBottom: 'var(--sp-2xs)',
-          textAlign: isMobile ? 'center' : 'right',
-        }">SAR FT 001 V. 1.0 30/12/2025</div>
+        <!-- Mobile: StepIndicator independiente -->
+        <div v-if="isMobile" class="step-indicator-mobile">
+          <StepIndicator :pasos="pasos" :actual="paso" />
+        </div>
 
+        <!-- Layout dos columnas: sidebar + contenido -->
+        <div class="formulario-layout">
+
+          <!-- Sidebar sticky (solo desktop) -->
+          <aside v-if="!isMobile" class="formulario-sidebar">
+            <div class="formulario-sidebar-inner">
+              <p class="sidebar-proceso-label">Progreso</p>
+              <StepIndicator :pasos="pasos" :actual="paso" :vertical="true" />
+            </div>
+          </aside>
+
+          <!-- Columna de contenido -->
+          <div class="formulario-content">
+
+      <div :style="{ marginBottom: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)' }">
         <div :style="{
           fontFamily: 'var(--font-display)',
           fontSize: isMobile ? 'var(--text-lg)' : 'var(--text-2xl)',
@@ -1243,10 +1259,6 @@ onBeforeUnmount(() => {
           lineHeight: '1.1',
           textAlign: isMobile ? 'center' : 'left',
         }">Formato único de afiliación y/o conocimiento del asociado.</div>
-      </div>
-
-      <div :style="{ marginTop: paso !== 1 ? '56px' : '0' }">
-        <StepIndicator :pasos="pasos" :actual="paso" />
       </div>
 
       <div :style="{
@@ -1461,6 +1473,7 @@ onBeforeUnmount(() => {
                       placeholder="0"
                       required
                       solo-numeros
+                      :max="10"
                       @update:model-value="datosPersonales.personas_a_cargo = String($event ?? '').replace(/\\D/g, '')"
                     />
                     <CampoTexto
@@ -1492,6 +1505,7 @@ onBeforeUnmount(() => {
                     label="Correo electrónico alternativo"
                     type="email"
                     placeholder="correo.alternativo@ejemplo.com"
+                    :error="errorOtroEmail"
                   />
                 </div>
                 <div :style="{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--sp-lg)' }">
@@ -1681,8 +1695,8 @@ onBeforeUnmount(() => {
                     gap: 'var(--sp-md)',
                     justifyContent: 'flex-end',
                   }">
-                    <PortalButton variant="secondary" @click="modalLugarNacimientoVisible = false">Cancelar</PortalButton>
-                    <PortalButton variant="primary" :disabled="!puedeGuardarLugarNacimiento" @click="confirmarLugarNacimiento">Guardar</PortalButton>
+                    <PortalButton variant="secondary" pill @click="modalLugarNacimientoVisible = false">Cancelar</PortalButton>
+                    <PortalButton variant="primary" pill :disabled="!puedeGuardarLugarNacimiento" @click="confirmarLugarNacimiento">Guardar</PortalButton>
                   </div>
                 </div>
               </div>
@@ -1874,6 +1888,16 @@ onBeforeUnmount(() => {
             <template v-if="datosLaborales.tipo_trabajador">
               <div :style="estiloBloque">
                 <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Información financiera</div>
+                <div :style="{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--color-text-2)',
+                  lineHeight: '1.5',
+                  background: 'var(--color-p-light)',
+                  borderRadius: 'var(--r-md)',
+                  padding: 'var(--sp-md) var(--sp-lg)',
+                }">
+                  Ten presente que, de acuerdo con los estatutos de la Cooperativa, la cuota mensual de aportes sociales se calcula aplicando el <strong>2%</strong> sobre los ingresos demostrables declarados.
+                </div>
                 <SeccionFinanciera
                   v-model="datosFinancieros"
                   :tipo-trabajador="datosLaborales.tipo_trabajador"
@@ -2001,7 +2025,7 @@ onBeforeUnmount(() => {
                 <div :style="{ ...estiloSubtitulo, marginTop: '0' }">Otras deudas</div>
                 <div :style="grid2(isMobile)">
                   <CampoMoneda v-model="activosPasivos.total_pasivos" label="Total pasivos (Deudas)" required />
-                  <CampoMoneda v-model="activosPasivos.cuota_mensual_deudas" label="Total cuota mensual" helper="¿Cuánto pagas por deudas cada mes?" required />
+                  <CampoMoneda v-model="activosPasivos.cuota_mensual_deudas" label="Total cuota mensual" required />
                 </div>
               </div>
             </template>
@@ -2190,8 +2214,8 @@ onBeforeUnmount(() => {
                     gap: 'var(--sp-md)',
                     justifyContent: 'flex-end',
                   }">
-                    <PortalButton variant="secondary" @click="modalLugarExpedicionConyugeVisible = false">Cancelar</PortalButton>
-                    <PortalButton variant="primary" :disabled="!puedeGuardarLugarExpedicionConyuge" @click="confirmarLugarExpedicionConyuge">Guardar</PortalButton>
+                    <PortalButton variant="secondary" pill @click="modalLugarExpedicionConyugeVisible = false">Cancelar</PortalButton>
+                    <PortalButton variant="primary" pill :disabled="!puedeGuardarLugarExpedicionConyuge" @click="confirmarLugarExpedicionConyuge">Guardar</PortalButton>
                   </div>
                 </div>
               </div>
@@ -2389,49 +2413,72 @@ onBeforeUnmount(() => {
             textJustify: 'inter-word',
           }">
             <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', textAlign: 'left' }">
-              DECLARACIÓN VOLUNTARIA DE ORIGEN DE FONDOS. CONSULTA, REPORTE Y TRATAMIENTO DE DATOS PERSONALES Y CENTRALES DE RIESGOS.
+              DECLARACIÓN DE ORIGEN LÍCITO DE FONDOS
             </p>
             <p :style="{ marginBottom: 'var(--sp-md)' }">
-              Autorizamos voluntariamente a COOPERAMIGÓ para enviar y/o confirmar operaciones y transacciones
-              que realicemos con dicha entidad y/o información sobre obligaciones crediticias y/o información
-              de campañas comerciales realizadas por la cooperativa, a través de cualquier medio de comunicación.
-              La información puede enviarse al teléfono celular y/o al correo electrónico reportado como de nuestro
-              uso o propiedad. El costo de los mensajes enviados será asumido por COOPERAMIGÓ.
+              En cumplimiento de las disposiciones legales vigentes, en particular las normas que regulan el Sistema de Administración del Riesgo de Lavado de Activos y Financiamiento del Terrorismo <strong>(SARLAFT)</strong>, declaro a COOPERAMIGÓ, bajo mi responsabilidad personal y con plena conciencia de las consecuencias legales que implica una declaración falsa, que los recursos, fondos y bienes de mi propiedad o a mi disposición provienen exclusivamente de actividades lícitas descritas en el presente formulario.
             </p>
             <p :style="{ marginBottom: 'var(--sp-md)' }">
-              En cumplimiento de las normas legales, declaro a COOPERAMIGÓ bajo la gravedad de juramento que
-              los fondos y bienes que poseemos provienen de las actividades lícitas descritas en el presente
-              formulario. Así mismo, declaro que no admitiré que terceros efectúen depósitos en mis cuentas con
-              fondos de actividades ilícitas y no efectuaré transacciones destinadas a dichas actividades
-              contempladas en el Código Penal Colombiano, en el Sistema de Administración del Riesgo de Lavado de Activo y Financiamiento del Terrorismo <strong>(SARLAFT)</strong> o en cualquier norma que lo modifique o adicione.
+              Así mismo, declaro que no permitiré que terceros efectúen depósitos en mis cuentas con fondos provenientes de actividades ilícitas, y que no realizaré transacciones destinadas a tales actividades, conforme a lo establecido en el Código Penal Colombiano y en las normas que regulan el SARLAFT o cualquier disposición que las modifique, sustituya o adicione.
             </p>
             <p :style="{ marginBottom: 'var(--sp-md)' }">
-              De igual modo, autorizo a COOPERAMIGÓ para verificar y reportar a las entidades competentes toda la información suministrada, declarando ser verídica y legal.
+              Autorizo a COOPERAMIGÓ para verificar y reportar a las entidades competentes la información suministrada en este formulario, la cual declaro ser veraz, completa y legal.
+            </p>
+
+            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', marginTop: 'var(--sp-lg)', textAlign: 'left' }">
+              AUTORIZACIÓN DE COMUNICACIONES
             </p>
             <p :style="{ marginBottom: 'var(--sp-md)' }">
-              Autorizo a COOPERAMIGÓ para que, con fines de información, consulte y reporte lo que se refiera al comportamiento financiero, crediticio y comercial en las centrales de riesgo.
+              Autorizo a COOPERAMIGÓ para enviar y/o confirmar información relacionada con operaciones, transacciones, obligaciones crediticias y campañas comerciales de la cooperativa, a través de cualquier medio de comunicación, incluyendo mensajes de texto al número celular y/o correo electrónico registrados como de mi uso o propiedad. El costo de dichas comunicaciones será asumido por COOPERAMIGÓ.
+            </p>
+
+            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', marginTop: 'var(--sp-lg)', textAlign: 'left' }">
+              AUTORIZACIÓN DE CONSULTA Y REPORTE EN CENTRALES DE RIESGO
             </p>
             <p :style="{ marginBottom: 'var(--sp-md)' }">
-              De igual manera autorizo a COOPERAMIGÓ para tratar mis datos personales de acuerdo con la política establecida de <strong>HABEAS DATA</strong> y para los fines relacionados con su objeto social y, en especial, para los fines legales, contractuales y comerciales descritos en la política de tratamiento de la información, publicada en la página web <strong>www.cooperamigo.coop</strong>.
+              Autorizo a COOPERAMIGÓ para consultar y reportar, ante las centrales de riesgo legalmente constituidas, la información que se refiera a mi comportamiento financiero, crediticio y comercial, de conformidad con las disposiciones legales aplicables.
             </p>
-            <p>
-              Si se presentan cambios en los datos consignados, me obligo a informarlos oportunamente a COOPERAMIGÓ
-              y actualizar al menos una vez al año los datos plasmados en esta solicitud de afiliación para asociados.
+
+            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', marginTop: 'var(--sp-lg)', textAlign: 'left' }">
+              AUTORIZACIÓN DE TRATAMIENTO DE DATOS PERSONALES
             </p>
-            <div :style="{ marginTop: 'var(--sp-lg)' }">
-              <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', textAlign: 'left' }">
-                ACLARACIONES
-              </p>
-              <p :style="{ marginBottom: 'var(--sp-md)' }">
-                Autorizo a destruir los documentos anexos solicitados a la solicitud, si vencidos treinta (30) días desde la notificación de su rechazo o aplazamiento, no los hubiere reclamado.
-              </p>
-              <p :style="{ marginBottom: 'var(--sp-md)' }">
-                Manifiesto que al momento de tomar este servicio gozo de buen estado de salud y no presento ninguna enfermedad preexistente. Autorizo a cualquier institución médica que me haya atendido a suministrar mi historia clínica o a la compañía aseguradora que ella asigne.
-              </p>
-              <p :style="{ marginBottom: 'var(--sp-md)' }">
-                Manifiesto que acataré las leyes, estatutos, normas y reglamentos que rigen la Cooperativa. De igual forma acataré las decisiones que, en desarrollo de sus actividades, dicten los organismos encargados de dirección, administración y control.
-              </p>
-            </div>
+            <p :style="{ marginBottom: 'var(--sp-md)' }">
+              Autorizo a COOPERAMIGÓ para tratar mis datos personales de conformidad con su Política de Tratamiento de Datos Personales, disponible en <strong>www.cooperamigo.coop</strong>, y para los fines legales, contractuales y comerciales descritos en dicha política, relacionados con el objeto social de la cooperativa.
+            </p>
+            <p :style="{ marginBottom: 'var(--sp-md)' }">
+              En ejercicio de mis derechos como titular de los datos, podré consultar, actualizar, rectificar o solicitar la supresión de mis datos personales a través de los canales habilitados por COOPERAMIGÓ.
+            </p>
+
+            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', marginTop: 'var(--sp-lg)', textAlign: 'left' }">
+              OBLIGACIÓN DE ACTUALIZACIÓN
+            </p>
+            <p :style="{ marginBottom: 'var(--sp-md)' }">
+              Me comprometo a informar oportunamente a COOPERAMIGÓ cualquier cambio en los datos consignados en esta solicitud, y a actualizarlos al menos una vez al año a través de los canales dispuestos para tal fin: oficinas físicas, plataforma virtual o aplicación móvil de la cooperativa.
+            </p>
+
+            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', marginTop: 'var(--sp-lg)', textAlign: 'left' }">
+              DECLARACIÓN DE ESTADO DE SALUD
+            </p>
+            <p :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontStyle: 'italic', marginBottom: 'var(--sp-sm)' }">
+              Aplica exclusivamente para efectos del seguro de vida asociado y/o fondo de solidaridad.
+            </p>
+            <p :style="{ marginBottom: 'var(--sp-md)' }">
+              Manifiesto que al momento de la presente afiliación gozo de buen estado de salud y no presento enfermedades preexistentes que no hayan sido declaradas. Autorizo a cualquier institución médica que me haya atendido a suministrar mi historia clínica a la compañía aseguradora designada por COOPERAMIGÓ, en los términos y para los fines del seguro o amparo correspondiente.
+            </p>
+
+            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', marginTop: 'var(--sp-lg)', textAlign: 'left' }">
+              DISPOSICIÓN DE DOCUMENTOS ANEXOS
+            </p>
+            <p :style="{ marginBottom: 'var(--sp-md)' }">
+              Autorizo a COOPERAMIGÓ para proceder a la destrucción de los documentos físicos anexados a esta solicitud, en caso de que, vencidos treinta (30) días calendario contados desde la notificación formal de su rechazo o aplazamiento —realizada a través del correo electrónico o medio de contacto registrado—, no hubieren sido reclamados por el solicitante.
+            </p>
+
+            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', marginTop: 'var(--sp-lg)', textAlign: 'left' }">
+              ACEPTACIÓN DE NORMAS INTERNAS
+            </p>
+            <p :style="{ marginBottom: 'var(--sp-md)' }">
+              Manifiesto que conozco y acataré las leyes, estatutos, reglamentos internos y demás normas que rigen a COOPERAMIGÓ, así como las decisiones que, en el ejercicio de sus funciones, adopten los organismos de dirección, administración y control de la cooperativa.
+            </p>
           </div>
 
           <div :style="estiloSubtituloCentrado(isMobile)">Documentos requeridos</div>
@@ -2442,6 +2489,7 @@ onBeforeUnmount(() => {
               campo="afiliacion_cedula"
               label="Cédula de ciudadanía"
               :required="true"
+              sin-pdf
               :initial-url="documentos.doc_cedula_solicitante_url"
               @completado="documentos.doc_cedula_solicitante_url = $event"
             />
@@ -2512,39 +2560,18 @@ onBeforeUnmount(() => {
             gap: 'var(--sp-lg)',
             marginBottom: 'var(--sp-xl)',
           }">
-            <div :style="{ 
-              display: 'grid', 
-              gridTemplateColumns: isMobile ? '1fr' : (declaraciones.tuvo_asesoria === true ? '1fr 70px 70px 140px' : '1fr 70px 70px'), 
-              gap: 'var(--sp-md)', 
-              alignItems: 'center' 
-            }">
-              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)' }">
-                ¿Tuvo acompañamiento de un asesor para diligenciar la solicitud? *
+            <div :style="{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 'var(--sp-md)', flexWrap: 'wrap' }">
+              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', flex: '1', minWidth: '180px' }">
+                ¿Tuvo acompañamiento de un asesor{{ isMobile ? '?' : ' para diligenciar la solicitud?' }}
               </div>
-              <div :style="{ minWidth: '0' }">
-                <CampoCheck
-                  :model-value="declaraciones.tuvo_asesoria === true"
-                  label="Sí"
-                  @update:model-value="(v) => { declaraciones.tuvo_asesoria = v ? true : null; if (!v) declaraciones.codigo_asesor = '' }"
-                />
-              </div>
-              <div :style="{ minWidth: '0' }">
-                <CampoCheck
-                  :model-value="declaraciones.tuvo_asesoria === false"
-                  label="No"
-                  @update:model-value="(v) => { declaraciones.tuvo_asesoria = v ? false : null; if (v) declaraciones.codigo_asesor = '' }"
-                />
-              </div>
-              <div v-if="declaraciones.tuvo_asesoria === true" :style="{ minWidth: '0' }">
-                <CampoTexto
-                  v-model="declaraciones.codigo_asesor"
-                  label="Código del asesor"
-                  placeholder="00000"
-                  required
-                  solo-numeros
-                  :maxlength="5"
-                />
-              </div>
+              <label :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', cursor: 'pointer', userSelect: 'none', flexShrink: '0' }">
+                <input type="checkbox" :checked="declaraciones.tuvo_asesoria === true" :style="{ display: 'none' }" @change="() => { declaraciones.tuvo_asesoria = declaraciones.tuvo_asesoria === true ? null : true; if (declaraciones.tuvo_asesoria !== true) declaraciones.codigo_asesor = '' }" />
+                <span :style="{ width: '36px', height: '20px', borderRadius: '999px', background: declaraciones.tuvo_asesoria === true ? 'var(--color-primary)' : 'var(--color-border)', position: 'relative', transition: 'background var(--transition-fast)', flexShrink: '0' }">
+                  <span :style="{ position: 'absolute', top: '2px', left: declaraciones.tuvo_asesoria === true ? '18px' : '2px', width: '16px', height: '16px', borderRadius: '50%', background: '#fff', transition: 'left var(--transition-fast)' }" />
+                </span>
+                <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: declaraciones.tuvo_asesoria === true ? 'var(--color-primary)' : 'var(--color-text-3)' }">{{ declaraciones.tuvo_asesoria === true ? 'Sí' : 'No' }}</span>
+              </label>
+              <CampoTexto v-if="declaraciones.tuvo_asesoria === true" v-model="declaraciones.codigo_asesor" label="Código del asesor" placeholder="00000" required solo-numeros :maxlength="5" />
             </div>
           </div>
 
@@ -2652,7 +2679,7 @@ onBeforeUnmount(() => {
           <div :style="{ borderRadius: 'var(--r-lg)', border: '2px solid var(--color-primary)', overflow: 'hidden', marginTop: 'var(--sp-xl)' }">
             <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconShieldCheck :size="18" style="color: white;" />
-              <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'white' }">Firma electrónica de la solicitud</span>
+              <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'white' }">Firma y ratificación de la solicitud</span>
             </div>
             <div :style="{ padding: 'var(--sp-xl)', background: 'white', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
 
@@ -2663,17 +2690,18 @@ onBeforeUnmount(() => {
               <CampoTexto
                 label="Nombre completo del solicitante"
                 placeholder="TAL CUAL APARECE EN SU CÉDULA"
+                uppercase
                 :model-value="firma.nombre_firma"
                 @update:model-value="firma.nombre_firma = $event"
               />
 
               <div :style="{ display: 'flex', gap: '6px', flexWrap: 'wrap' }">
                 <button type="button" @click="firmaMetodo = 'dibujar'" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (firmaMetodo === 'dibujar' ? 'var(--color-primary)' : 'var(--color-border)'), background: firmaMetodo === 'dibujar' ? 'rgba(17,76,90,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'dibujar' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Firmar en pantalla</button>
-                <button type="button" @click="firmaMetodo = 'subir'" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-border)'), background: firmaMetodo === 'subir' ? 'rgba(17,76,90,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Cargar firma</button>
+                <button type="button" @click="firmaMetodo = 'subir'; mostrarModalSubirFirma = true" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-border)'), background: firmaMetodo === 'subir' ? 'rgba(17,76,90,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Cargar firma</button>
               </div>
 
               <div v-if="firmaMetodo === 'dibujar'" :style="{ display: 'flex', flexDirection: 'column', gap: '8px' }">
-                <div :style="{ border: '1px solid var(--color-border)', borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'white' }">
+                <div :style="{ border: '1px solid var(--color-border)', borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'white', position: 'relative' }">
                   <canvas
                     ref="firmaCanvasRef"
                     width="720"
@@ -2687,30 +2715,71 @@ onBeforeUnmount(() => {
                     @touchmove.prevent="moverFirmaDibujo"
                     @touchend="terminarFirmaDibujo"
                   />
-                </div>
-                <div :style="{ display: 'flex', justifyContent: 'flex-end' }">
-                  <PortalButton variant="secondary" @click="limpiarFirmaDibujo()">Limpiar</PortalButton>
+                  <button
+                    @click="limpiarFirmaDibujo()"
+                    :style="{
+                      position: 'absolute', top: '8px', right: '8px',
+                      width: '28px', height: '28px', borderRadius: '50%',
+                      background: 'rgba(23,43,54,0.08)', border: 'none',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', color: 'var(--color-text-3)',
+                      transition: 'all var(--transition-fast)',
+                    }"
+                    title="Limpiar"
+                    @mouseenter="e => e.currentTarget.style.background = 'rgba(23,43,54,0.16)'"
+                    @mouseleave="e => e.currentTarget.style.background = 'rgba(23,43,54,0.08)'"
+                  >
+                    <IconX :size="14" />
+                  </button>
                 </div>
               </div>
 
-              <div v-if="firmaMetodo === 'subir'" :style="{ display: 'flex', flexDirection: 'column', gap: '8px' }">
-                <div :style="{ border: '1px dashed var(--color-border)', borderRadius: 'var(--r-md)', padding: '10px 12px', background: 'var(--color-bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)', flexWrap: 'wrap' }">
-                  <div :style="{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '180px' }">
-                    <div :style="{ fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Archivo de firma</div>
-                    <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: firmaArchivoNombre ? 'var(--color-text-1)' : 'var(--color-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? '100%' : '340px' }">
-                      {{ firmaArchivoNombre || 'Cargue un archivo .png o .jpg con fondo preferiblemente blanco' }}
-                    </div>
-                  </div>
-                  <PortalButton variant="secondary" @click="seleccionarFirmaArchivo()">Seleccionar archivo</PortalButton>
-                  <input ref="firmaFileRef" type="file" accept="image/png,image/jpeg" :style="{ display: 'none' }" @change="cargarFirmaImagen" />
-                </div>
-                <div v-if="firmaImagen" :style="{ border: '1px solid var(--color-border)', borderRadius: 'var(--r-md)', padding: '10px', background: 'white', display: 'flex', flexDirection: 'column', gap: '6px' }">
+              <!-- Input oculto permanente -->
+              <input ref="firmaFileRef" type="file" accept="image/png,image/jpeg" :style="{ display: 'none' }" @change="cargarFirmaImagen" />
+
+              <!-- Preview tras seleccionar imagen -->
+              <div v-if="firmaMetodo === 'subir' && firmaImagen" :style="{ display: 'flex', flexDirection: 'column', gap: '8px' }">
+                <div :style="{ border: '1px solid var(--color-border)', borderRadius: 'var(--r-md)', padding: '10px', background: 'white', display: 'flex', flexDirection: 'column', gap: '6px' }">
                   <div :style="{ fontSize: '10px', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-3)', textTransform: 'uppercase' }">Previsualización</div>
                   <img :src="firmaImagen" alt="Previsualización de firma" :style="{ maxHeight: '140px', maxWidth: '100%', objectFit: 'contain', display: 'block', margin: '0 auto' }" />
                 </div>
+                <button class="btn-cambiar-firma" @click="mostrarModalSubirFirma = true">
+                  <IconUpload :size="13" /> Cambiar imagen
+                </button>
               </div>
 
-              <div v-if="firmaSolicitanteAplicada" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', padding: 'var(--sp-sm) var(--sp-md)', borderRadius: 'var(--r-md)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success)' }">
+              <!-- Modal: cargar firma -->
+              <Teleport to="body">
+                <Transition name="fade-modal">
+                  <div v-if="mostrarModalSubirFirma" class="firma-upload-overlay" @click.self="mostrarModalSubirFirma = false">
+                    <div class="firma-upload-modal">
+                      <div class="firma-upload-header">
+                        <span class="firma-upload-titulo">Cargar firma</span>
+                        <button class="firma-upload-close" @click="mostrarModalSubirFirma = false">
+                          <IconX :size="18" />
+                        </button>
+                      </div>
+                      <div class="firma-upload-body">
+                        <div class="firma-upload-aviso">
+                          <IconAlertTriangle :size="15" class="firma-upload-aviso-icon" />
+                          <ol class="firma-upload-aviso-list">
+                            <li>Los formatos permitidos son .png y .jpg</li>
+                            <li>Cargue únicamente la imagen de su firma manuscrita. La firma debe corresponder a su firma personal habitual y permitir su identificación. Las solicitudes que contengan firmas inválidas, alteradas, digitalizadas de forma no autorizada o que no correspondan al titular serán rechazadas automáticamente.</li>
+                          </ol>
+                        </div>
+                      </div>
+                      <div class="firma-upload-footer">
+                        <button class="firma-upload-btn" @click="seleccionarFirmaArchivo()">
+                          <IconUpload :size="15" />
+                          <span>Seleccionar archivo</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </Transition>
+              </Teleport>
+
+              <div v-if="firmaSolicitanteAplicada" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', padding: 'var(--sp-sm) var(--sp-md)', borderRadius: 'var(--r-md)', background: 'var(--color-success-bg)' }">
                 <IconCircleCheck :size="16" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
                 <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-success-text)' }">Firma registrada el {{ formatearFecha(firma.firma_fecha_iso) }}</span>
               </div>
@@ -2718,6 +2787,7 @@ onBeforeUnmount(() => {
               <PortalButton
                 variant="primary"
                 :full="true"
+                pill
                 :loading="loading"
                 :disabled="!firma?.nombre_firma || !firmaImagen"
                 @click="firmarYEnviar()"
@@ -2749,6 +2819,7 @@ onBeforeUnmount(() => {
           <PortalButton
             variant="secondary"
             :full="isMobile"
+            pill
             @click="paso > 1 ? irAPaso(paso - 1) : router.push('/')"
           >
             {{ paso === 1 ? 'Cancelar' : 'Anterior' }}
@@ -2759,15 +2830,18 @@ onBeforeUnmount(() => {
             :disabled="!pasoValido"
             :loading="loading"
             :full="isMobile"
+            pill
             @click="irAPaso(paso + 1)"
           >
             Siguiente
           </PortalButton>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
+        </div><!-- /nav buttons -->
+      </div><!-- /padding -->
+    </div><!-- /card -->
+          </div><!-- /formulario-content -->
+        </div><!-- /formulario-layout -->
+      </div><!-- /af-form-activo -->
+    </template>
 
     <!-- Modal OTP -->
     <ModalOtpEmail
@@ -2784,69 +2858,47 @@ onBeforeUnmount(() => {
       <Transition :name="isMobile ? 'sheet-modal' : 'fade-modal'">
         <div
           v-if="mostrarModalYaAsociado"
-          :style="{
-            position: 'fixed', inset: '0', zIndex: '60',
-            display: 'flex',
-            alignItems: isMobile ? 'flex-end' : 'center',
-            justifyContent: 'center',
-            padding: isMobile ? '0' : 'var(--sp-lg)',
-          }"
+          class="ya-asociado-overlay"
+          @click.self="mostrarModalYaAsociado = false"
         >
-          <div :style="{
-            position: 'absolute', inset: '0',
-            background: 'rgba(23,43,54,0.5)',
-            backdropFilter: 'blur(3px)',
-          }" @click="mostrarModalYaAsociado = false" />
+          <div class="ya-asociado-backdrop" @click="mostrarModalYaAsociado = false" />
 
-          <div :style="{
-            position: 'relative',
-            width: '100%',
-            maxWidth: isMobile ? '100%' : '440px',
-            background: 'var(--color-bg-card)',
-            borderRadius: isMobile ? 'var(--r-md) var(--r-md) 0 0' : 'var(--r-md)',
-            boxShadow: 'var(--shadow-modal)',
-            padding: isMobile ? 'var(--sp-md) var(--sp-lg) var(--sp-2xl)' : 'var(--sp-2xl)',
-          }">
-            <div v-if="isMobile" :style="{
-              width: '40px', height: '4px', borderRadius: 'var(--r-pill)',
-              background: 'var(--color-border)', margin: '0 auto var(--sp-lg)',
-            }" />
-            <div :style="{
-              width: '64px', height: '64px', borderRadius: '50%',
-              background: 'var(--color-success-bg)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto var(--sp-lg)',
-            }">
-              <IconUserCheck :size="30" :style="{ color: 'var(--color-success)' }" />
-            </div>
-            <div :style="{ textAlign: 'center', marginBottom: 'var(--sp-xl)' }">
-              <div :style="{
-                fontFamily: 'var(--font-display)',
-                fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-extrabold)',
-                color: 'var(--color-text-1)', marginBottom: 'var(--sp-sm)',
-              }">¡Ya haces parte de Cooperamigó!</div>
-              <div :style="{
-                fontSize: 'var(--text-base)', color: 'var(--color-text-2)',
-                fontWeight: 'var(--fw-medium)', lineHeight: '1.6',
-              }">
-                El documento <strong :style="{ color: 'var(--color-text-1)' }">{{ numeroDocumentoInicial }}</strong> ya está vinculado como asociado activo de nuestra Cooperativa.
-                <br><br>
-                Puedes comunicarte al correo electrónico <span :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)' }">bienestarsocial@cooperamigo.coop</span> o al contacto <span :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)' }">304 455 0161</span> para obtener más información.
+          <div class="ya-asociado-card">
+
+            <!-- Handle móvil -->
+            <div v-if="isMobile" class="ya-asociado-handle" />
+
+            <!-- Header -->
+            <div class="ya-asociado-header">
+              <div class="ya-asociado-check">
+                <IconUserCheck :size="28" />
+              </div>
+              <div :style="{ display: 'flex', flexDirection: 'column', gap: '4px' }">
+                <h2 class="ya-asociado-titulo">¡Ya haces parte de Cooperamigó!</h2>
+                <p class="ya-asociado-subtitulo">Asociado activo</p>
               </div>
             </div>
-            <div :style="{
-              display: 'flex',
-              flexDirection: isMobile ? 'column' : 'row',
-              justifyContent: isMobile ? 'stretch' : 'flex-end',
-              gap: 'var(--sp-sm)',
-            }">
-              <PortalButton variant="secondary" :full="isMobile" @click="mostrarModalYaAsociado = false">
+
+            <!-- Cuerpo -->
+            <div class="ya-asociado-cuerpo">
+              <p class="ya-asociado-texto">
+                El documento <strong :style="{ color: 'var(--color-text-1)', fontWeight: 'var(--fw-bold)' }">{{ numeroDocumentoInicial }}</strong> ya está vinculado como asociado activo de nuestra Cooperativa.
+              </p>
+              <p class="ya-asociado-texto">
+                Puedes comunicarte al correo electrónico <span :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)' }">bienestarsocial@cooperamigo.coop</span> o al contacto <span :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)' }">304 455 0161</span> para obtener más información.
+              </p>
+            </div>
+
+            <!-- Botones -->
+            <div class="ya-asociado-footer">
+              <PortalButton variant="secondary" :full="isMobile" pill @click="mostrarModalYaAsociado = false">
                 Volver
               </PortalButton>
-              <PortalButton variant="primary" :full="isMobile" @click="router.push('/solicitar-credito')">
+              <PortalButton variant="primary" :full="isMobile" pill @click="router.push('/solicitar-credito')">
                 Solicitar crédito
               </PortalButton>
             </div>
+
           </div>
         </div>
       </Transition>
@@ -3060,6 +3112,25 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
+@media (max-width: 767px) {
+  .paso0-container {
+    padding: 26px;
+    border-radius: 16px;
+  }
+
+  .paso0-layout {
+    padding: 0;
+  }
+
+  .paso0-verify-btn {
+    width: auto;
+    align-self: flex-end;
+    padding: 0 8px 0 20px;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+}
+
 @media (min-width: 768px) {
   .paso0-wrapper {
     width: 100%;
@@ -3080,8 +3151,671 @@ onBeforeUnmount(() => {
   }
 
   .paso0-verify-btn {
-      width: 50%;
-      margin: 0 0 0 auto;
-    }
+    width: 50%;
+    margin: 0 0 0 auto;
+  }
+}
+
+/* ─── Borrador: pantalla de retomar solicitud ─── */
+.borrador-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-lg);
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 40px 32px;
+  box-sizing: border-box;
+}
+
+.borrador-icono {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.borrador-titulo {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--fw-extrabold);
+  color: var(--color-text-1);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.borrador-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-2);
+  font-weight: var(--fw-medium);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.borrador-fecha {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--color-bg-surface-alt);
+  border-radius: var(--r-pill);
+  padding: 5px 12px;
+  font-size: var(--text-xs);
+  color: var(--color-text-2);
+  font-weight: var(--fw-medium);
+  text-align: center;
+  line-height: 1.4;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.borrador-fecha strong {
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-1);
+}
+
+.borrador-btn-continuar {
+  width: 100%;
+  height: 52px;
+  border-radius: var(--r-pill);
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--fw-semibold);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  box-shadow: var(--shadow-btn);
+  transition: all var(--transition-base);
+  margin-top: var(--sp-sm);
+}
+
+.borrador-btn-continuar span:first-child {
+  flex: 1;
+  text-align: center;
+}
+
+.borrador-btn-continuar:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+.borrador-btn-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform var(--transition-base);
+}
+
+.borrador-btn-continuar:hover .borrador-btn-circle {
+  transform: translateX(2px);
+}
+
+.borrador-btn-reset {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  color: var(--color-text-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 0;
+  transition: color var(--transition-fast);
+}
+
+.borrador-btn-reset:hover {
+  color: var(--color-text-2);
+}
+
+@media (min-width: 768px) {
+  .borrador-wrapper {
+    max-width: 480px;
+    margin: 0 0 0 auto;
+  }
+}
+
+/* ─── Firma: modal cargar y botones ─── */
+.firma-upload-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(23, 43, 54, 0.5);
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.firma-upload-modal {
+  background: var(--color-bg-card);
+  border-radius: var(--r-xl);
+  width: 100%;
+  max-width: 400px;
+  box-shadow: var(--shadow-modal);
+  overflow: hidden;
+}
+
+.firma-upload-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-lg) var(--sp-xl);
+  border-bottom: 1px solid var(--color-border-card);
+}
+
+.firma-upload-titulo {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--fw-bold);
+  color: var(--color-text-1);
+}
+
+.firma-upload-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-3);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: var(--r-md);
+  transition: color var(--transition-fast);
+}
+.firma-upload-close:hover { color: var(--color-text-1); }
+
+.firma-upload-body {
+  padding: var(--sp-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-lg);
+}
+
+.firma-upload-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-sm);
+  padding: var(--sp-md);
+  background: var(--color-warning-bg);
+  border-radius: var(--r-md);
+}
+
+.firma-upload-aviso-icon {
+  color: var(--color-warning-text);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.firma-upload-aviso-list {
+  font-size: var(--text-xs);
+  color: var(--color-warning-text);
+  font-weight: var(--fw-medium);
+  line-height: 1.6;
+  margin: 0;
+  padding-left: 16px;
+  list-style-type: decimal;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.firma-upload-aviso-list li { display: list-item; }
+
+.firma-upload-footer {
+  padding: var(--sp-lg) var(--sp-xl);
+  border-top: 1px solid var(--color-border-card);
+  background: var(--color-bg-surface);
+}
+
+.firma-upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-sm);
+  width: 100%;
+  height: 48px;
+  border-radius: var(--r-pill);
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--fw-semibold);
+  box-shadow: var(--shadow-btn);
+  transition: all var(--transition-base);
+}
+.firma-upload-btn:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-cambiar-firma {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-pill);
+  padding: 6px var(--sp-lg);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-2);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  align-self: flex-start;
+}
+.btn-cambiar-firma:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* ─── Layout formulario afiliación ─── */
+:deep(.portal-main__inner) {
+  max-width: 1020px;
+}
+
+.af-form-activo {
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 960px) {
+  .af-form-activo {
+    padding-top: var(--sp-xl);
+  }
+}
+
+.step-indicator-mobile {
+  padding: var(--sp-md) 0 var(--sp-sm);
+  width: 100%;
+}
+
+@media (min-width: 961px) {
+  .step-indicator-mobile {
+    display: none;
+  }
+}
+
+.formulario-layout {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 24px 32px 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+@media (max-width: 960px) {
+  .formulario-layout {
+    border-radius: 16px;
+    padding: 20px 16px 28px;
+    flex-direction: column;
+  }
+
+  :deep(.portal-main__inner) {
+    max-width: 800px;
+  }
+}
+
+.formulario-sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 32px;
+  align-self: flex-start;
+  padding-right: var(--sp-2xl);
+}
+
+.formulario-sidebar-inner {
+  padding-top: 0;
+}
+
+.sidebar-proceso-label {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-3);
+  margin: 0 0 var(--sp-lg) 0;
+}
+
+.formulario-content {
+  flex: 1;
+  min-width: 0;
+  max-width: 800px;
+}
+
+@media (max-width: 960px) {
+  .formulario-sidebar {
+    display: none;
+  }
+
+  .formulario-content {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+/* ─── Pantalla de éxito afiliación ─── */
+.af-exito-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 48px 220px;
+  overflow-y: auto;
+}
+
+@media (max-width: 767px) {
+  .af-exito-wrap {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .af-exito-card {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92dvh;
+    overflow-y: auto;
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  }
+
+  .af-exito-header {
+    padding: 20px 24px 16px;
+    gap: var(--sp-sm);
+  }
+
+  .af-exito-check {
+    width: 44px;
+    height: 44px;
+  }
+
+  .af-exito-titulo {
+    font-size: var(--text-lg);
+    text-align: left;
+  }
+
+  .af-exito-nota-titulo {
+    text-align: left;
+  }
+}
+
+.af-exito-card {
+  width: 100%;
+  max-width: 480px;
+  min-height: 480px;
+  background: var(--color-bg-card);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.10);
+  display: flex;
+  flex-direction: column;
+}
+
+.af-exito-header {
+  background: var(--color-primary);
+  padding: 24px 32px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-sm);
+}
+
+.af-exito-check {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.af-exito-titulo {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--fw-extrabold);
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.af-exito-subtitulo {
+  font-size: var(--text-sm);
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.af-exito-cuerpo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.af-exito-nota {
+  margin: 0 var(--sp-2xl) var(--sp-xl);
+  font-size: var(--text-sm);
+  color: var(--color-text-3);
+  line-height: 1.6;
+  padding: var(--sp-md);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+
+.af-exito-nota-titulo {
+  font-size: var(--text-base);
+  font-weight: var(--fw-bold);
+  color: var(--color-text-1);
+  margin: 0;
+  text-align: center;
+}
+
+.af-exito-nota p {
+  margin: 0;
+}
+
+.af-exito-btn {
+  margin: auto var(--sp-2xl) var(--sp-2xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-sm);
+  width: calc(100% - var(--sp-2xl) * 2);
+  height: 48px;
+  border-radius: var(--r-pill);
+  background: var(--color-primary);
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--fw-bold);
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.af-exito-btn:hover {
+  background: var(--color-primary-dark);
+  box-shadow: 0 4px 16px rgba(17, 76, 90, 0.25);
+}
+
+.af-exito-btn:hover .af-exito-btn-circle {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.af-exito-btn-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+
+/* ─── Modal: ya asociado ─── */
+.ya-asociado-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-lg);
+}
+
+.ya-asociado-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(23, 43, 54, 0.5);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.ya-asociado-card {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background: var(--color-bg-card);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.10);
+  display: flex;
+  flex-direction: column;
+}
+
+.ya-asociado-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.4);
+  margin: 14px auto 0;
+}
+
+.ya-asociado-header {
+  background: var(--color-primary);
+  padding: 24px 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-sm);
+  text-align: center;
+}
+
+.ya-asociado-check {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.ya-asociado-titulo {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--fw-extrabold);
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.ya-asociado-subtitulo {
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ya-asociado-cuerpo {
+  padding: var(--sp-xl) var(--sp-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-md);
+}
+
+.ya-asociado-texto {
+  font-size: var(--text-sm);
+  color: var(--color-text-2);
+  font-weight: var(--fw-medium);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.ya-asociado-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-sm);
+  padding: 0 var(--sp-2xl) var(--sp-2xl);
+}
+
+@media (max-width: 767px) {
+  .ya-asociado-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .ya-asociado-card {
+    max-width: 100%;
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+  }
+
+  .ya-asociado-header {
+    padding: 0 24px 16px;
+  }
+
+  .ya-asociado-cuerpo {
+    padding: var(--sp-lg) var(--sp-xl);
+  }
+
+  .ya-asociado-footer {
+    flex-direction: column;
+    padding: 0 var(--sp-xl) var(--sp-lg);
+  }
 }
 </style>
