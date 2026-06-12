@@ -184,6 +184,7 @@ export function useAfiliacion() {
     es_contratista_estado: null,
     es_lider_politico: null,
     autoriza_tratamiento_datos: null,
+    fecha_autorizacion_datos: null,
     tuvo_asesoria: null,
     codigo_asesor: '',
   })
@@ -857,8 +858,22 @@ export function useAfiliacion() {
         es_contratista_estado:            dc.es_contratista_estado === true,
         es_lider_politico:                dc.es_lider_politico === true,
         autoriza_tratamiento_datos:       dc.autoriza_tratamiento_datos === true,
+        fecha_autorizacion_datos:         dc.autoriza_tratamiento_datos === true ? (dc.fecha_autorizacion_datos || new Date().toISOString()) : null,
         tuvo_acompanamiento_asesor:       dc.tuvo_asesoria === true,
         codigo_asesor:                    dc.tuvo_asesoria === true ? dc.codigo_asesor : null,
+        // Firma electrónica del solicitante
+        ...(firma.value?.firma_imagen_dataurl ? {
+          firmas: {
+            firma_solicitante:        firma.value.firma_imagen_dataurl,
+            nombre_firma:             firma.value.nombre_firma || '',
+            firma_metodo:             firma.value.firma_metodo || '',
+            firma_hash:               firma.value.firma_hash || '',
+            firma_fecha_iso:          firma.value.firma_fecha_iso || '',
+            firma_ip_publica:         firma.value.firma_ip_publica || '',
+            firma_transaccion_id:     firma.value.firma_transaccion_id || '',
+            firma_doc_hash_sha256:    firma.value.firma_doc_hash_sha256 || '',
+          },
+        } : {}),
       })
 
       await registrarIntento(supabase, datosPersonales.value.cedula, 'afiliacion')
@@ -1036,6 +1051,7 @@ export function useAfiliacion() {
       es_contratista_estado: null,
       es_lider_politico: null,
       autoriza_tratamiento_datos: null,
+      fecha_autorizacion_datos: null,
       tuvo_asesoria: null,
       codigo_asesor: '',
     }

@@ -2662,14 +2662,14 @@ onBeforeUnmount(() => {
                 <CampoCheck
                   :model-value="declaraciones.autoriza_tratamiento_datos === true"
                   label="Sí"
-                  @update:model-value="() => { declaraciones.autoriza_tratamiento_datos = true }"
+                  @update:model-value="() => { declaraciones.autoriza_tratamiento_datos = true; declaraciones.fecha_autorizacion_datos = new Date().toISOString() }"
                 />
               </div>
               <div :style="{ minWidth: '0' }">
                 <CampoCheck
                   :model-value="declaraciones.autoriza_tratamiento_datos === false"
                   label="No"
-                  @update:model-value="() => { declaraciones.autoriza_tratamiento_datos = false }"
+                  @update:model-value="() => { declaraciones.autoriza_tratamiento_datos = false; declaraciones.fecha_autorizacion_datos = null }"
                 />
               </div>
             </div>
