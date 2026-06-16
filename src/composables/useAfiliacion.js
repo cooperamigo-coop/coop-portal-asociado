@@ -789,6 +789,8 @@ export function useAfiliacion() {
         // Snapshot personal
         tipo_identificacion:             dpSnap.tipo_identificacion,
         fecha_expedicion:                dpSnap.fecha_expedicion || null,
+        lugar_expedicion:                dpSnap.lugar_expedicion || null,
+        lugar_expedicion_ubicacion:      dpSnap.lugar_expedicion_ubicacion || null,
         nacionalidad:                    dpSnap.nacionalidad || null,
         lugar_nacimiento:                dpSnap.lugar_nacimiento || null,
         rh:                              dpSnap.rh || null,
@@ -874,6 +876,13 @@ export function useAfiliacion() {
             firma_doc_hash_sha256:    firma.value.firma_doc_hash_sha256 || '',
           },
         } : {}),
+        // URLs de documentos cargados por el asociado
+        ...(documentos.value.doc_cedula_solicitante_url
+          ? { doc_cedula_url: documentos.value.doc_cedula_solicitante_url }
+          : {}),
+        ...(documentos.value.doc_soporte_ingresos_laboral_url
+          ? { doc_soporte_ingresos_url: documentos.value.doc_soporte_ingresos_laboral_url }
+          : {}),
       })
 
       await registrarIntento(supabase, datosPersonales.value.cedula, 'afiliacion')
