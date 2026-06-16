@@ -295,6 +295,8 @@ const spanFull = { gridColumn: '1 / -1' }
 
 const modalLugarNacimientoVisible = ref(false)
 const tempLugarNacimiento = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
+const modalLugarExpedicionVisible = ref(false)
+const tempLugarExpedicion = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
 const modalLugarExpedicionConyugeVisible = ref(false)
 const tempLugarExpedicionConyuge = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
 const modalDireccionVisible = ref(false)
@@ -306,6 +308,12 @@ const lugarNacimientoFormateado = computed(() => {
   return `${u.municipio_nombre} (${u.depto_nombre})`.toUpperCase()
 })
 
+const lugarExpedicionFormateado = computed(() => {
+  const u = datosPersonales.value?.lugar_expedicion_ubicacion
+  if (!u?.municipio_nombre || !u?.depto_nombre) return datosPersonales.value?.lugar_expedicion || ''
+  return `${u.municipio_nombre} (${u.depto_nombre})`.toUpperCase()
+})
+
 const lugarExpedicionConyugeFormateado = computed(() => {
   const u = datosConyuge.value?.lugar_expedicion_ubicacion
   if (!u?.municipio_nombre || !u?.depto_nombre) return datosConyuge.value?.lugar_expedicion || ''
@@ -314,6 +322,11 @@ const lugarExpedicionConyugeFormateado = computed(() => {
 
 const puedeGuardarLugarNacimiento = computed(() => {
   const u = tempLugarNacimiento.value
+  return !!(u?.depto_codigo && u?.municipio_codigo)
+})
+
+const puedeGuardarLugarExpedicion = computed(() => {
+  const u = tempLugarExpedicion.value
   return !!(u?.depto_codigo && u?.municipio_codigo)
 })
 
@@ -339,6 +352,17 @@ function confirmarLugarNacimiento() {
   datosPersonales.value.lugar_nacimiento_ubicacion = { ...tempLugarNacimiento.value }
   datosPersonales.value.lugar_nacimiento = lugarNacimientoFormateado.value
   modalLugarNacimientoVisible.value = false
+}
+
+function abrirLugarExpedicion() {
+  tempLugarExpedicion.value = { ...(datosPersonales.value?.lugar_expedicion_ubicacion || {}) }
+  modalLugarExpedicionVisible.value = true
+}
+function confirmarLugarExpedicion() {
+  if (!puedeGuardarLugarExpedicion.value) return
+  datosPersonales.value.lugar_expedicion_ubicacion = { ...tempLugarExpedicion.value }
+  datosPersonales.value.lugar_expedicion = lugarExpedicionFormateado.value
+  modalLugarExpedicionVisible.value = false
 }
 
 function abrirLugarExpedicionConyuge() {
@@ -1398,6 +1422,25 @@ onBeforeUnmount(() => {
                       :max-year="new Date().getFullYear()"
                       @update:model-value="datosPersonales.fecha_expedicion = $event"
                     />
+                    <div :style="{ position: 'relative' }">
+                      <CampoTexto
+                        :model-value="lugarExpedicionFormateado"
+                        label="Ciudad de expedición"
+                        placeholder="Seleccione municipio y departamento"
+                        required
+                        disabled
+                      />
+                      <button
+                        type="button"
+                        :style="{
+                          position: 'absolute', inset: '0',
+                          background: 'transparent', border: 'none',
+                          padding: '0', cursor: 'pointer',
+                        }"
+                        @click="abrirLugarExpedicion"
+                        aria-label="Seleccionar ciudad de expedición"
+                      />
+                    </div>
                     <SelectorFecha
                       :model-value="datosPersonales.fecha_nacimiento"
                       label="Fecha nacimiento"
@@ -1697,6 +1740,77 @@ onBeforeUnmount(() => {
                   }">
                     <PortalButton variant="secondary" pill @click="modalLugarNacimientoVisible = false">Cancelar</PortalButton>
                     <PortalButton variant="primary" pill :disabled="!puedeGuardarLugarNacimiento" @click="confirmarLugarNacimiento">Guardar</PortalButton>
+                  </div>
+                </div>
+              </div>
+            </Transition>
+          </Teleport>
+
+          <!-- Modal lugar expedición documento -->
+          <Teleport to="body">
+            <Transition name="fade-modal">
+              <div v-if="modalLugarExpedicionVisible" :style="{
+                position: 'fixed', inset: '0', zIndex: '75',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 'var(--sp-lg)',
+              }">
+                <div :style="{
+                  position: 'absolute', inset: '0',
+                  background: 'rgba(23,43,54,0.55)',
+                  backdropFilter: 'blur(3px)',
+                }" @click="modalLugarExpedicionVisible = false" />
+                <div role="dialog" aria-modal="true" :style="{
+                  position: 'relative', width: '100%', maxWidth: '640px',
+                  background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)',
+                  boxShadow: 'var(--shadow-modal)',
+                  display: 'flex', flexDirection: 'column',
+                }">
+                  <div :style="{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: 'var(--sp-xl) var(--sp-2xl)',
+                    borderBottom: '1px solid var(--color-border-card)',
+                    background: 'var(--color-bg-card)',
+                    borderRadius: 'var(--r-md) var(--r-md) 0 0',
+                  }">
+                    <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-md)' }">
+                      <div :style="{
+                        width: '36px', height: '36px', borderRadius: '50%',
+                        background: 'var(--color-primary)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }">
+                        <IconMapPin :size="18" style="color: white;" />
+                      </div>
+                      <div>
+                        <div :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)', fontSize: 'var(--text-lg)' }">
+                          Ciudad de expedición
+                        </div>
+                        <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">
+                          Seleccione departamento y municipio
+                        </div>
+                      </div>
+                    </div>
+                    <button :style="{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      padding: 'var(--sp-sm)', borderRadius: 'var(--r-md)',
+                      display: 'flex', alignItems: 'center',
+                    }" @click="modalLugarExpedicionVisible = false">
+                      <IconX :size="20" :style="{ color: 'var(--color-text-3)' }" />
+                    </button>
+                  </div>
+                  <div :style="{ padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-2xl)' }">
+                    <SelectorDeptoMunicipio
+                      :model-value="tempLugarExpedicion"
+                      required
+                      @update:model-value="tempLugarExpedicion = $event"
+                    />
+                  </div>
+                  <div :style="{
+                    padding: 'var(--sp-lg) var(--sp-2xl)',
+                    borderTop: '1px solid var(--color-border-card)',
+                    display: 'flex', gap: 'var(--sp-md)', justifyContent: 'flex-end',
+                  }">
+                    <PortalButton variant="secondary" pill @click="modalLugarExpedicionVisible = false">Cancelar</PortalButton>
+                    <PortalButton variant="primary" pill :disabled="!puedeGuardarLugarExpedicion" @click="confirmarLugarExpedicion">Guardar</PortalButton>
                   </div>
                 </div>
               </div>
