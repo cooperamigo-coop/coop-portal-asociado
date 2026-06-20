@@ -21,6 +21,11 @@ const routes = [
     component: () => import('@/pages/SolicitudAfiliacionPage.vue'),
   },
   {
+    path: '/estado-procesos',
+    name: 'estado-procesos',
+    component: () => import('@/pages/EstadoProcesosPage.vue'),
+  },
+  {
     path: '/captura-movil/:token',
     name: 'captura-movil',
     component: () => import('@/pages/CapturaMovilPage.vue'),
