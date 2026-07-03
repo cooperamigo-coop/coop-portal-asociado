@@ -18,6 +18,18 @@ export async function actualizarCamposAsociado(id, campos) {
   if (error) throw error
 }
 
+// Sincroniza los datos del asociado con lo diligenciado en la solicitud de
+// crédito (RPC SECURITY DEFINER: valida campo por campo, actualiza lo que
+// cambió y nunca sobrescribe con vacío)
+export async function sincronizarDatosAsociadoPortal(cedula, campos) {
+  const { data, error } = await supabase.rpc('sincronizar_datos_asociado_portal', {
+    p_cedula: cedula,
+    p_campos: campos,
+  })
+  if (error) throw error
+  return data
+}
+
 export async function actualizarEmailAsociado(cedula, email) {
   const { data, error } = await supabase.rpc('actualizar_email_asociado_portal', {
     p_cedula: cedula,

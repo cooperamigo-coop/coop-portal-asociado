@@ -9,7 +9,7 @@ import {
   notificarEquipoCreditos,
   obtenerConsecutivoRadicado,
 } from '@/services/solicitudCredito.service'
-import { actualizarCamposAsociado, buscarAsociadoPorCedula, actualizarEmailAsociado } from '@/services/afiliacion.service'
+import { actualizarCamposAsociado, buscarAsociadoPorCedula, actualizarEmailAsociado, sincronizarDatosAsociadoPortal } from '@/services/afiliacion.service'
 import { supabase } from '@/services/supabase'
 import { sanitizarObjeto, verificarRateLimit, registrarIntento } from '@/utils/seguridad'
 import {
@@ -912,6 +912,82 @@ export function useSolicitudCredito() {
     _syncTimers[columnaAsociado] = setTimeout(() => _sincronizarCampoAsociado(columnaAsociado, nuevoValor), 800)
   }
 
+  // Payload consolidado para sincronizar la tabla asociados al radicar.
+  // Los watchers de arriba no alcanzan a los asociados activos (RLS solo
+  // permite al portal actualizar registros inactivos); esta sincronización
+  // va por RPC SECURITY DEFINER y cubre a todos.
+  const TIPO_DOC_ASOCIADO = {
+    cedula_ciudadania:  'CC',
+    cedula_extranjeria: 'CE',
+    tarjeta_identidad:  'TI',
+    pasaporte:          'PA',
+    nit:                'NIT',
+  }
+
+  function construirCamposAsociado() {
+    const p = persona.value
+    const l = laboral.value
+    const f = financiera.value
+    const pat = patrimonio.value
+
+    const totalIngresos = (Number(f.salario_ingresos_fijos) || 0) + (Number(f.ingresos_independiente) || 0)
+    const totalEgresos  = (Number(f.gastos_familiares) || 0) + (Number(f.otros_gastos) || 0) + (Number(f.obligaciones_financieras) || 0)
+
+    const campos = {
+      nombres:               p.nombres,
+      apellidos:             p.apellidos,
+      email:                 p.correo_electronico?.trim(),
+      tipo_identificacion:   TIPO_DOC_ASOCIADO[p.tipo_documento],
+      nivel_academico:       p.nivel_educativo_solicitante,
+      fecha_nacimiento:      p.fecha_nacimiento,
+      fecha_expedicion:      p.fecha_expedicion_documento,
+      direccion:             construirDireccion() || p.direccion_residencia,
+      celular:               p.celular,
+      ciudad:                ubicacionResidencia.value.municipio_nombre,
+      barrio:                direccionEstructurada.value.barrio || p.barrio,
+      empresa:               l.nombre_empresa,
+      cargo:                 l.cargo_oficio,
+      ocupacion:             l.ocupacion,
+      tipo_contrato:         l.tipo_contrato,
+      fecha_ingreso_empresa: l.fecha_ingreso,
+      tipo_trabajador:       l.tipo_trabajador,
+      entidad_pagadora:      l.entidad_pagadora,
+      institucion_educativa: l.institucion_educativa,
+      nivel_educativo:       l.nivel_educativo,
+      fuente_ingresos:       f.fuente_ingresos,
+      salario:               f.salario_ingresos_fijos,
+      salario_ingresos_fijos: f.salario_ingresos_fijos,
+      gastos_familiares:     f.gastos_familiares,
+      otros_ingresos:        f.ingresos_independiente,
+      ingresos_independiente: f.ingresos_independiente,
+      cuotas_credito:        f.obligaciones_financieras,
+      obligaciones_financieras: f.obligaciones_financieras,
+      otros_gastos:          f.otros_gastos,
+      mesada_pensional:      f.mesada_pensional,
+      personas_a_cargo:      f.numero_dependientes !== '' && f.numero_dependientes != null ? Number(f.numero_dependientes) : null,
+      total_ingresos:        totalIngresos || null,
+      total_egresos:         totalEgresos || null,
+      actividad_independiente: l.tipo_trabajador === 'independiente'
+        ? {
+          actividad_comercial:    l.actividad_comercial || null,
+          ocupacion:              l.ocupacion || null,
+          fecha_inicio_actividad: l.fecha_inicio_actividad || null,
+        }
+        : null,
+      activos_pasivos: {
+        tiene_propiedad_raiz: pat.tiene_propiedad_raiz,
+        valor_propiedad_raiz: Number(pat.valor_propiedad_raiz) || 0,
+        tiene_vehiculo:       pat.tiene_vehiculo,
+        valor_vehiculo:       Number(pat.valor_vehiculo) || 0,
+      },
+    }
+
+    // Omitir vacíos: la RPC igual los ignora, pero el payload queda limpio
+    return Object.fromEntries(
+      Object.entries(campos).filter(([, v]) => v !== null && v !== undefined && v !== '')
+    )
+  }
+
   // persona
   watch(() => persona.value.nombres, v => _syncDebounced('nombres', v))
   watch(() => persona.value.apellidos, v => _syncDebounced('apellidos', v))
@@ -1235,6 +1311,12 @@ export function useSolicitudCredito() {
       await actualizarBorrador(solicitudId.value, datos)
 
       const solicitudEnviada = await enviarSolicitud(solicitudId.value)
+
+      // Actualizar los datos del asociado con lo diligenciado (fire-and-forget)
+      sincronizarDatosAsociadoPortal(
+        verificacion.value.numero_documento,
+        construirCamposAsociado(),
+      ).catch(e => console.warn('[SolicitudCredito] No se pudo sincronizar datos del asociado:', e))
 
       // Notificar codeudores por email (fire-and-forget)
       if (numCodudores.value >= 1) {
