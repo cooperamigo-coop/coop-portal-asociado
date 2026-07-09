@@ -86,9 +86,9 @@ const pdfUrl   = ref('')
 const _pdfAssets = {
   logoPngDataUrl: null,
   logoRatio: null,
-  afacadRegularB64: null,
-  afacadBoldB64: null,
-  afacadFailed: false,
+  dmSansRegularB64: null,
+  dmSansBoldB64: null,
+  dmSansFailed: false,
 }
 
 // ── Datos calculados de firma (para paso exito) ────────────────────────────────
@@ -474,34 +474,34 @@ async function _asegurarLogoPngDataUrl() {
   }
 }
 
-async function _asegurarFuenteAfacad(doc) {
-  if (_pdfAssets.afacadFailed) return false
+async function _asegurarFuenteDmSans(doc) {
+  if (_pdfAssets.dmSansFailed) return false
   try {
-    if (!_pdfAssets.afacadRegularB64 || !_pdfAssets.afacadBoldB64) {
-      const urlRegular = new URL('../assets/fonts/Afacad-Regular.ttf', import.meta.url).href
-      const urlBold    = new URL('../assets/fonts/Afacad-Bold.ttf',    import.meta.url).href
+    if (!_pdfAssets.dmSansRegularB64 || !_pdfAssets.dmSansBoldB64) {
+      const urlRegular = new URL('../assets/fonts/DMSans-Regular.ttf', import.meta.url).href
+      const urlBold    = new URL('../assets/fonts/DMSans-Bold.ttf',    import.meta.url).href
       const [bufR, bufB] = await Promise.all([
         fetch(urlRegular).then(r => r.arrayBuffer()),
         fetch(urlBold).then(r => r.arrayBuffer()),
       ])
-      _pdfAssets.afacadRegularB64 = _base64FromArrayBuffer(bufR)
-      _pdfAssets.afacadBoldB64    = _base64FromArrayBuffer(bufB)
+      _pdfAssets.dmSansRegularB64 = _base64FromArrayBuffer(bufR)
+      _pdfAssets.dmSansBoldB64    = _base64FromArrayBuffer(bufB)
     }
-    doc.addFileToVFS('Afacad-Regular.ttf', _pdfAssets.afacadRegularB64)
-    doc.addFont('Afacad-Regular.ttf', 'Afacad', 'normal')
-    doc.addFileToVFS('Afacad-Bold.ttf', _pdfAssets.afacadBoldB64)
-    doc.addFont('Afacad-Bold.ttf', 'Afacad', 'bold')
+    doc.addFileToVFS('DMSans-Regular.ttf', _pdfAssets.dmSansRegularB64)
+    doc.addFont('DMSans-Regular.ttf', 'DMSans', 'normal')
+    doc.addFileToVFS('DMSans-Bold.ttf', _pdfAssets.dmSansBoldB64)
+    doc.addFont('DMSans-Bold.ttf', 'DMSans', 'bold')
     return true
   } catch {
-    _pdfAssets.afacadFailed = true
+    _pdfAssets.dmSansFailed = true
     return false
   }
 }
 
 async function _generarPdfConfirmacion(datos, hash, ipPublica, transaccionId, ahora) {
   const doc      = new jsPDF()
-  const afacadOk = await _asegurarFuenteAfacad(doc)
-  const font     = afacadOk ? 'Afacad' : 'helvetica'
+  const dmSansOk = await _asegurarFuenteDmSans(doc)
+  const font     = dmSansOk ? 'DMSans' : 'helvetica'
   doc.setFont(font, 'normal')
   const logoPng = await _asegurarLogoPngDataUrl()
 
