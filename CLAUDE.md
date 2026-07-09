@@ -35,7 +35,9 @@ Siempre absolutos desde @/ — nunca rutas relativas de más de un nivel
 - DARK:     #172B36 — azul petróleo
 - P-LIGHT:  #D9E8E2 — verde claro
 - BG-APP:   #F1F6F4 — fondo general
-- Fuente:   Nunito — 400/600/700/800/900
+- Fuente:   DM Sans — variable (100-1000), self-hosted en src/assets/fonts
+  - UI: woff2 con size-adjust: 85% (conserva el tamaño óptico de Afacad, la fuente anterior)
+  - PDFs (jsPDF): DMSans-Regular.ttf / DMSans-Bold.ttf estáticos
 - Logo: "Cooper" en #114C5A + "amigó" en #FFC801
 
 ---

@@ -1097,9 +1097,9 @@ async function firmarYEnviar() {
 const _pdfAssets = {
   logoPngDataUrl: null,
   logoRatio: null,
-  afacadRegularB64: null,
-  afacadBoldB64: null,
-  afacadFailed: false,
+  dmSansRegularB64: null,
+  dmSansBoldB64: null,
+  dmSansFailed: false,
 }
 
 async function _asegurarLogoPngDataUrl() {
@@ -1130,26 +1130,26 @@ async function _asegurarLogoPngDataUrl() {
   }
 }
 
-async function _asegurarFuenteAfacad(doc) {
-  if (_pdfAssets.afacadFailed) return false
+async function _asegurarFuenteDmSans(doc) {
+  if (_pdfAssets.dmSansFailed) return false
   try {
-    if (!_pdfAssets.afacadRegularB64 || !_pdfAssets.afacadBoldB64) {
-      const urlRegular = new URL('../assets/fonts/Afacad-Regular.ttf', import.meta.url).href
-      const urlBold = new URL('../assets/fonts/Afacad-Bold.ttf', import.meta.url).href
+    if (!_pdfAssets.dmSansRegularB64 || !_pdfAssets.dmSansBoldB64) {
+      const urlRegular = new URL('../assets/fonts/DMSans-Regular.ttf', import.meta.url).href
+      const urlBold = new URL('../assets/fonts/DMSans-Bold.ttf', import.meta.url).href
       const [bufRegular, bufBold] = await Promise.all([
         fetch(urlRegular).then(r => r.arrayBuffer()),
         fetch(urlBold).then(r => r.arrayBuffer()),
       ])
-      _pdfAssets.afacadRegularB64 = _base64FromArrayBuffer(bufRegular)
-      _pdfAssets.afacadBoldB64 = _base64FromArrayBuffer(bufBold)
+      _pdfAssets.dmSansRegularB64 = _base64FromArrayBuffer(bufRegular)
+      _pdfAssets.dmSansBoldB64 = _base64FromArrayBuffer(bufBold)
     }
-    doc.addFileToVFS('Afacad-Regular.ttf', _pdfAssets.afacadRegularB64)
-    doc.addFont('Afacad-Regular.ttf', 'Afacad', 'normal')
-    doc.addFileToVFS('Afacad-Bold.ttf', _pdfAssets.afacadBoldB64)
-    doc.addFont('Afacad-Bold.ttf', 'Afacad', 'bold')
+    doc.addFileToVFS('DMSans-Regular.ttf', _pdfAssets.dmSansRegularB64)
+    doc.addFont('DMSans-Regular.ttf', 'DMSans', 'normal')
+    doc.addFileToVFS('DMSans-Bold.ttf', _pdfAssets.dmSansBoldB64)
+    doc.addFont('DMSans-Bold.ttf', 'DMSans', 'bold')
     return true
   } catch {
-    _pdfAssets.afacadFailed = true
+    _pdfAssets.dmSansFailed = true
     return false
   }
 }
@@ -1186,8 +1186,8 @@ async function _generarPdfFormalizadoBlob() {
   if (!solicitudId.value) await guardarPaso()
   if (!firmaSolicitanteAplicada.value) await aplicarFirmaSolicitante()
   const doc = new jsPDF()
-  const afacadOk = await _asegurarFuenteAfacad(doc)
-  doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'normal')
+  const dmSansOk = await _asegurarFuenteDmSans(doc)
+  doc.setFont(dmSansOk ? 'DMSans' : 'helvetica', 'normal')
   const logoPng = await _asegurarLogoPngDataUrl()
   const pageW = doc.internal.pageSize.getWidth()
   const pageH = doc.internal.pageSize.getHeight()
@@ -1226,10 +1226,10 @@ async function _generarPdfFormalizadoBlob() {
   } catch {}
 
   setText(colorText)
-  doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'bold')
+  doc.setFont(dmSansOk ? 'DMSans' : 'helvetica', 'bold')
   doc.setFontSize(13)
   doc.text('Solicitud de crédito', 44, 16)
-  doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'normal')
+  doc.setFont(dmSansOk ? 'DMSans' : 'helvetica', 'normal')
   doc.setFontSize(9)
   doc.text(`Fecha solicitud: ${formatearFecha(fechaSolicitudIso)}`, pageW - 14, 14, { align: 'right' })
   doc.text(`Radicado: ${radicado}`, pageW - 14, 20, { align: 'right' })
@@ -1256,10 +1256,10 @@ async function _generarPdfFormalizadoBlob() {
       doc.addImage(logoPng, 'PNG', 14, 11 + ((10 - logoH) / 2), logoW, logoH)
     } catch {}
     setText(colorText)
-    doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'bold')
+    doc.setFont(dmSansOk ? 'DMSans' : 'helvetica', 'bold')
     doc.setFontSize(13)
     doc.text('Solicitud de crédito', 44, 16)
-    doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'normal')
+    doc.setFont(dmSansOk ? 'DMSans' : 'helvetica', 'normal')
     doc.setFontSize(9)
     doc.text(`Fecha solicitud: ${formatearFecha(fechaSolicitudIso)}`, pageW - 14, 14, { align: 'right' })
     doc.text(`Radicado: ${radicado}`, pageW - 14, 20, { align: 'right' })
@@ -1298,10 +1298,10 @@ async function _generarPdfFormalizadoBlob() {
     doc.roundedRect(x, y, cardW, 10, r, r, 'F')
     setText(colorText)
     doc.setFontSize(10)
-    doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'bold')
+    doc.setFont(dmSansOk ? 'DMSans' : 'helvetica', 'bold')
     doc.text(titulo, x + cardPad, y + 7)
 
-    doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'normal')
+    doc.setFont(dmSansOk ? 'DMSans' : 'helvetica', 'normal')
     let yy = y + 16
     for (let i = 0; i < rows.length; i++) {
       const [izq, der] = rows[i]
@@ -1367,12 +1367,12 @@ async function _generarPdfFormalizadoBlob() {
     doc.roundedRect(x, y, cardW, 10, r, r, 'F')
     setText(colorText)
     doc.setFontSize(10)
-    doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'bold')
+    doc.setFont(dmSansOk ? 'DMSans' : 'helvetica', 'bold')
     doc.text('Cronología del flujo', x + cardPad, y + 7)
 
     let yy = y + 16
     for (const f of filas) {
-      doc.setFont(afacadOk ? 'Afacad' : 'helvetica', 'normal')
+      doc.setFont(dmSansOk ? 'DMSans' : 'helvetica', 'normal')
       doc.setFontSize(labelSize)
       setText(colorTextMuted)
       doc.text('FECHA / HORA', x + cardPad, yy)
