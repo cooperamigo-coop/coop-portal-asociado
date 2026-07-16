@@ -787,6 +787,10 @@ export function useAfiliacion() {
           ? dpSnap.canales_comunicacion
           : null,
         // Snapshot personal
+        telefono:                        dpSnap.telefono || null,
+        email:                           emailInicial.value.trim() || null,
+        ciudad:                          dpSnap.ciudad || null,
+        direccion:                       dpSnap.direccion || null,
         tipo_identificacion:             dpSnap.tipo_identificacion,
         fecha_expedicion:                dpSnap.fecha_expedicion || null,
         lugar_expedicion:                dpSnap.lugar_expedicion || null,
