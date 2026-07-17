@@ -38,6 +38,12 @@ const routes = [
     meta: { publico: true, sinLayout: true },
   },
   {
+    path: '/confirmar-solicitud',
+    name: 'confirmar-solicitud-asistida',
+    component: () => import('@/pages/ConfirmacionSolicitudAsistidaPage.vue'),
+    meta: { publico: true, sinLayout: true },
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/',
   },
