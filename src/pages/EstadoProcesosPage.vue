@@ -194,11 +194,7 @@ function volverAFormulario() {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  background-image: url('/imagen1.png');
-  background-size: cover;
-  background-position: center 60%;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background: var(--color-bg-app);
   font-family: var(--font-body);
   position: relative;
   overflow: hidden;
@@ -360,8 +356,9 @@ function volverAFormulario() {
 
 @media (min-width: 961px) {
   .estado-main {
-    align-items: flex-end;
-    padding-right: 14%;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
   }
 }
 

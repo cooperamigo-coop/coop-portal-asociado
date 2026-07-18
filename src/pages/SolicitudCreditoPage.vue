@@ -37,6 +37,8 @@ import {
   IconArrowRight, IconClock, IconEye,
 } from '@tabler/icons-vue'
 import { useSolicitudCredito } from '@/composables/useSolicitudCredito'
+import { useCreditoRotativoPortal } from '@/composables/useCreditoRotativoPortal'
+import SeccionCreditoRotativo from '@/components/forms/SeccionCreditoRotativo.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { vincularSolicitudCaptura } from '@/services/captura.service'
 import { subirDocumentoSolicitud, obtenerMensajeErrorSubidaDocumento }  from '@/services/documentos.service'
@@ -1498,7 +1500,42 @@ const alertasVacias = computed(() => {
   return items
 })
 
+// ── Crédito Rotativo ──────────────────────────────────────
+const {
+  info: rotativoInfo,
+  enviando: rotativoEnviando,
+  error: rotativoError,
+  disponible: rotativoDisponible,
+  consultar: consultarRotativo,
+  activar: activarRotativo,
+  solicitarDesembolso: solicitarDesembolsoRotativoAccion,
+} = useCreditoRotativoPortal()
+
+const modoRotativo = ref(false)
+
+// Al verificar la identidad (tipo + cédula) se consulta si el asociado está
+// habilitado para Crédito Rotativo; de eso depende que vea la tercera card.
+watch(verificado, (v) => {
+  if (v && verificacion.value?.numero_documento) {
+    consultarRotativo(verificacion.value.numero_documento)
+  }
+}, { immediate: true })
+
+async function onActivarRotativo(cupo, cuenta, onOk) {
+  const ok = await activarRotativo(cupo, cuenta)
+  if (ok) onOk()
+}
+
+async function onSolicitarDesembolsoRotativo(monto, onOk) {
+  const ok = await solicitarDesembolsoRotativoAccion(monto)
+  if (ok) onOk()
+}
+
 function seleccionarModalidad(v) {
+  if (v === 'rotativo') {
+    modoRotativo.value = true
+    return
+  }
   actualizarGeneral('modalidad_credito', v)
 }
 
@@ -1634,6 +1671,11 @@ function onDocumentoAreaClick() {
   if (emailValidado.value) return
   const email = verificacion.value.correo.trim()
   if (!email || !RE_EMAIL.test(email)) return
+  // En desarrollo local no se exige OTP (igual que en afiliación)
+  if (import.meta.env.DEV) {
+    emailValidado.value = true
+    return
+  }
   if (import.meta.env.VITE_SKIP_OTP === 'true') {
     emailValidado.value = true
     return
@@ -1873,13 +1915,25 @@ function onOtpValidado() {
         </div>
       </div>
 
+      <!-- ── Crédito Rotativo (flujo propio, fuera del formulario) ── -->
+      <SeccionCreditoRotativo
+        v-if="modoRotativo"
+        :info="rotativoInfo"
+        :enviando="rotativoEnviando"
+        :error="rotativoError"
+        @activar="onActivarRotativo"
+        @solicitar-desembolso="onSolicitarDesembolsoRotativo"
+        @volver="modoRotativo = false"
+      />
+
       <!-- ── PASO 1: Modalidad de crédito ─────────────────── -->
-      <div v-if="paso === 1" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
+      <div v-if="paso === 1 && !modoRotativo" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
 
         <!-- Encabezado siempre visible -->
         <SelectorModalidad
           v-if="!mostrarOpcionBorrador"
           :model-value="general.modalidad_credito"
+          :mostrar-rotativo="rotativoDisponible"
           @update:model-value="seleccionarModalidad"
           @continuar="siguiente()"
         />

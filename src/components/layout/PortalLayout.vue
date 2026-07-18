@@ -5,8 +5,6 @@ import PortalFooter from '@/components/layout/PortalFooter.vue'
 
 const props = defineProps({
   hideNav:        { type: Boolean, default: false },
-  bgImage:        { type: String, default: '/imagen1.png' },
-  bgPositionMobile: { type: String, default: 'center' },
 })
 const router = useRouter()
 </script>
@@ -14,18 +12,17 @@ const router = useRouter()
 <template>
   <div :style="{
     minHeight: '100dvh',
-    background: 'var(--color-bg-card)',
-    backgroundImage: `url(${props.bgImage})`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
-    backgroundAttachment: 'fixed',
+    background: 'var(--color-bg-app)',
     display: 'flex', flexDirection: 'column',
     position: 'relative',
-    '--bg-pos-mobile': props.bgPositionMobile,
   }" class="portal-root">
     <!-- Topbar -->
     <header class="portal-topbar">
+      <!-- Logo -->
+      <div class="topbar-logo-container">
+        <img src="@/assets/img/logo-principal.svg" alt="Cooperamigó" class="topbar-logo-img" />
+      </div>
+
       <!-- Desktop: Inicio + Visitar sitio -->
       <div v-if="!hideNav" class="topbar-desktop">
         <RouterLink to="/" class="topbar-home">
@@ -73,12 +70,7 @@ const router = useRouter()
 
 <style scoped>
 
-@media (max-width: 767px) {
-  .portal-root {
-    background-position: var(--bg-pos-mobile, center) !important;
-    background-attachment: scroll !important;
-  }
-}
+
 
 /* ─── Main ─── */
 .portal-main {
@@ -101,26 +93,7 @@ const router = useRouter()
   }
 
   .portal-main {
-    flex-direction: row;
-    align-items: stretch;
-    justify-content: stretch;
     padding: 60px 48px 40px;
-  }
-
-  .portal-main__spacer {
-    display: block;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .portal-main__inner {
-    width: 50%;
-    flex-shrink: 0;
-    margin: 0;
-    max-width: 800px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
   }
 }
 
@@ -171,19 +144,33 @@ const router = useRouter()
 
 /* ─── Topbar ─── */
 .portal-topbar {
-  position: absolute;
+  position: sticky;
   top: 0;
   left: 0;
   width: 100%;
-  z-index: 20;
-  background: transparent;
+  z-index: 50;
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border-light);
+  box-shadow: 0 4px 16px rgba(23,43,54,0.03);
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   padding: 0 32px;
-  height: 44px;
+  height: 60px;
   flex-shrink: 0;
   box-sizing: border-box;
+}
+
+.topbar-logo-container {
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+
+.topbar-logo-img {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
 }
 
 .topbar-desktop {
@@ -270,11 +257,11 @@ const router = useRouter()
 
 @media (max-width: 960px) {
   .portal-topbar {
-    position: relative;
-    background: transparent;
-    justify-content: flex-start;
+    position: sticky;
+    background: var(--color-bg-card);
+    justify-content: space-between;
     padding: 0 16px;
-    height: 52px;
+    height: 56px;
   }
 
   /* Desktop elements: ocultos */

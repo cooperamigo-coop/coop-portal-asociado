@@ -398,11 +398,7 @@ const SERVICIOS_NO_ASOCIADO = [
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  background-image: url('/imagen1.png');
-  background-size: cover;
-  background-position: center 60%;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background: var(--color-bg-app);
   font-family: var(--font-body);
   position: relative;
   overflow: hidden;
@@ -478,16 +474,17 @@ const SERVICIOS_NO_ASOCIADO = [
 }
 
 
-/* ─── Layout dos columnas: izquierda vacía, derecha con contenido ─── */
+/* ─── Layout centrado ─── */
 .pregunta-layout {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   width: 100%;
 }
 
 .pregunta-spacer {
-  flex: 1;
+  display: none;
 }
 
 .pregunta-right {
@@ -495,7 +492,8 @@ const SERVICIOS_NO_ASOCIADO = [
   flex-direction: column;
   align-items: center;
   gap: 20px;
-  width: 420px;
+  width: 100%;
+  max-width: 420px;
   flex-shrink: 0;
 }
 
@@ -506,10 +504,6 @@ const SERVICIOS_NO_ASOCIADO = [
     flex: 1;
   }
 
-  .pregunta-spacer {
-    display: none;
-  }
-
   .pregunta-right {
     width: 100%;
     flex: 1;
@@ -518,8 +512,9 @@ const SERVICIOS_NO_ASOCIADO = [
 
 @media (min-width: 961px) {
   .home-main {
-    align-items: flex-end;
-    padding-right: 14%;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
   }
 }
 

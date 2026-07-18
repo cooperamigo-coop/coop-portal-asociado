@@ -1,28 +1,43 @@
 <script setup>
-import { CreditCard, GraduationCap } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { CreditCard, GraduationCap, RefreshCcw } from 'lucide-vue-next'
 import { IconCheck, IconArrowRight } from '@tabler/icons-vue'
 
-defineProps({
+const props = defineProps({
   modelValue: { type: String, default: '' },
+  // Solo se ofrece Crédito Rotativo a los asociados habilitados para el
+  // producto (se verifica por cédula tras el paso de verificación)
+  mostrarRotativo: { type: Boolean, default: false },
 })
 defineEmits(['update:modelValue', 'continuar'])
 
-const iconos = { CreditCard, GraduationCap }
+const iconos = { CreditCard, GraduationCap, RefreshCcw }
 
-const opciones = [
-  {
-    value:       'ordinario',
-    titulo:      'Crédito Ordinario/Consumo',
-    descripcion: 'Para necesidades personales, vivienda, vehículo u otros destinos.',
-    icono:       'CreditCard',
-  },
-  {
-    value:       'educativo',
-    titulo:      'Crédito Educativo',
-    descripcion: 'Para estudios de pregrado/postgrado en la Universidad Católica Luis Amigó',
-    icono:       'GraduationCap',
-  },
-]
+const opciones = computed(() => {
+  const base = [
+    {
+      value:       'ordinario',
+      titulo:      'Crédito Ordinario/Consumo',
+      descripcion: 'Para necesidades personales, vivienda, vehículo u otros destinos.',
+      icono:       'CreditCard',
+    },
+    {
+      value:       'educativo',
+      titulo:      'Crédito Educativo',
+      descripcion: 'Para estudios de pregrado/postgrado en la Universidad Católica Luis Amigó',
+      icono:       'GraduationCap',
+    },
+  ]
+  if (props.mostrarRotativo) {
+    base.push({
+      value:       'rotativo',
+      titulo:      'Crédito Rotativo',
+      descripcion: 'Tu cupo pre-aprobado: actívalo o solicita desembolsos cuando lo necesites.',
+      icono:       'RefreshCcw',
+    })
+  }
+  return base
+})
 </script>
 
 <template>
