@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { IconCreditCard, IconUserPlus, IconUserMinus, IconClipboardList, IconFileText, IconArrowRight, IconArrowLeft, IconClock, IconWorld, IconSearch, IconCircleCheck, IconClockHour4 } from '@tabler/icons-vue'
+import { IconCreditCard, IconUserPlus, IconUserMinus, IconClipboardList, IconFileText, IconArrowRight, IconArrowLeft, IconClock, IconWorld, IconSearch, IconCircleCheck, IconClockHour4, IconPlugX } from '@tabler/icons-vue'
 import PortalFooter from '@/components/layout/PortalFooter.vue'
 import CampoTexto from '@/components/forms/CampoTexto.vue'
 import { PROXIMAMENTE as proximamente } from '@/config/flags'
@@ -142,7 +142,7 @@ const SERVICIOS_NO_ASOCIADO = [
   <div class="home-page">
 
     <!-- ── Topbar ─────────────────────────────────────────── -->
-    <header class="portal-topbar">
+    <header v-if="!proximamente" class="portal-topbar">
       <!-- Desktop: Visitar sitio, izquierda -->
       <div class="topbar-desktop">
         <a href="https://cooperamigo.coop" target="_blank" rel="noopener noreferrer" class="topbar-visit">
@@ -189,7 +189,7 @@ const SERVICIOS_NO_ASOCIADO = [
 
         <!-- ── Vista: pregunta inicial ───────────────────────── -->
         <div v-if="paso === 'pregunta'" class="vista animate-in">
-          <div class="pregunta-layout">
+          <div class="pregunta-layout" v-if="!proximamente">
 
             <!-- Columna izquierda vacía -->
             <div class="pregunta-spacer" aria-hidden="true"></div>
@@ -214,16 +214,12 @@ const SERVICIOS_NO_ASOCIADO = [
                 </button>
               </div>
 
-              <button v-if="!proximamente" class="btn-estado" @click="paso = 'estado'">
+              <button class="btn-estado" @click="paso = 'estado'">
                 <IconSearch :size="15" />
                 <span>¿Ya tienes una solicitud? Consulta su estado aquí</span>
               </button>
 
-              <p v-if="proximamente" class="proximamente-msg">
-                Pronto habilitaremos el acceso digital para nuestros asociados. ¡Estamos trabajando en ello!
-              </p>
-
-              <p v-if="fueraDeHorario && !proximamente" class="horario-msg">
+              <p v-if="fueraDeHorario" class="horario-msg">
                 <IconClock :size="13" style="display:inline;vertical-align:middle;margin-right:4px;" />
                 Las solicitudes a través de este portal podrán gestionarse de <strong>lunes a viernes</strong>, entre las <strong>8:00 a. m.</strong> y las <strong>5:00 p. m.</strong>
               </p>
@@ -239,7 +235,48 @@ const SERVICIOS_NO_ASOCIADO = [
               </div>
             </div>
             </div>
+          </div>
 
+          <div class="mantenimiento-full" v-else>
+            <h1 class="mantenimiento-title">Estamos offline.</h1>
+            
+            <svg class="svg-unplugged" viewBox="0 0 800 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path class="cable-path" d="M -50 120 Q 150 120 200 160 T 380 100" stroke="var(--color-primary)" stroke-width="6" stroke-linecap="round"/>
+              <g class="plug-left">
+                <rect x="360" y="70" width="55" height="60" rx="16" fill="#ffffff" stroke="var(--color-primary)" stroke-width="6" />
+                <circle cx="395" cy="85" r="4" fill="var(--color-primary)" />
+                <circle cx="395" cy="115" r="4" fill="var(--color-primary)" />
+                <line x1="415" y1="85" x2="435" y2="85" stroke="var(--color-primary)" stroke-width="6" stroke-linecap="round" />
+                <line x1="415" y1="115" x2="435" y2="115" stroke="var(--color-primary)" stroke-width="6" stroke-linecap="round" />
+              </g>
+              <path class="cable-path" d="M 850 120 Q 750 120 700 80 T 630 140 T 750 170 T 720 100 Q 600 100 540 100" stroke="var(--color-primary)" stroke-width="6" stroke-linecap="round" />
+              <g class="plug-right">
+                <path d="M 525 70 h 20 a 30 30 0 0 1 0 60 h -20 a 16 16 0 0 1 -16 -16 v -28 a 16 16 0 0 1 16 -16 z" fill="#ffffff" stroke="var(--color-primary)" stroke-width="6" />
+                <circle cx="530" cy="85" r="4" fill="var(--color-primary)" />
+                <circle cx="530" cy="115" r="4" fill="var(--color-primary)" />
+              </g>
+              <g class="sparks" stroke="var(--color-accent)" stroke-width="4" stroke-linecap="round">
+                <line x1="475" y1="50" x2="470" y2="30" />
+                <line x1="495" y1="60" x2="510" y2="45" />
+                <line x1="455" y1="65" x2="440" y2="50" />
+                <line x1="475" y1="150" x2="470" y2="170" />
+                <line x1="495" y1="140" x2="510" y2="155" />
+                <line x1="455" y1="135" x2="440" y2="150" />
+              </g>
+            </svg>
+
+            <p class="mantenimiento-text">
+              <strong>Saludos. Estamos en mantenimiento programado.</strong><br/>
+              Estamos realizando mejoras en el portal para brindarte una mejor experiencia.<br/>Volveremos a estar en línea muy pronto. ¡Gracias por tu paciencia!
+            </p>
+            
+            <div class="mantenimiento-footer">
+               <a href="https://cooperamigo.coop/contacto" target="_blank" rel="noopener noreferrer">Soporte</a>
+               <span class="mantenimiento-dot">·</span>
+               <a href="https://cooperamigo.coop" target="_blank" rel="noopener noreferrer">Volver al sitio principal</a>
+               <span class="mantenimiento-dot">·</span>
+               <span class="mantenimiento-copy">© 2026 Cooperativa Multiactiva Luis Amigó</span>
+            </div>
           </div>
 
         </div>
@@ -385,7 +422,7 @@ const SERVICIOS_NO_ASOCIADO = [
     </main>
 
     <!-- ── Footer (solo desktop) ─────────────────────────── -->
-    <PortalFooter class="footer--desktop-only" />
+    <PortalFooter v-if="!proximamente" class="footer--desktop-only" />
 
   </div>
 </template>
@@ -798,17 +835,101 @@ const SERVICIOS_NO_ASOCIADO = [
 
 .proximamente-msg {
   font-size: var(--text-sm);
-  font-weight: var(--fw-medium);
-  color: var(--color-text-3);
-  text-align: center;
-  margin: 0;
-  padding: var(--sp-sm) var(--sp-md);
-  background: var(--color-bg-surface-alt);
-  border: 1px solid var(--color-border);
-  border-radius: var(--r-lg);
-  width: 100%;
-  max-width: 320px;
   line-height: 1.5;
+}
+
+/* --- Mantenimiento Full --- */
+.mantenimiento-full {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.mantenimiento-title {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5vw, 56px);
+  font-weight: var(--fw-extrabold);
+  color: var(--color-dark);
+  margin: 0;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.mantenimiento-text {
+  font-size: clamp(15px, 2vw, 17px);
+  color: var(--color-text-2);
+  max-width: 600px;
+  margin: 0 auto 40px;
+  line-height: 1.6;
+}
+
+.mantenimiento-footer {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-3);
+  font-size: 14px;
+  font-weight: var(--fw-semibold);
+  flex-wrap: wrap;
+}
+
+.mantenimiento-footer a {
+  color: var(--color-text-2);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.mantenimiento-footer a:hover {
+  color: var(--color-primary);
+}
+
+.mantenimiento-dot {
+  opacity: 0.4;
+}
+
+.mantenimiento-copy {
+  opacity: 0.6;
+}
+
+/* --- SVG Illustration --- */
+.svg-unplugged {
+  width: 100%;
+  max-width: 700px;
+  height: auto;
+  margin: 32px auto;
+  display: block;
+  overflow: visible;
+}
+
+@keyframes float-left {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(-1deg); }
+}
+@keyframes float-right {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(4px) rotate(1deg); }
+}
+@keyframes spark-flicker {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.2; transform: scale(0.8); }
+}
+
+.plug-left { animation: float-left 3s ease-in-out infinite; transform-origin: 380px 100px; }
+.plug-right { animation: float-right 3s ease-in-out infinite; transform-origin: 530px 100px; }
+.sparks { animation: spark-flicker 0.4s infinite alternate; transform-origin: 475px 100px; }
+.cable-path {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: draw-cable 1.5s ease-out forwards;
+}
+
+@keyframes draw-cable {
+  to { stroke-dashoffset: 0; }
 }
 
 /* ─── Vista estado ─── */
