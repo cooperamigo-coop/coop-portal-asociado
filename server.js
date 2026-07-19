@@ -12,13 +12,6 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const DIST      = resolve(__dirname, 'dist')
 const PORT      = Number(process.env.PORT) || 3000
 
-// ─── Modo mantenimiento ─────────────────────────────────────────────────────
-// Activar con MANTENIMIENTO=true en Railway; quitar la variable para restaurar.
-const MANTENIMIENTO = process.env.MANTENIMIENTO === 'true'
-// Solo los assets que necesita mantenimiento.html — el bundle JS/CSS de la SPA
-// queda bloqueado para que nadie pueda seguir usando la app.
-const EXT_MANTENIMIENTO = new Set(['.svg', '.png', '.ico', '.webp', '.jpg', '.jpeg', '.woff', '.woff2'])
-
 // ─── MIME types ────────────────────────────────────────────────────────────
 const MIME = {
   '.html':  'text/html; charset=utf-8',
@@ -108,7 +101,7 @@ createServer((req, res) => {
   // Ignorar query string y fragmentos
   const pathname = (req.url ?? '/').split('?')[0].split('#')[0]
 
-  // Healthcheck de Railway — responde 200 incluso en mantenimiento
+  // Healthcheck de Railway
   if (pathname === '/health') {
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', ...SEC_HEADERS })
     res.end('ok')
@@ -121,22 +114,6 @@ createServer((req, res) => {
     res.writeHead(403)
     res.end()
     return
-  }
-
-  // Modo mantenimiento: solo se sirven los assets de la página de aviso;
-  // cualquier otra ruta (incluido el bundle de la SPA) recibe 503 + aviso.
-  if (MANTENIMIENTO) {
-    const ext = extname(pathname).toLowerCase()
-    const esAssetPermitido = EXT_MANTENIMIENTO.has(ext)
-      && existsSync(safePath) && statSync(safePath).isFile()
-
-    if (!esAssetPermitido) {
-      serveFile(join(DIST, 'mantenimiento.html'), res, 503, {
-        // Martes 21 de julio de 2026 — fecha anunciada de restablecimiento
-        'Retry-After': 'Tue, 21 Jul 2026 12:00:00 GMT',
-      })
-      return
-    }
   }
 
   // Intentar servir el archivo exacto
