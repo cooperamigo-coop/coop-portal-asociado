@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { IconUpload, IconCircleCheck, IconX, IconFileDescription, IconLoader2, IconRefresh, IconEye, IconUser, IconUsers } from '@tabler/icons-vue'
+import { IconUpload, IconCircleCheck, IconX, IconFileDescription, IconLoader2, IconRefresh, IconEye, IconUser, IconUsers, IconUserCheck } from '@tabler/icons-vue'
 import CapturaDocumento from '@/components/forms/CapturaDocumento.vue'
 import { subirDocumentoSolicitud, obtenerMensajeErrorSubidaDocumento } from '@/services/documentos.service'
 import { useBreakpoint } from '@/composables/useBreakpoint'
@@ -23,6 +23,15 @@ const emit = defineEmits([
   'sesion-creada',
   'update:documentosCompletos',
 ])
+
+const tabActiva = ref('titular')
+
+const tabs = computed(() => {
+  const t = [{ id: 'titular', label: 'Titular' }]
+  if (props.numCodeudores >= 1) t.push({ id: 'cod1', label: 'Codeudor 1' })
+  if (props.numCodeudores >= 2) t.push({ id: 'cod2', label: 'Codeudor 2' })
+  return t
+})
 
 // ── Helpers ────────────────────────────────────────────────
 function seleccionarArchivo(refEl) { refEl?.click() }
@@ -196,32 +205,45 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
       color:      'var(--color-text-1)',
     }">{{ titulo }}</div>
 
-    <!-- ══ TITULAR ══════════════════════════════════════════ -->
-    <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-
-      <!-- Encabezado grupo -->
+    <!-- Tabs Documentos (solo si hay codeudores) -->
+    <div v-if="tabs.length > 1" :style="{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--sp-md)' }">
       <div :style="{
-        display:     'flex',
-        alignItems:  'center',
-        gap:         'var(--sp-sm)',
-        paddingBottom: 'var(--sp-sm)',
-        borderBottom: '2px solid var(--color-primary)',
+        display: 'inline-flex',
+        background: '#f8f8f8',
+        borderRadius: 'var(--r-pill)',
+        padding: '6px',
+        gap: '8px'
       }">
-        <div :style="{
-          width: '28px', height: '28px', borderRadius: '50%',
-          background: 'var(--color-primary)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: '0',
-        }">
-          <IconUser :size="14" :style="{ color: 'var(--color-text-on-primary)' }" />
-        </div>
-        <span :style="{
-          fontFamily: 'var(--font-display)',
-          fontSize:   'var(--text-base)',
-          fontWeight: 'var(--fw-extrabold)',
-          color:      'var(--color-primary)',
-        }">Documentos del titular</span>
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          :style="{
+            padding: '10px 32px',
+            border: 'none',
+            borderRadius: 'var(--r-pill)',
+            background: tabActiva === tab.id ? '#ffffff' : 'transparent',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-body)',
+            fontSize: 'var(--text-base)',
+            fontWeight: 'var(--fw-bold)',
+            color: tabActiva === tab.id ? 'var(--color-primary)' : 'var(--color-text-2)',
+            boxShadow: tabActiva === tab.id ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }"
+          @click="tabActiva = tab.id"
+        >
+          <IconUserCheck v-if="tabActiva === tab.id" :size="18" />
+          <IconUser v-else :size="18" />
+          {{ tab.label }}
+        </button>
       </div>
+    </div>
+
+    <!-- ══ TITULAR ══════════════════════════════════════════ -->
+    <div v-show="tabActiva === 'titular'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
 
       <!-- Cédula del titular -->
       <CapturaDocumento
@@ -237,7 +259,6 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
       <!-- Docs adicionales del titular -->
       <template v-for="doc in docsAdicionalesTitular" :key="doc.campo">
         <div :style="{
-          border:       '1px solid var(--color-border-card)',
           borderRadius: 'var(--r-lg)',
           overflow:     'hidden',
         }">
@@ -245,7 +266,7 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
             display: 'flex', flexDirection: isMobile ? 'column' : 'row',
             alignItems: isMobile ? 'stretch' : 'center', gap: 'var(--sp-md)',
             padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)',
-            background: getEstado(doc.campo).url ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
+            background: getEstado(doc.campo).url ? 'var(--color-success-bg)' : '#f8f8f8',
           }">
             <div :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-md)', flex: '1', minWidth: '0' }">
               <div :style="{
@@ -257,10 +278,10 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
                 <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
               </div>
               <div :style="{ minWidth: '0' }">
-                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)', lineHeight: '1.2' }">
-                  {{ doc.titulo }}<span v-if="!getEstado(doc.campo).url" :style="{ color: 'var(--color-error)' }"> *</span>
+                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)', lineHeight: '1.1' }">
+                  {{ doc.titulo }}<span v-if="!getEstado(doc.campo).url" :style="{ color: 'var(--color-error)' }">*</span>
                 </div>
-                <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '0', lineHeight: '1.3' }">
+                <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', marginTop: '0', lineHeight: '1.3' }">
                   {{ getEstado(doc.campo).url ? 'Documento cargado correctamente' : doc.descripcion }}
                 </div>
               </div>
@@ -297,49 +318,24 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
     </div>
 
     <!-- ══ CODEUDOR 1 ════════════════════════════════════════ -->
-    <div v-if="numCodeudores >= 1" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-
-      <div :style="{
-        display:     'flex',
-        alignItems:  'center',
-        gap:         'var(--sp-sm)',
-        paddingBottom: 'var(--sp-sm)',
-        borderBottom: '2px solid var(--color-accent)',
-      }">
-        <div :style="{
-          width: '28px', height: '28px', borderRadius: '50%',
-          background: 'var(--color-accent)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: '0',
-        }">
-          <IconUsers :size="14" :style="{ color: 'var(--color-dark)' }" />
-        </div>
-        <span :style="{
-          fontFamily: 'var(--font-display)',
-          fontSize:   'var(--text-base)',
-          fontWeight: 'var(--fw-extrabold)',
-          color:      'var(--color-text-1)',
-        }">Codeudor 1</span>
-      </div>
+    <div v-show="numCodeudores >= 1 && tabActiva === 'cod1'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
 
       <!-- La cédula del codeudor 1 se captura en la página de firma que le enviamos por correo -->
       <div :style="{
-        border: '1px dashed var(--color-border)',
         borderRadius: 'var(--r-md)',
         padding: '14px 16px',
         display: 'flex', alignItems: 'center', gap: '10px',
-        background: 'var(--color-bg-surface)',
+        background: 'var(--color-bg-surface-alt)',
       }">
         <IconUsers :size="18" :style="{ color: 'var(--color-text-3)', flexShrink: 0 }" />
         <p :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', margin: 0, lineHeight: '1.5' }">
-          La foto de la cédula del codeudor 1 se solicitará directamente a él
-          a través del correo de firma que recibirá al radicar esta solicitud.
+          La copia del documento de identidad del Codeudor 1 será requerida directamente
+          mediante el correo electrónico de firma que se enviará una vez la solicitud haya sido radicada.
         </p>
       </div>
 
       <template v-for="doc in docsAdicionalesCod1" :key="doc.campo">
         <div :style="{
-          border:       '1px solid var(--color-border-card)',
           borderRadius: 'var(--r-lg)',
           overflow:     'hidden',
         }">
@@ -347,7 +343,7 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
             display: 'flex', flexDirection: isMobile ? 'column' : 'row',
             alignItems: isMobile ? 'stretch' : 'center', gap: 'var(--sp-md)',
             padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)',
-            background: getEstado(doc.campo).url ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
+            background: getEstado(doc.campo).url ? 'var(--color-success-bg)' : '#f8f8f8',
           }">
             <div :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-md)', flex: '1', minWidth: '0' }">
               <div :style="{
@@ -359,10 +355,10 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
                 <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
               </div>
               <div :style="{ minWidth: '0' }">
-                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)', lineHeight: '1.2' }">
-                  {{ doc.titulo }}<span v-if="!getEstado(doc.campo).url" :style="{ color: 'var(--color-error)' }"> *</span>
+                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)', lineHeight: '1.1' }">
+                  {{ doc.titulo }}<span v-if="!getEstado(doc.campo).url" :style="{ color: 'var(--color-error)' }">*</span>
                 </div>
-                <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '0', lineHeight: '1.3' }">
+                <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', marginTop: '0', lineHeight: '1.3' }">
                   {{ getEstado(doc.campo).url ? 'Documento cargado correctamente' : doc.descripcion }}
                 </div>
               </div>
@@ -399,49 +395,24 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
     </div>
 
     <!-- ══ CODEUDOR 2 ════════════════════════════════════════ -->
-    <div v-if="numCodeudores >= 2" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-
-      <div :style="{
-        display:     'flex',
-        alignItems:  'center',
-        gap:         'var(--sp-sm)',
-        paddingBottom: 'var(--sp-sm)',
-        borderBottom: '2px solid var(--color-impulso)',
-      }">
-        <div :style="{
-          width: '28px', height: '28px', borderRadius: '50%',
-          background: 'var(--color-impulso)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: '0',
-        }">
-          <IconUsers :size="14" :style="{ color: 'var(--color-text-on-primary)' }" />
-        </div>
-        <span :style="{
-          fontFamily: 'var(--font-display)',
-          fontSize:   'var(--text-base)',
-          fontWeight: 'var(--fw-extrabold)',
-          color:      'var(--color-text-1)',
-        }">Codeudor 2</span>
-      </div>
+    <div v-show="numCodeudores >= 2 && tabActiva === 'cod2'" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
 
       <!-- La cédula del codeudor 2 se captura en la página de firma que le enviamos por correo -->
       <div :style="{
-        border: '1px dashed var(--color-border)',
         borderRadius: 'var(--r-md)',
         padding: '14px 16px',
         display: 'flex', alignItems: 'center', gap: '10px',
-        background: 'var(--color-bg-surface)',
+        background: 'var(--color-bg-surface-alt)',
       }">
         <IconUsers :size="18" :style="{ color: 'var(--color-text-3)', flexShrink: 0 }" />
         <p :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', margin: 0, lineHeight: '1.5' }">
-          La foto de la cédula del codeudor 2 se solicitará directamente a él
-          a través del correo de firma que recibirá al radicar esta solicitud.
+          La copia del documento de identidad del Codeudor 2 será requerida directamente
+          mediante el correo electrónico de firma que se enviará una vez la solicitud haya sido radicada.
         </p>
       </div>
 
       <template v-for="doc in docsAdicionalesCod2" :key="doc.campo">
         <div :style="{
-          border:       '1px solid var(--color-border-card)',
           borderRadius: 'var(--r-lg)',
           overflow:     'hidden',
         }">
@@ -449,7 +420,7 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
             display: 'flex', flexDirection: isMobile ? 'column' : 'row',
             alignItems: isMobile ? 'stretch' : 'center', gap: 'var(--sp-md)',
             padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)',
-            background: getEstado(doc.campo).url ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
+            background: getEstado(doc.campo).url ? 'var(--color-success-bg)' : '#f8f8f8',
           }">
             <div :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-md)', flex: '1', minWidth: '0' }">
               <div :style="{
@@ -461,10 +432,10 @@ watch(todosObligatoriosCompletos, (val) => emit('update:documentosCompletos', va
                 <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
               </div>
               <div :style="{ minWidth: '0' }">
-                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)', lineHeight: '1.2' }">
-                  {{ doc.titulo }}<span v-if="!getEstado(doc.campo).url" :style="{ color: 'var(--color-error)' }"> *</span>
+                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)', lineHeight: '1.1' }">
+                  {{ doc.titulo }}<span v-if="!getEstado(doc.campo).url" :style="{ color: 'var(--color-error)' }">*</span>
                 </div>
-                <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '0', lineHeight: '1.3' }">
+                <div :style="{ fontSize: 'var(--text-sm)', color: getEstado(doc.campo).url ? 'var(--color-success-text)' : 'var(--color-text-3)', marginTop: '0', lineHeight: '1.3' }">
                   {{ getEstado(doc.campo).url ? 'Documento cargado correctamente' : doc.descripcion }}
                 </div>
               </div>

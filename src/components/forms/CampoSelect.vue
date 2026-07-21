@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { IconChevronDown, IconCheck } from '@tabler/icons-vue'
+import { IconChevronDown, IconCheck, IconLock } from '@tabler/icons-vue'
 
 const props = defineProps({
   modelValue:  { type: String, default: '' },
@@ -138,8 +138,12 @@ onUnmounted(() => {
           'campo-label--error':   !!error,
         }"
       >
-        {{ label }}<span v-if="required" class="campo-required"> *</span>
+        {{ label.replace(/\s*\*\s*$/, '') }}<span v-if="required || label.includes('*')" class="campo-required">*</span>
       </label>
+
+      <div v-if="disabled" class="campo-lock">
+        <IconLock :size="16" />
+      </div>
     </div>
 
     <Teleport to="body">
@@ -177,45 +181,45 @@ onUnmounted(() => {
 
 .campo-field {
   position: relative;
-  height: 54px;
-  border: none;
-  border-bottom: 1px solid var(--color-border);
-  border-radius: var(--r-md);
+  height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-input);
   background: transparent;
+  box-sizing: border-box;
   cursor: pointer;
-  transition: border-bottom-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   display: flex;
   align-items: center;
-  padding: 16px 12px 0 12px; /* Espacio superior para label y lateral suave */
+  padding: 0 16px;
 }
 
 @media (max-width: 768px) {
   .campo-field {
-    height: 48px;
-    padding: 12px 10px 0 10px;
+    height: 44px;
+    padding: 0 16px;
   }
 }
 
 .campo-field--open {
-  border-bottom-color: var(--color-primary);
-  box-shadow: 0 1px 0 0 var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .campo-field--error {
-  border-bottom-color: var(--color-error) !important;
-  box-shadow: 0 1px 0 0 var(--color-error) !important;
+  border-color: var(--color-error) !important;
+  box-shadow: 0 0 0 1px var(--color-error) !important;
 }
 
 .campo-field--disabled {
   background-color: transparent;
-  border-bottom-color: var(--color-border) !important;
-  border-bottom-style: solid !important;
+  border-color: var(--color-border) !important;
   cursor: default;
 }
 
 .campo-field--disabled .campo-label,
 .campo-field--disabled.campo-field--floated .campo-label {
   color: var(--color-text-3) !important;
+  background: var(--bg-label, #ffffff);
+  border-radius: 3px;
 }
 
 .campo-field--disabled .campo-value {
@@ -224,6 +228,21 @@ onUnmounted(() => {
 
 .campo-field--disabled .campo-chevron {
   opacity: 0;
+}
+
+.campo-lock {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-3);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  pointer-events: none;
+}
+
+.campo-field--disabled:hover .campo-lock {
+  opacity: 1;
 }
 
 .campo-select-trigger {
@@ -252,11 +271,11 @@ onUnmounted(() => {
   transform: rotate(180deg);
 }
 
-/* ── Label Minimalista ── */
+/* ── Label Outlined ── */
 .campo-label {
   position: absolute;
-  left: 12px;
-  top: 35px; /* Alineado con el centro óptico del área de texto */
+  left: 16px;
+  top: 50%;
   transform: translateY(-50%);
   font-size: var(--text-base);
   font-weight: var(--fw-regular);
@@ -271,35 +290,28 @@ onUnmounted(() => {
     top var(--transition-fast),
     transform var(--transition-fast),
     font-size var(--transition-fast),
-    font-weight var(--transition-fast),
     color var(--transition-fast);
 }
 
 @media (max-width: 768px) {
   .campo-label {
-    left: 10px;
-    top: 30px;
+    left: 16px;
   }
 }
 
 .campo-field--floated .campo-label {
-  top: 4px;
-  transform: translateY(0);
-  font-size: 11px;
-  font-weight: var(--fw-medium);
-  background: transparent;
-  padding: 0;
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--color-text-2);
+  background: var(--bg-label, #ffffff);
+  border-radius: 3px;
+  padding: 0 4px;
+  left: 12px;
 }
 
-@media (max-width: 768px) {
-  .campo-field--floated .campo-label {
-    top: 2px;
-    font-size: 10px;
-  }
-}
-
-.campo-label--focused { color: var(--color-primary); }
-.campo-label--error   { color: var(--color-error-text); }
+.campo-label--focused { color: var(--color-primary) !important; }
+.campo-label--error   { color: var(--color-error-text) !important; }
 .campo-required       { color: var(--color-error); }
 
 /* ── Dropdown ── */

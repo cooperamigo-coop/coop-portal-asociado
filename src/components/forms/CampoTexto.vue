@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, getCurrentInstance } from 'vue'
+import { IconLock } from '@tabler/icons-vue'
 
 const props = defineProps({
   modelValue:        { type: [String, Number], default: '' },
@@ -76,10 +77,12 @@ function onBlur()  { focused.value = false; emit('blur') }
           'campo-input--disabled':  disabled,
           'campo-input--focused':   focused && !error,
           'campo-input--uppercase': uppercase,
+          'campo-input--has-icon':  $slots['icon-right']
         }"
         @input="onInput"
         @focus="onFocus"
         @blur="onBlur"
+        :placeholder="floated ? placeholder : ''"
       />
       <label
         :for="uid"
@@ -90,8 +93,16 @@ function onBlur()  { focused.value = false; emit('blur') }
           'campo-label--wrap':    labelWrap,
         }"
       >
-        {{ label }}<span v-if="required" class="campo-required"> *</span>
+        {{ label.replace(/\s*\*\s*$/, '') }}<span v-if="required || label.includes('*')" class="campo-required">*</span>
       </label>
+
+      <div v-if="$slots['icon-right']" class="campo-icon-right">
+        <slot name="icon-right"></slot>
+      </div>
+
+      <div v-if="disabled" class="campo-lock">
+        <IconLock :size="16" />
+      </div>
     </div>
     <span v-if="error"       class="campo-msg campo-msg--error">{{ error }}</span>
     <span v-else-if="helper" class="campo-msg campo-msg--helper">{{ helper }}</span>
@@ -107,66 +118,86 @@ function onBlur()  { focused.value = false; emit('blur') }
 
 .campo-field {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
-/* ── Input Minimalista (Solo línea inferior con puntas curvas) ── */
+/* ── Input Outlined ── */
 .campo-input {
   display: block;
   width: 100%;
-  height: 54px;
-  padding: 22px 12px 6px 16px;
-  border: none;
-  border-bottom: 1px solid var(--color-border);
-  border-radius: var(--r-md); /* Curvatura para que la línea suba en las puntas */
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-input);
   font-size: var(--text-base);
   font-family: var(--font-body);
   background: transparent;
   color: var(--color-text-1);
   outline: none;
   box-sizing: border-box;
-  transition: border-bottom-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   text-align: left;
+}
+
+.campo-input--has-icon {
+  padding-right: 48px;
 }
 
 @media (max-width: 768px) {
   .campo-input {
-    height: 48px;
-    padding: 18px 10px 4px 16px;
+    height: 44px;
+    padding: 0 16px;
   }
 }
 
-/* Estado de foco: Transición suave, línea reforzada */
-.campo-input--focused  { 
-  border-bottom-color: var(--color-primary);
-  box-shadow: 0 1px 0 0 var(--color-primary);
+/* Estado de foco */
+.campo-input--focused  {
+  border-color: var(--color-primary);
 }
 
 /* Estado de error */
 .campo-input--error    { 
-  border-bottom-color: var(--color-error) !important;
-  box-shadow: 0 1px 0 0 var(--color-error) !important;
+  border-color: var(--color-error) !important;
+  box-shadow: 0 0 0 1px var(--color-error) !important;
 }
 
 /* Estado deshabilitado */
 .campo-input--disabled {
   background: transparent;
   color: var(--color-text-3) !important;
-  border-bottom-color: var(--color-border) !important;
-  border-bottom-style: solid !important;
+  border-color: var(--color-border) !important;
   cursor: default;
 }
 
 .campo-field--disabled .campo-label,
 .campo-field--disabled.campo-field--floated .campo-label {
   color: var(--color-text-3) !important;
+  background: var(--bg-label, #ffffff);
+  border-radius: 3px;
+}
+
+.campo-lock {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-3);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  pointer-events: none;
+}
+
+.campo-field--disabled:hover .campo-lock {
+  opacity: 1;
 }
 .campo-input--uppercase { text-transform: uppercase; }
 
-/* ── Label Minimalista ── */
+/* ── Label Outlined ── */
 .campo-label {
   position: absolute;
   left: 16px;
-  top: 35px; /* Alineado con el centro óptico del área de texto */
+  top: 50%;
   transform: translateY(-50%);
   font-size: var(--text-base);
   font-weight: var(--fw-regular);
@@ -176,12 +207,11 @@ function onBlur()  { focused.value = false; emit('blur') }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: calc(100% - 16px);
+  max-width: calc(100% - 32px);
   transition:
     top var(--transition-fast),
     transform var(--transition-fast),
     font-size var(--transition-fast),
-    font-weight var(--transition-fast),
     color var(--transition-fast);
 }
 
@@ -194,31 +224,38 @@ function onBlur()  { focused.value = false; emit('blur') }
 
 @media (max-width: 768px) {
   .campo-label {
-    left: 10px;
-    top: 30px;
+    left: 16px;
   }
 }
 
-/* ── Flotado: Mueve el label hacia arriba dentro del contenedor ── */
+/* ── Flotado: Mueve el label hacia arriba cortando el borde ── */
 .campo-field--floated .campo-label {
-  top: 4px; /* Sube pero se mantiene dentro del area del field */
-  transform: translateY(0);
-  font-size: 11px;
-  font-weight: var(--fw-medium);
-  background: transparent;
-  padding: 0;
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--color-text-2);
+  background: var(--bg-label, #ffffff);
+  border-radius: 3px;
+  padding: 0 4px;
+  left: 12px;
 }
 
-@media (max-width: 768px) {
-  .campo-field--floated .campo-label {
-    top: 2px;
-    font-size: 10px;
-  }
-}
-
-.campo-label--focused { color: var(--color-primary); }
-.campo-label--error   { color: var(--color-error-text); }
+.campo-label--focused { color: var(--color-primary) !important; }
+.campo-label--error   { color: var(--color-error-text) !important; }
 .campo-required       { color: var(--color-error); }
+
+/* ── Icono derecho ── */
+.campo-icon-right {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
 
 /* ── Mensajes (Error / Helper) ── */
 .campo-msg { 

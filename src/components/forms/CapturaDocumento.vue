@@ -33,6 +33,13 @@ const {
 const urlFinal = ref(props.initialUrl || null)
 watch(() => props.initialUrl, (v) => { if (v) urlFinal.value = v })
 const modalPreviewVisible = ref(false)
+const qrModalVisible = ref(false)
+
+// Cierra el modal automáticamente en cuanto el escaneo deja de estar activo
+// (ambas fotos capturadas, error, o cancelado)
+watch(estado, (v) => {
+  if (!['esperando_qr', 'capturando_movil'].includes(v)) qrModalVisible.value = false
+})
 
 const uploadKey = computed(() => props.storageKey || props.solicitudId)
 
@@ -50,6 +57,7 @@ function _revocarPreviews() {
 function cancelarConPreview() {
   _revocarPreviews()
   urlFinal.value = null
+  qrModalVisible.value = false
   cancelar()
 }
 
@@ -116,6 +124,7 @@ async function iniciarQR() {
   await crearSesionQR(props.solicitudId, props.campo)
   if (token.value) {
     emit('sesion-creada', { token: token.value, sesionId: sesionId.value })
+    qrModalVisible.value = true
   }
 }
 
@@ -123,10 +132,16 @@ const LADOS = [
   { key: 'frente', label: 'Frente' },
   { key: 'reverso', label: 'Reverso' },
 ]
+
+const textoEstado = computed(() => {
+  if (urlFinal.value) return 'Documento cargado correctamente'
+  if (['esperando_qr', 'capturando_movil'].includes(estado.value) && !esMovil.value) return 'Escaneo con celular en curso'
+  return 'Cargue el archivo o tome las fotografías de ambos lados'
+})
 </script>
 
 <template>
-  <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }">
+  <div :style="{ borderRadius: 'var(--r-lg)', overflow: 'hidden', background: urlFinal ? 'var(--color-success-bg)' : '#f8f8f8' }">
     <!-- Header/Banner Principal -->
     <div :style="{
       display: 'flex',
@@ -134,8 +149,6 @@ const LADOS = [
       alignItems: isMobile ? 'stretch' : 'center',
       gap: 'var(--sp-md)',
       padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)',
-      background: urlFinal ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
-      borderBottom: (estado !== 'idle' && !urlFinal) ? '1px solid var(--color-border-card)' : 'none',
     }">
       <!-- Icono + Texto -->
       <div :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-md)', flex: '1', minWidth: '0' }">
@@ -148,11 +161,11 @@ const LADOS = [
           <IconId v-else :size="18" :style="{ color: '#fff' }" />
         </div>
         <div :style="{ minWidth: '0' }">
-          <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
-            {{ label }}<span v-if="required && !urlFinal" :style="{ color: 'var(--color-error)' }"> *</span>
+          <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)', lineHeight: '1.1' }">
+            {{ label }}<span v-if="required && !urlFinal" :style="{ color: 'var(--color-error)' }">*</span>
           </div>
-          <div :style="{ fontSize: 'var(--text-sm)', color: urlFinal ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '2px' }">
-            {{ urlFinal ? 'Documento cargado correctamente' : 'Cargue el archivo o tome las fotografías de ambos lados' }}
+          <div :style="{ fontSize: 'var(--text-sm)', color: urlFinal ? 'var(--color-success-text)' : 'var(--color-text-3)', marginTop: '0', lineHeight: '1.3' }">
+            {{ textoEstado }}
           </div>
         </div>
       </div>
@@ -174,7 +187,7 @@ const LADOS = [
           <input type="file" accept=".pdf" :style="{ display: 'none' }" @change="onPdfSeleccionado" />
         </label>
         <!-- Botón Cámara -->
-        <button @click="esMovil ? iniciarCapturaMovil() : iniciarQR()" :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '6px 12px', borderRadius: 'var(--r-pill)', border: sinPdf ? '1px solid var(--color-border)' : '1px solid var(--color-primary)', background: 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: sinPdf ? 'var(--color-text-2)' : 'var(--color-primary)', flex: isMobile ? '1' : 'unset' }">
+        <button @click="esMovil ? iniciarCapturaMovil() : iniciarQR()" :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '6px 12px', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)', flex: isMobile ? '1' : 'unset', minWidth: isMobile ? 'unset' : '170px' }">
           <IconCamera :size="14" /> Tomar fotografía
         </button>
       </div>
@@ -182,51 +195,15 @@ const LADOS = [
       <div v-else-if="estado === 'subiendo'" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
         <IconLoader2 :size="15" class="spin" /> <span :style="{ fontSize: 'var(--text-xs)' }">Procesando…</span>
       </div>
+
+      <!-- Escaneo con QR en curso (el detalle vive en el modal) -->
+      <div v-else-if="['esperando_qr', 'capturando_movil'].includes(estado) && !esMovil" :style="{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-3)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)', flexShrink: '0' }">
+        <IconLoader2 :size="14" class="spin" /> {{ estado === 'capturando_movil' ? 'Esperando fotografías…' : 'Escaneo en curso…' }}
+      </div>
     </div>
 
     <!-- ══ ÁREA EXPANDIDA (Solo cuando hay proceso activo) ════════════ -->
-    <div v-if="!urlFinal && estado !== 'idle' && estado !== 'subiendo'" :style="{ padding: 'var(--sp-lg)', background: 'var(--color-bg-card)' }">
-      
-      <!-- Flujo QR/Móvil -->
-      <div v-if="['esperando_qr', 'capturando_movil'].includes(estado)" :style="{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--sp-lg)', padding: 'var(--sp-md) 0' }">
-
-        <!-- QR -->
-        <div v-if="!esMovil && qrDataUrl" :style="{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--sp-sm)' }">
-          <div :style="{ padding: '10px', borderRadius: 'var(--r-lg)', background: 'white', boxShadow: '0 2px 12px rgba(0,0,0,0.10)', display: 'inline-flex' }">
-            <img :src="qrDataUrl" alt="QR" :style="{ width: '110px', height: '110px', display: 'block' }" />
-          </div>
-          <span :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-semibold)' }">Escanee con su celular</span>
-        </div>
-
-        <!-- Estado e instrucción -->
-        <div :style="{ textAlign: 'center' }">
-          <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: '4px' }">
-            {{ estado === 'capturando_movil' ? 'Capturando fotos…' : 'Siga las instrucciones en su celular' }}
-          </div>
-          <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)' }">
-            {{ estado === 'capturando_movil' ? 'Espere mientras se toman las fotos' : 'Se capturará el frente y reverso del documento' }}
-          </div>
-        </div>
-
-        <!-- Indicadores Frente / Reverso -->
-        <div :style="{ display: 'flex', gap: 'var(--sp-sm)' }">
-          <div v-for="lado in LADOS" :key="lado.key" :style="{
-            display: 'flex', alignItems: 'center', gap: '5px',
-            padding: '5px 12px', borderRadius: 'var(--r-pill)',
-            background: (lado.key === 'frente' ? urlFrente : urlReverso) ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
-            border: '1px solid ' + ((lado.key === 'frente' ? urlFrente : urlReverso) ? 'var(--color-success)' : 'var(--color-border)'),
-          }">
-            <IconCircleCheck v-if="(lado.key === 'frente' ? urlFrente : urlReverso)" :size="13" :style="{ color: 'var(--color-success)' }" />
-            <span v-else :style="{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-border)', display: 'inline-block' }" />
-            <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)', color: (lado.key === 'frente' ? urlFrente : urlReverso) ? 'var(--color-success-text)' : 'var(--color-text-3)' }">{{ lado.label }}</span>
-          </div>
-        </div>
-
-        <!-- Cancelar -->
-        <button :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-3)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)', display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 8px' }" @click="cancelarConPreview">
-          <IconX :size="14" /> Cancelar
-        </button>
-      </div>
+    <div v-if="!urlFinal && esMovil" :style="{ padding: 'var(--sp-lg)' }">
 
       <!-- Fotos directas en móvil -->
       <div v-if="(esMovil && estado === 'idle_movil') || (esMovil && !urlFinal)" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
@@ -256,6 +233,56 @@ const LADOS = [
             </button>
           </div>
           <iframe :src="urlFinal" title="Vista previa del documento" :style="{ width: '100%', height: '100%', border: 'none', background: '#f5f5f5' }" />
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Modal de escaneo QR -->
+    <Teleport to="body">
+      <div v-if="qrModalVisible" :style="{ position: 'fixed', inset: '0', zIndex: '1000', background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--sp-lg)' }">
+        <div :style="{ width: 'min(360px, 92vw)', background: 'white', borderRadius: 'var(--r-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'var(--sp-xl)', gap: 'var(--sp-md)', position: 'relative' }">
+          <button :style="{ position: 'absolute', top: 'var(--sp-sm)', right: 'var(--sp-sm)', width: '24px', height: '24px', borderRadius: '50%', border: 'none', background: 'var(--color-bg-surface-alt)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-3)', padding: '0' }" @click="cancelarConPreview">
+            <IconX :size="13" />
+          </button>
+
+          <div :style="{ marginTop: 'var(--sp-md)' }">
+            <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)', textAlign: 'center', lineHeight: '1.05' }">
+              Prepare su documento y escanee<br />este QR con su celular
+            </div>
+            <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', textAlign: 'center', marginTop: '2px' }">
+              Se capturará el frente y reverso de su documento de identificación.
+            </div>
+          </div>
+
+          <div :style="{ padding: '10px', borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', display: 'inline-flex', opacity: estado === 'capturando_movil' ? 0.35 : 1, transition: 'opacity var(--transition-fast)' }">
+            <img v-if="qrDataUrl" :src="qrDataUrl" alt="QR" :style="{ width: '160px', height: '160px', display: 'block' }" />
+          </div>
+
+          <!-- Progreso de captura: anverso / reverso -->
+          <div :style="{ width: '100%' }">
+            <div :style="{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }">
+              <span :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: urlFrente ? 'var(--color-success-text)' : 'var(--color-text-3)', display: 'flex', alignItems: 'center', gap: '3px' }">
+                <IconCircleCheck v-if="urlFrente" :size="12" /> Frente
+              </span>
+              <span :style="{ fontSize: '11px', fontWeight: 'var(--fw-bold)', color: urlReverso ? 'var(--color-success-text)' : 'var(--color-text-3)', display: 'flex', alignItems: 'center', gap: '3px' }">
+                Reverso <IconCircleCheck v-if="urlReverso" :size="12" />
+              </span>
+            </div>
+            <div :style="{ height: '6px', borderRadius: 'var(--r-pill)', background: 'var(--color-border-light)', overflow: 'hidden' }">
+              <div :style="{
+                height: '100%', borderRadius: 'var(--r-pill)', background: 'var(--color-success)',
+                width: (( (urlFrente ? 1 : 0) + (urlReverso ? 1 : 0) ) / 2 * 100) + '%',
+                transition: 'width var(--transition-fast)',
+              }" />
+            </div>
+          </div>
+
+          <div v-if="estado === 'capturando_movil'" :style="{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-3)', fontSize: '11px', fontWeight: 'var(--fw-semibold)' }">
+            <IconLoader2 :size="12" class="spin" /> Esperando fotografías…
+          </div>
+          <div :style="{ fontSize: '10px', color: 'var(--color-text-3)', textAlign: 'center' }">
+            Al terminar, esta ventana se cerrará automáticamente.
+          </div>
         </div>
       </div>
     </Teleport>

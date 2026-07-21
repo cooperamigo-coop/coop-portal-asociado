@@ -1,12 +1,19 @@
 <script setup>
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { IconArrowLeft, IconArrowRight, IconSearch, IconCreditCard, IconUserPlus, IconCircleCheck, IconClockHour4, IconWorld } from '@tabler/icons-vue'
+import { IconArrowLeft, IconArrowRight, IconSearch, IconCreditCard, IconUserPlus, IconCircleCheck, IconClockHour4, IconInfoCircle, IconFileSearch } from '@tabler/icons-vue'
 import CampoTexto from '@/components/forms/CampoTexto.vue'
 import PortalFooter from '@/components/layout/PortalFooter.vue'
 import { useEstadoProcesos } from '@/composables/useEstadoProcesos'
 
 const router = useRouter()
 const { cedula, correo, honeypot, cargando, error, resultado, consultar, reiniciar } = useEstadoProcesos()
+
+const correoTocado = ref(false)
+const errorCorreo = computed(() => {
+  if (!correoTocado.value || !correo.value) return ''
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo.value) ? '' : 'Ingresa un correo electrónico válido.'
+})
 
 // Solo se listan estados "en curso" — la RPC ya excluye los terminales
 // (rechazado, desembolsado, archivado, finalizado, abandonado, anulado).
@@ -51,6 +58,41 @@ function fmtFecha(v) {
 function volverAFormulario() {
   reiniciar()
 }
+
+function capitalizar(texto) {
+  return String(texto ?? '')
+    .toLowerCase()
+    .replace(/(^|\s)\S/g, (c) => c.toUpperCase())
+}
+
+// ── Detalle expandible ──────────────────────────────────────────────────────
+const procesoAbierto = ref(null)
+
+function toggleProceso(i) {
+  procesoAbierto.value = procesoAbierto.value === i ? null : i
+}
+
+const ORDEN_CREDITO = ['radicado', 'en_revision', 'en_analisis', 'en_aprobacion', 'aprobado', 'pendiente_firma', 'firmado', 'enviado']
+
+function etapasProceso(proceso) {
+  if (proceso.tipo === 'credito') {
+    const idx = ORDEN_CREDITO.indexOf(proceso.estado)
+    const analisisEfectuado = idx >= ORDEN_CREDITO.indexOf('en_aprobacion')
+    const aprobada          = idx >= ORDEN_CREDITO.indexOf('aprobado')
+    return [
+      { label: 'Radicación',        fecha: proceso.radicado_en, completada: true },
+      { label: 'Análisis efectuado', fecha: null, completada: analisisEfectuado },
+      { label: 'Aprobación',        fecha: proceso.fecha_aprobacion, completada: aprobada },
+      { label: 'Desembolso',        fecha: proceso.fecha_desembolso, completada: !!proceso.fecha_desembolso },
+    ]
+  }
+  return [
+    { label: 'Radicada',   fecha: proceso.radicado_en, completada: true },
+    { label: 'En revisión', fecha: proceso.fecha_revision, completada: true },
+    { label: 'Aprobada',   fecha: proceso.estado === 'aprobado' ? proceso.actualizado_en : null, completada: proceso.estado === 'aprobado' },
+  ]
+}
+
 </script>
 
 <template>
@@ -58,11 +100,6 @@ function volverAFormulario() {
 
     <!-- ── Topbar (igual a HomePage) ─────────────────────────── -->
     <header class="portal-topbar">
-      <div class="topbar-desktop">
-        <a href="https://cooperamigo.coop" target="_blank" rel="noopener noreferrer" class="topbar-visit">
-          <IconWorld :size="14" /><span style="font-weight: var(--fw-regular)">Visítanos en </span><span style="font-weight: var(--fw-semibold)">www.cooperamigo.coop</span>
-        </a>
-      </div>
       <button class="topbar-back" aria-label="Volver" @click="resultado ? volverAFormulario() : router.push('/')">
         <IconArrowLeft :size="18" />
       </button>
@@ -76,7 +113,10 @@ function volverAFormulario() {
           <span class="vb-vigilada">VIGILADA</span>
           <span class="vb-line"></span>
         </div>
-        <span class="vb-nombre">SUPERSOLIDARIA</span>
+        <span class="vb-nombre">
+          <span class="vb-nombre-line">SUPERINTENDENCIA DE LA</span>
+          <span class="vb-nombre-line">ECONOMÍA SOLIDARIA</span>
+        </span>
       </div>
     </div>
 
@@ -96,67 +136,105 @@ function volverAFormulario() {
 
       <div class="estado-content">
 
+        <div v-if="!resultado" class="estado-header">
+          <div class="estado-header-icon">
+            <IconFileSearch :size="26" />
+          </div>
+          <h1 class="estado-title">Estado de trámites <span>(Realizados en línea)</span></h1>
+          <p class="estado-subtitle">Consulta el estado de trámites realizados en línea a través de <strong>serviciosdigitales.cooperamigo.coop</strong></p>
+        </div>
+
         <!-- ── Card única: el contenido interno cambia, la card nunca se destruye ── -->
         <div class="estado-card animate-in" :class="{ 'estado-card--resultado': resultado }">
 
           <!-- ── Formulario: cédula + correo ───────────────────── -->
           <template v-if="!resultado">
-                  <div class="estado-header">
-                    <h1 class="estado-title">Consultar estado de trámite</h1>
-                    <p class="estado-subtitle">Consulta el estado de tu trámite ingresando tu número de identificación y el correo electrónico registrado en la solicitud.</p>
-                  </div>
-
             <form class="estado-form" @submit.prevent="consultar">
               <div style="position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none;">
                 <input v-model="honeypot" type="text" name="website" autocomplete="off" tabindex="-1" />
               </div>
 
-              <CampoTexto
-                v-model="cedula"
-                label="Número de identificación"
-                solo-numeros
-                :maxlength="15"
-                required
-              />
-              <CampoTexto
-                v-model="correo"
-                label="Correo electrónico"
-                type="email"
-                required
-              />
+              <div class="estado-form-row">
+                <CampoTexto
+                  v-model="cedula"
+                  label="Número de identificación"
+                  solo-numeros
+                  :maxlength="10"
+                  required
+                  class="estado-campo-cedula"
+                />
+                <CampoTexto
+                  v-model="correo"
+                  label="Correo electrónico"
+                  type="email"
+                  required
+                  class="estado-campo-correo"
+                  :error="errorCorreo"
+                  @blur="correoTocado = true"
+                />
+
+                <button type="submit" class="btn-consultar" :disabled="cargando">
+                  <span>{{ cargando ? 'Consultando...' : 'Consultar estado' }}</span>
+                  <span class="btn-circle"><IconArrowRight :size="14" /></span>
+                </button>
+              </div>
 
               <p v-if="error" class="estado-error">{{ error }}</p>
 
-              <button type="submit" class="btn-consultar" :disabled="cargando">
-                <span>{{ cargando ? 'Consultando...' : 'Consultar estado' }}</span>
-                <span class="btn-circle"><IconArrowRight :size="14" /></span>
-              </button>
+              <div class="estado-aviso">
+                <IconInfoCircle :size="18" class="estado-aviso-icon" />
+                <span>Ingresa los datos con los que realizaste tu trámite para consultar su estado.</span>
+              </div>
             </form>
           </template>
 
           <!-- ── Resultado ──────────────────────────────────────── -->
           <template v-else>
-            <div class="estado-header">
-              <h1 class="estado-title">
-                {{ resultado.nombre ? `Saludos, ${resultado.nombre} ${resultado.apellido ?? ''}`.trim() : 'Tus procesos' }}
-              </h1>
-              <p v-if="resultado.procesos.length" class="estado-subtitle">Este es el estado actual de tus solicitudes en proceso.</p>
+            <div class="estado-header estado-header--resultado">
+              <div class="estado-title-row">
+                <button type="button" class="estado-volver-icon" aria-label="Regresar a inicio" @click="router.push('/')">
+                  <IconArrowLeft :size="18" />
+                </button>
+                <h1 v-if="resultado.nombre" class="estado-title">Sr(a), <span class="estado-title-nombre">{{ capitalizar(`${resultado.nombre} ${resultado.apellido ?? ''}`.trim()) }}</span></h1>
+                <h1 v-else class="estado-title">Tus procesos</h1>
+              </div>
+              <p v-if="resultado.procesos.length" class="estado-subtitle">A continuación, encontrará el estado actual de las solicitudes que se encuentran en trámite.</p>
             </div>
 
             <div class="procesos-list">
-              <div v-for="(proceso, i) in resultado.procesos" :key="i" class="proceso-row">
-                <div class="proceso-icon" :class="proceso.tipo === 'credito' ? 'proceso-icon--credito' : 'proceso-icon--afiliacion'">
-                  <component :is="proceso.tipo === 'credito' ? IconCreditCard : IconUserPlus" :size="20" />
-                </div>
-                <div class="proceso-content">
-                  <div class="proceso-nombre">
-                    {{ proceso.tipo === 'credito' ? 'Solicitud de crédito' : 'Solicitud de afiliación' }}
+              <div v-for="(proceso, i) in resultado.procesos" :key="i" class="proceso-card" :class="{ 'proceso-card--abierta': procesoAbierto === i }">
+                <button type="button" class="proceso-row" @click="toggleProceso(i)">
+                  <div class="proceso-icon" :class="proceso.tipo === 'credito' ? 'proceso-icon--credito' : 'proceso-icon--afiliacion'">
+                    <component :is="proceso.tipo === 'credito' ? IconCreditCard : IconUserPlus" :size="20" />
                   </div>
-                  <div class="proceso-fecha">{{ fmtFecha(proceso.fecha) }}</div>
-                </div>
-                <div class="estado-pill" :class="estiloEstado(proceso)">
-                  <component :is="iconoEstado(proceso)" :size="13" />
-                  {{ etiquetaEstado(proceso) }}
+                  <div class="proceso-content">
+                    <div class="proceso-nombre">
+                      {{ proceso.tipo === 'credito' ? 'Solicitud de crédito' : 'Solicitud de afiliación' }}
+                    </div>
+                    <div class="proceso-fecha">Radicado el {{ fmtFecha(proceso.radicado_en || proceso.fecha) }}</div>
+                  </div>
+                  <div class="estado-pill" :class="estiloEstado(proceso)">
+                    <component :is="iconoEstado(proceso)" :size="13" />
+                    {{ etiquetaEstado(proceso) }}
+                  </div>
+                </button>
+
+                <div v-if="procesoAbierto === i" class="proceso-detalle">
+                  <div class="proceso-stepper">
+                    <template v-for="(etapa, ei) in etapasProceso(proceso)" :key="ei">
+                      <div class="proceso-step">
+                        <div class="proceso-step-icon" :class="{ 'proceso-step-icon--done': etapa.completada }">
+                          <IconCircleCheck v-if="etapa.completada" :size="16" />
+                          <IconFileSearch v-else :size="16" />
+                        </div>
+                        <div class="proceso-step-texto">
+                          <div class="proceso-step-label">{{ etapa.label }}</div>
+                          <div class="proceso-step-fecha">{{ etapa.fecha ? fmtFecha(etapa.fecha) : (etapa.completada ? 'Completado' : 'Pendiente') }}</div>
+                        </div>
+                      </div>
+                      <div v-if="ei < etapasProceso(proceso).length - 1" class="proceso-step-line" :class="{ 'proceso-step-line--done': etapa.completada }" />
+                    </template>
+                  </div>
                 </div>
               </div>
 
@@ -169,10 +247,10 @@ function volverAFormulario() {
               </div>
             </div>
 
-            <button type="button" class="btn-volver-form" @click="router.push('/')">
-              <IconArrowLeft :size="14" />
-              Regresar a inicio
-            </button>
+            <div v-if="resultado.procesos.length" class="estado-aviso">
+              <IconInfoCircle :size="18" class="estado-aviso-icon" />
+              <span>Te notificaremos por correo electrónico cuando haya novedades sobre tu solicitud.</span>
+            </div>
           </template>
 
         </div>
@@ -181,7 +259,7 @@ function volverAFormulario() {
     </main>
 
     <!-- ── Footer (igual a HomePage) ─────────────────────── -->
-    <PortalFooter class="footer--desktop-only" />
+    <PortalFooter />
 
   </div>
 </template>
@@ -224,30 +302,23 @@ function volverAFormulario() {
   box-sizing: border-box;
 }
 
-.topbar-desktop {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.topbar-visit {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--text-sm);
-  font-weight: var(--fw-semibold);
-  color: var(--color-dark);
-  text-decoration: none;
-  transition: color var(--transition-fast);
-}
-
-.topbar-visit:hover {
-  color: var(--color-primary);
-  text-decoration: underline;
-}
-
 .topbar-back {
-  display: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-pill);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-2);
+  flex-shrink: 0;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.topbar-back:hover {
+  background: var(--color-bg-surface);
 }
 
 @media (max-width: 960px) {
@@ -259,42 +330,22 @@ function volverAFormulario() {
     height: 52px;
   }
 
-  .topbar-desktop {
-    display: none;
-  }
-
-  .topbar-back {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: var(--r-pill);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--color-text-2);
-    flex-shrink: 0;
-    transition: background var(--transition-fast), color var(--transition-fast);
-  }
-
   .topbar-back:hover {
-    background: var(--color-bg-surface);
     color: var(--color-primary);
   }
 }
 
-/* ─── Badge VIGILADA lateral (solo desktop) ─── */
+/* ─── Badge VIGILADA lateral ─── */
 .vigilada-badge {
   position: fixed;
   top: 50%;
-  left: 12px;
-  z-index: 40;
+  left: 32px;
+  z-index: 900;
+  display: flex;
+  align-items: center;
   transform: rotate(-90deg) translateX(-50%);
-  transform-origin: 0 0;
+  transform-origin: left top;
   white-space: nowrap;
-  pointer-events: none;
-  display: none;
 }
 
 .vb-inner {
@@ -312,25 +363,38 @@ function volverAFormulario() {
 
 .vb-line {
   display: block;
-  height: 2px;
-  background: var(--color-primary);
+  height: 1.5px;
+  background: var(--color-text-2);
   border-radius: 1px;
 }
 
 .vb-vigilada {
-  font-size: 0.62rem;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
   font-weight: var(--fw-extrabold);
-  letter-spacing: 0.2em;
-  color: var(--color-primary);
+  letter-spacing: 0.18em;
+  color: var(--color-text-2);
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .vb-nombre {
-  font-size: 0.66rem;
-  font-weight: var(--fw-regular);
-  letter-spacing: 0.06em;
-  color: var(--color-primary);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-display);
+  font-size: 0.625rem;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.04em;
+  color: var(--color-text-2);
+  line-height: 1.35;
+}
+
+.vb-nombre-line {
+  display: block;
+}
+
+@media (max-width: 960px) {
+  .vigilada-badge { display: none; }
 }
 
 
@@ -383,22 +447,18 @@ function volverAFormulario() {
 
 @media (min-width: 961px) {
   .estado-content {
-    max-width: 420px;
+    max-width: 960px;
   }
 }
 
 .estado-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--color-bg-card);
   border: none;
-  border-radius: 24px 24px 0 0;
-  padding: 32px 24px 24px;
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+  border-radius: 20px;
+  padding: 32px 24px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  min-height: 60vh;
+  align-items: stretch;
   width: 100%;
   box-sizing: border-box;
   gap: 6px;
@@ -410,19 +470,9 @@ function volverAFormulario() {
   overflow-y: auto;
 }
 
-.estado-card--resultado .btn-volver-form {
-  flex-shrink: 0;
-  margin-top: auto;
-}
-
 @media (min-width: 961px) {
   .estado-card {
-    border-radius: 24px;
-    padding: 72px 40px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-    min-height: unset;
-    width: 420px;
-    flex-shrink: 0;
+    padding: 48px;
   }
 }
 
@@ -438,13 +488,22 @@ function volverAFormulario() {
 
 .estado-title {
   font-family: var(--font-display);
-  font-size: var(--text-xl);
-  font-weight: var(--fw-extrabold);
-  color: var(--color-dark);
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--color-primary);
   margin: 0;
   text-align: center;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.estado-title span {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.estado-title .estado-title-nombre {
+  font-size: 2.2rem;
+  font-weight: 700;
 }
 
 .estado-subtitle {
@@ -453,16 +512,56 @@ function volverAFormulario() {
   color: var(--color-text-2);
   margin: 0;
   text-align: center;
-  line-height: 1.4;
-  max-width: 380px;
+  line-height: 1.5;
+}
+
+.estado-subtitle strong {
+  font-size: 1.05rem;
+  font-weight: var(--fw-bold);
+  color: var(--color-text-1);
+}
+
+.estado-aviso {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+  color: var(--color-text-3);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+.estado-aviso-icon {
+  flex-shrink: 0;
 }
 
 .estado-header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 2px;
   width: 100%;
+  margin-bottom: 0;
+}
+
+.estado-header-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-bg-surface-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  margin-bottom: 32px;
+  flex-shrink: 0;
+}
+
+@media (min-width: 961px) {
+  .estado-header-icon {
+    margin-bottom: 48px;
+  }
 }
 
 .estado-header .estado-subtitle {
@@ -470,13 +569,78 @@ function volverAFormulario() {
   line-height: 1.4;
 }
 
+.estado-header--resultado {
+  align-items: flex-start;
+}
+
+.estado-header--resultado .estado-title,
+.estado-header--resultado .estado-subtitle {
+  text-align: left;
+}
+
+.estado-header--resultado .estado-subtitle {
+  margin-left: 54px;
+}
+
+.estado-title-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.estado-volver-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-bg-surface-alt);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+
+.estado-volver-icon:hover {
+  background: var(--color-border);
+}
+
 .estado-form {
   width: 100%;
-  max-width: 380px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin-top: 20px;
+  margin-top: 0;
+}
+
+.estado-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+@media (min-width: 961px) {
+  .estado-form-row {
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 12px;
+  }
+
+  .estado-form-row :deep(.campo-wrapper) {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .estado-form-row :deep(.estado-campo-cedula) {
+    flex: 0.75;
+  }
+
+  .estado-form-row :deep(.estado-campo-correo) {
+    flex: 1.25;
+  }
 }
 
 .estado-error {
@@ -488,7 +652,7 @@ function volverAFormulario() {
 
 .btn-consultar {
   width: 100%;
-  height: 52px;
+  height: 48px;
   border-radius: var(--r-pill);
   background: var(--color-primary);
   color: #fff;
@@ -502,14 +666,21 @@ function volverAFormulario() {
   align-items: center;
   justify-content: flex-start;
   position: relative;
-  padding: 0 60px 0 36px;
+  padding: 0 52px 0 28px;
   letter-spacing: 0.02em;
 }
 
 .btn-consultar:hover:not(:disabled) {
   background: var(--color-primary-dark, #0d3a45);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(17, 76, 90, 0.3);
+  box-shadow: 0 6px 20px rgba(23, 43, 54, 0.3);
+}
+
+@media (min-width: 961px) {
+  .btn-consultar {
+    width: auto;
+    flex-shrink: 0;
+  }
 }
 
 .btn-consultar:hover:not(:disabled) .btn-circle {
@@ -534,21 +705,6 @@ function volverAFormulario() {
   transition: transform var(--transition-base);
 }
 
-@media (min-width: 961px) {
-  .estado-title {
-    font-size: 28px;
-  }
-
-  .estado-subtitle {
-    font-size: 17px;
-  }
-
-  .btn-consultar {
-    height: 60px;
-    font-size: 15px;
-  }
-}
-
 .btn-consultar:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -558,11 +714,17 @@ function volverAFormulario() {
 .procesos-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 12px;
   margin: 16px auto 20px;
   width: 100%;
-  max-width: 380px;
+}
+
+.proceso-card {
+  width: 100%;
+  border-radius: var(--r-lg);
+  background: var(--color-bg-surface);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
 }
 
 .proceso-row {
@@ -570,10 +732,100 @@ function volverAFormulario() {
   align-items: center;
   gap: 12px;
   padding: 14px;
-  border-radius: var(--r-lg);
-  background: var(--color-bg-surface);
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
   width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.proceso-detalle {
+  padding: 0 20px 20px;
+  animation: fadeInUp 0.3s ease;
+}
+
+.proceso-stepper {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 8px 20px;
+}
+
+.proceso-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  width: 110px;
+  text-align: center;
+}
+
+.proceso-step-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-surface-alt);
+  color: var(--color-text-3);
+}
+
+.proceso-step-icon--done {
+  background: var(--color-success);
+  color: #fff;
+}
+
+.proceso-step-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.proceso-step-label {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-bold);
+  color: var(--color-text-1);
+  line-height: 1.2;
+}
+
+.proceso-step-fecha {
+  font-size: var(--text-xs);
+  color: var(--color-text-3);
+  line-height: 1.2;
+}
+
+.proceso-step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--color-border);
+  margin-top: 16px;
+  min-width: 12px;
+}
+
+.proceso-step-line--done {
+  background: var(--color-success);
+}
+
+.proceso-datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.proceso-dato-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-3);
+  margin-bottom: 2px;
+}
+
+.proceso-dato-valor {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-bold);
+  color: var(--color-text-1);
 }
 
 .proceso-icon {
@@ -605,12 +857,14 @@ function volverAFormulario() {
   font-size: var(--text-sm);
   font-weight: var(--fw-bold);
   color: var(--color-text-1);
+  line-height: 1.2;
 }
 
 .proceso-fecha {
   font-size: var(--text-xs);
   color: var(--color-text-3);
-  margin-top: 2px;
+  line-height: 1.2;
+  margin-top: 0;
 }
 
 .estado-pill {
@@ -673,38 +927,16 @@ function volverAFormulario() {
   line-height: 1.5;
 }
 
-.btn-volver-form {
-  align-self: center;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  color: var(--color-primary);
-  font-size: var(--text-sm);
-  font-weight: var(--fw-semibold);
-  cursor: pointer;
-  padding: 6px 12px;
-}
-
-.btn-volver-form:hover {
-  text-decoration: underline;
-}
-
 /* ─── Footer ─── */
 :deep(.footer-info-row),
 :deep(.footer-sep),
 :deep(.footer-email),
 :deep(.footer-link) {
-  color: var(--color-dark) !important;
+  color: var(--color-text-1) !important;
   opacity: 0.7;
 }
 
 @media (max-width: 960px) {
-  .footer--desktop-only {
-    display: none;
-  }
-
   .btn-consultar {
     justify-content: center;
     padding: 0 52px;

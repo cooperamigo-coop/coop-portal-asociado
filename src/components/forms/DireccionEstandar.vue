@@ -63,7 +63,7 @@ const estiloSelect = {
       fontWeight: 'var(--fw-semibold)',
       color:      error ? 'var(--color-error-text)' : 'var(--color-text-1)',
     }">
-      Dirección de residencia <span :style="{ color: 'var(--color-error)' }">*</span>
+      Dirección de residencia<span :style="{ color: 'var(--color-error)' }">*</span>
     </label>
 
     <!-- Fila 1: Vía principal -->

@@ -1,139 +1,379 @@
 <template>
   <footer class="portal-footer">
-    <div class="footer-inner">
-
-      <!-- Col 1: Logo & Tagline -->
-      <div class="footer-col-brand">
-        <div class="footer-logo-container">
-          <img src="@/assets/img/logo-principal.svg" alt="Cooperamigó" class="footer-logo-img" />
+    <div class="footer-top">
+      <div class="footer-container footer-grid">
+        
+        <!-- Columna 1: Marca -->
+        <div class="footer-col brand-col">
+          <a href="/" class="footer-logo-link">
+            <img src="@/assets/img/logo-principal.svg" alt="Cooperamigó" class="footer-logo-img" />
+          </a>
+          <p class="footer-tagline">
+            Cooperativa Multiactiva Luis Amigó<br>
+            NIT. 800.191.482-7
+          </p>
         </div>
-        <p class="footer-tagline">Portal de servicios digitales</p>
-      </div>
 
-      <!-- Col 2: Legal Links -->
-      <div class="footer-col-links">
-        <span class="footer-heading">Legal</span>
-        <a href="https://cooperamigo.coop/aviso-privacidad" target="_blank" rel="noopener noreferrer" class="footer-link">Aviso de privacidad</a>
-        <a href="https://cooperamigo.coop/politica-tratamiento-datos" target="_blank" rel="noopener noreferrer" class="footer-link">Política de tratamiento de datos</a>
-        <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer" class="footer-link">Términos y condiciones</a>
-      </div>
+        <!-- Columna 2: Enlaces rápidos -->
+        <div class="footer-col" :class="{ 'is-open': abierto.links }">
+          <button type="button" class="footer-heading footer-heading--toggle" @click="toggle('links')">
+            Enlaces rápidos
+            <ChevronDown class="footer-chevron" :size="16" />
+          </button>
+          <ul class="footer-list">
+            <li><router-link to="/" class="footer-link">Inicio</router-link></li>
+            <li><a href="#" class="footer-link" @click.prevent="showFaqModal = true">Preguntas frecuentes</a></li>
+            <li><a href="#" class="footer-link">Políticas y documentos</a></li>
+          </ul>
+        </div>
 
-      <!-- Col 3: Contact & Copy -->
-      <div class="footer-col-contact">
-        <span class="footer-heading">Contacto</span>
-        <span class="footer-text">NIT 800.191.482-7</span>
-        <a href="mailto:info@cooperamigo.coop" class="footer-email">info@cooperamigo.coop</a>
-      </div>
+        <!-- Columna 3: Legal -->
+        <div class="footer-col" :class="{ 'is-open': abierto.legal }">
+          <button type="button" class="footer-heading footer-heading--toggle" @click="toggle('legal')">
+            Legal
+            <ChevronDown class="footer-chevron" :size="16" />
+          </button>
+          <ul class="footer-list">
+            <li>
+              <a href="https://cooperamigo.coop/aviso-privacidad" target="_blank" rel="noopener noreferrer" class="footer-link">
+                Aviso de privacidad
+              </a>
+            </li>
+            <li>
+              <a href="https://cooperamigo.coop/politica-tratamiento-datos" target="_blank" rel="noopener noreferrer" class="footer-link">
+                Política de tratamiento de datos
+              </a>
+            </li>
+            <li>
+              <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer" class="footer-link">
+                Términos y condiciones
+              </a>
+            </li>
+          </ul>
+        </div>
 
+        <!-- Columna 4: Contacto -->
+        <div class="footer-col" :class="{ 'is-open': abierto.contacto }">
+          <button type="button" class="footer-heading footer-heading--toggle" @click="toggle('contacto')">
+            Contacto
+            <ChevronDown class="footer-chevron" :size="16" />
+          </button>
+          <ul class="footer-list contact-list">
+            <li>
+              <a href="tel:+576043054070612" class="footer-link contact-item">
+                <Phone class="contact-icon" />
+                <span>(604) 305 407 0612</span>
+              </a>
+            </li>
+            <li>
+              <a href="mailto:info@cooperamigo.coop" class="footer-link contact-item">
+                <Mail class="contact-icon" />
+                <span>info@cooperamigo.coop</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://maps.google.com/?q=Calle+50+65+-+42,+Oficina+120" target="_blank" rel="noopener noreferrer" class="footer-link contact-item">
+                <MapPin class="contact-icon" />
+                <span>Calle 50 65 - 42, Oficina 120</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+      </div>
     </div>
-    
+
+    <!-- Bottom Bar (Dark) -->
     <div class="footer-bottom">
-      <p class="footer-copy">© 2026 Cooperativa Multiactiva Luis Amigó. Todos los derechos reservados.</p>
+      <div class="footer-container bottom-container">
+        
+        <!-- Social -->
+        <div class="footer-social">
+          <span class="social-text">Síguenos</span>
+          <div class="social-icons">
+            <a href="#" aria-label="Facebook"><Facebook class="social-icon" /></a>
+            <a href="#" aria-label="Instagram"><Instagram class="social-icon" /></a>
+            <a href="#" aria-label="YouTube"><Youtube class="social-icon" /></a>
+            <a href="#" aria-label="LinkedIn"><Linkedin class="social-icon" /></a>
+          </div>
+        </div>
+
+        <!-- Copy -->
+        <div class="footer-copy">
+          © 2026 Cooperativa Multiactiva Luis Amigó. Todos los derechos reservados.
+        </div>
+
+        <!-- Supersolidaria Placeholder -->
+        <div class="footer-vigilado">
+          <ShieldCheck class="vigilado-icon" />
+          Vigilada Supersolidaria
+        </div>
+
+      </div>
     </div>
+
+    <!-- Modal FAQ -->
+    <ModalFAQ v-model:visible="showFaqModal" />
   </footer>
 </template>
 
+<script setup>
+import { reactive, ref } from 'vue';
+import { Mail, MapPin, Phone, Facebook, Instagram, Youtube, Linkedin, ShieldCheck, ChevronDown } from 'lucide-vue-next';
+import ModalFAQ from '@/components/ui/ModalFAQ.vue';
+
+const abierto = reactive({ links: false, legal: false, contacto: false });
+const showFaqModal = ref(false);
+
+function toggle(seccion) {
+  abierto[seccion] = !abierto[seccion];
+}
+</script>
+
 <style scoped>
 .portal-footer {
-  background: var(--color-bg-card);
-  border-top: 1px solid var(--color-border-light);
-  padding: 48px 48px 24px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.footer-inner {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: var(--sp-xl);
-  max-width: 1000px;
-  margin: 0 auto;
   width: 100%;
+  flex-shrink: 0;
+  background-color: var(--color-bg-card);
 }
 
-.footer-col-brand {
+.footer-top {
+  padding: 22px 0 40px;
+}
+
+.footer-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 639px) {
+  .footer-top {
+    padding-bottom: 8px;
+  }
+
+  .footer-grid {
+    gap: 0;
+  }
+
+  .brand-col {
+    margin-bottom: 24px;
+  }
+
+  .footer-logo-img {
+    height: 28px;
+  }
+
+  .footer-tagline {
+    max-width: 320px;
+  }
+
+  .footer-col:not(.brand-col) {
+    border-top: 1px solid var(--color-border-light);
+    padding: 0;
+  }
+
+  .footer-chevron {
+    display: block;
+  }
+
+  .footer-col.is-open .footer-chevron {
+    transform: rotate(180deg);
+  }
+
+  .footer-col:not(.brand-col):not(.is-open) .footer-list {
+    display: none;
+  }
+
+  .footer-col:not(.brand-col) .footer-list {
+    margin-top: 0;
+    padding-bottom: 18px;
+  }
+
+  .footer-col:not(.brand-col) .footer-heading {
+    margin: 0;
+    padding: 18px 0;
+  }
+}
+
+@media (min-width: 640px) {
+  .footer-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .footer-grid {
+    grid-template-columns: 2fr 1fr 1fr 1.5fr;
+  }
+}
+
+.brand-col {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
-.footer-logo-container {
-  display: flex;
-  align-items: center;
-  user-select: none;
+.footer-logo-link {
+  display: inline-block;
+  margin-bottom: 20px;
 }
 
 .footer-logo-img {
   height: 36px;
   width: auto;
-  object-fit: contain;
 }
 
 .footer-tagline {
-  font-size: var(--text-sm);
-  color: var(--color-text-3);
+  font-size: 0.85rem;
+  color: var(--color-text-2);
+  line-height: 1.6;
   margin: 0;
+  max-width: 280px;
 }
 
 .footer-heading {
-  font-size: var(--text-sm);
+  font-size: 0.85rem;
   font-weight: var(--fw-bold);
   color: var(--color-text-1);
-  margin-bottom: 12px;
-  display: block;
+  margin-bottom: 8px;
 }
 
-.footer-col-links,
-.footer-col-contact {
+.footer-heading--toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.footer-chevron {
+  display: none;
+  color: currentColor;
+  transition: transform var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.footer-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 5px;
 }
 
 .footer-link,
-.footer-text,
-.footer-email {
-  font-size: var(--text-sm);
+.footer-text {
+  font-size: 0.8rem;
   color: var(--color-text-2);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
-.footer-link:hover,
-.footer-email:hover {
+.footer-link:hover {
   color: var(--color-primary);
 }
 
+.contact-list {
+  gap: 10px;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.contact-item span {
+  color: inherit;
+}
+
+.contact-icon {
+  width: 16px;
+  height: 16px;
+  color: currentColor;
+  flex-shrink: 0;
+}
+
+/* Bottom Bar */
 .footer-bottom {
-  margin-top: 48px;
-  padding-top: 24px;
-  border-top: 1px solid var(--color-border-light);
-  text-align: center;
+  background-color: var(--color-primary);
+  padding: 16px 0;
+}
+
+.bottom-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+@media (min-width: 1024px) {
+  .bottom-container {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
+
+.footer-social {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.social-text {
+  font-size: 0.8rem;
+  color: var(--color-text-on-primary);
+  font-weight: var(--fw-semibold);
+}
+
+.social-icons {
+  display: flex;
+  gap: 12px;
+}
+
+.social-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-on-primary);
+  transition: opacity var(--transition-fast);
+}
+
+.social-icon:hover {
+  opacity: 0.8;
 }
 
 .footer-copy {
-  font-size: var(--text-xs);
-  color: var(--color-text-3);
-  margin: 0;
+  font-size: 0.7rem;
+  color: var(--color-text-on-primary);
+  opacity: 0.9;
+  text-align: center;
+  white-space: nowrap;
 }
 
-/* ─── Mobile ─── */
-@media (max-width: 960px) {
-  .portal-footer {
-    padding: 32px 24px 24px;
-  }
-  
-  .footer-inner {
-    grid-template-columns: 1fr;
-    gap: 32px;
-  }
+.footer-vigilado {
+  font-size: 0.75rem;
+  font-weight: var(--fw-bold);
+  color: var(--color-text-on-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-  .footer-col-brand,
-  .footer-col-links,
-  .footer-col-contact {
-    align-items: center;
-    text-align: center;
-  }
+.vigilado-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 </style>

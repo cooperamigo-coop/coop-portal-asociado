@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import TooltipInfo from '@/components/ui/TooltipInfo.vue'
+import { IconLock } from '@tabler/icons-vue'
 
 const props = defineProps({
   modelValue: { type: [String, Number], default: '' },
@@ -42,30 +43,24 @@ function onBlur()  { focused.value = false; emit('blur') }
 
 <template>
   <div class="campo-wrapper">
-    <div class="campo-field" :class="{ 'campo-field--floated': floated }">
-      
-      <div 
-        class="campo-input-container"
+    <div class="campo-field" :class="{ 'campo-field--floated': floated, 'campo-field--disabled': disabled }">
+      <span class="campo-prefix">$</span>
+      <input
+        type="text"
+        inputmode="numeric"
+        :value="valorFormateado"
+        :disabled="disabled"
+        class="campo-input"
         :class="{
-          'campo-input-container--focused': focused && !error,
-          'campo-input-container--error':   error,
-          'campo-input-container--disabled': disabled,
+          'campo-input--error':    error,
+          'campo-input--disabled': disabled,
+          'campo-input--focused':  focused && !error,
         }"
-      >
-        <span class="campo-prefix">$</span>
-        <input
-          type="text"
-          inputmode="numeric"
-          :value="valorFormateado"
-          :disabled="disabled"
-          class="campo-input"
-          @keydown="onKeydown"
-          @input="onInput"
-          @focus="onFocus"
-          @blur="onBlur"
-        />
-      </div>
-
+        @keydown="onKeydown"
+        @input="onInput"
+        @focus="onFocus"
+        @blur="onBlur"
+      />
       <label
         v-if="!sinLabel && label"
         class="campo-label"
@@ -74,10 +69,13 @@ function onBlur()  { focused.value = false; emit('blur') }
           'campo-label--error':   !!error,
         }"
       >
-        {{ label }}
-        <span v-if="required" class="campo-required"> *</span>
+        <span>{{ label.replace(/\s*\*\s*$/, '') }}<span v-if="required" class="campo-required">*</span></span>
         <TooltipInfo v-if="tooltip" :texto="tooltip" />
       </label>
+
+      <div v-if="disabled" class="campo-lock">
+        <IconLock :size="16" />
+      </div>
     </div>
 
     <span v-if="error"       class="campo-msg campo-msg--error">{{ error }}</span>
@@ -94,42 +92,55 @@ function onBlur()  { focused.value = false; emit('blur') }
 
 .campo-field {
   position: relative;
-}
-
-/* ── Contenedor del Input (Maneja la línea y el flex) ── */
-.campo-input-container {
   display: flex;
-  align-items: baseline; /* Alineación por la base de la fuente */
+  align-items: center;
   width: 100%;
-  height: 54px;
-  padding: 22px 12px 6px 12px;
-  border-bottom: 1px solid var(--color-border);
-  border-radius: var(--r-md);
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-input);
   box-sizing: border-box;
   background: transparent;
-  transition: border-bottom-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 @media (max-width: 768px) {
-  .campo-input-container {
-    height: 48px;
-    padding: 18px 10px 4px 10px;
+  .campo-field {
+    height: 44px;
+    padding: 0 16px;
   }
 }
 
-.campo-input-container--focused {
-  border-bottom-color: var(--color-primary);
-  box-shadow: 0 1px 0 0 var(--color-primary);
+.campo-field:focus-within:not(.campo-field--disabled) {
+  border-color: var(--color-primary);
 }
 
-.campo-input-container--error {
-  border-bottom-color: var(--color-error) !important;
-  box-shadow: 0 1px 0 0 var(--color-error) !important;
+.campo-field--disabled {
+  background: transparent;
+  border-color: var(--color-border) !important;
+  cursor: default;
 }
 
-.campo-input-container--disabled {
-  border-bottom-style: dashed;
-  cursor: not-allowed;
+.campo-field--disabled .campo-label,
+.campo-field--disabled.campo-field--floated .campo-label {
+  color: var(--color-text-3) !important;
+  background: var(--bg-label, #ffffff);
+  border-radius: 3px;
+}
+
+.campo-lock {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-3);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  pointer-events: none;
+}
+
+.campo-field--disabled:hover .campo-lock {
+  opacity: 1;
 }
 
 /* ── Prefijo $ ── */
@@ -139,73 +150,79 @@ function onBlur()  { focused.value = false; emit('blur') }
   color: var(--color-text-3);
   margin-right: 4px;
   user-select: none;
+  flex-shrink: 0;
 }
 
-/* ── Input Real ── */
+/* ── Input real ── */
 .campo-input {
   flex: 1;
   border: none;
   background: transparent;
   outline: none;
-  font-size: var(--text-lg);
-  font-weight: var(--fw-bold);
+  font-size: var(--text-base);
   font-family: var(--font-body);
   color: var(--color-text-1);
   padding: 0;
   margin: 0;
-  line-height: 1; /* Para evitar saltos */
+  min-width: 0;
 }
 
-/* ── Label ── */
+.campo-input--disabled {
+  color: var(--color-text-3) !important;
+  cursor: default;
+}
+
+/* ── Label Outlined (igual a CampoTexto) ── */
 .campo-label {
   position: absolute;
-  left: 28px; /* Ajustado para el $ */
-  top: 35px;  /* Bajado para alinear con el centro óptico del área de texto */
+  left: 34px;
+  top: 50%;
   transform: translateY(-50%);
   font-size: var(--text-base);
   font-weight: var(--fw-regular);
   color: var(--color-text-3);
   pointer-events: none;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: var(--sp-xs);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: calc(100% - 32px);
-  transition: all var(--transition-fast);
-}
-
-@media (max-width: 768px) {
-  .campo-label {
-    left: 24px;
-    top: 30px;
-  }
+  max-width: calc(100% - 48px);
+  transition:
+    top var(--transition-fast),
+    transform var(--transition-fast),
+    font-size var(--transition-fast),
+    left var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .campo-field--floated .campo-label {
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--color-text-2);
+  background: var(--bg-label, #ffffff);
+  border-radius: 3px;
+  padding: 0 4px;
   left: 12px;
-  top: 4px;
-  transform: translateY(0);
-  font-size: 11px;
-  font-weight: var(--fw-medium);
 }
 
-@media (max-width: 768px) {
-  .campo-field--floated .campo-label {
-    top: 2px;
-    font-size: 10px;
-  }
-}
-
-.campo-label--focused { color: var(--color-primary); }
-.campo-label--error   { color: var(--color-error-text); }
+.campo-label--focused { color: var(--color-primary) !important; }
+.campo-label--error   { color: var(--color-error-text) !important; }
 .campo-required       { color: var(--color-error); }
 
-.campo-msg { 
-  font-size: var(--text-xs); 
-  font-weight: var(--fw-medium); 
+.campo-field:has(.campo-input--error) {
+  border-color: var(--color-error) !important;
+  box-shadow: 0 0 0 1px var(--color-error) !important;
+}
+
+.campo-msg {
+  font-size: var(--text-xs);
+  font-weight: var(--fw-medium);
   padding-left: 12px;
+  padding-top: 2px;
 }
 .campo-msg--error  { color: var(--color-error-text); }
 .campo-msg--helper { color: var(--color-text-3); }

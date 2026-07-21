@@ -12,7 +12,19 @@ const BUCKETS_CANDIDATOS = [
 const MIME_PERMITIDOS = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
 const EXT_PERMITIDAS  = new Set(['jpg', 'jpeg', 'png', 'webp', 'pdf'])
 
+// El bucket es privado: la URL firmada se pide a la Edge Function
+// obtener-documento-portal (no hay SELECT directo de anon sobre
+// storage.objects). "carpeta" es el id de la solicitud o la carpeta
+// aleatoria de la solicitud de afiliación — actúa como credencial.
 let _bucketConfirmado = null
+
+async function _urlFirmada(carpeta, ruta) {
+  const { data, error } = await supabase.functions.invoke('obtener-documento-portal', {
+    body: { carpeta, ruta },
+  })
+  if (error) throw error
+  return data.url
+}
 
 async function validarPdfSinClave(archivo) {
   if (archivo.type !== 'application/pdf') return
@@ -33,15 +45,15 @@ export async function subirDocumentoSolicitud(solicitudId, tipo, archivo) {
 
   await validarPdfSinClave(archivo)
 
-  const ruta = `${solicitudId}/${tipo}_${Date.now()}.${ext}`
+  const carpeta = String(solicitudId)
+  const ruta = `${carpeta}/${tipo}_${Date.now()}.${ext}`
 
   if (_bucketConfirmado) {
     const { error } = await supabase.storage
       .from(_bucketConfirmado)
       .upload(ruta, archivo)
     if (!error) {
-      const { data } = supabase.storage.from(_bucketConfirmado).getPublicUrl(ruta)
-      return data.publicUrl
+      return await _urlFirmada(carpeta, ruta)
     }
     // Reset on failure so the loop below can try other buckets
     _bucketConfirmado = null
@@ -54,8 +66,7 @@ export async function subirDocumentoSolicitud(solicitudId, tipo, archivo) {
       .upload(ruta, archivo)
     if (!error) {
       _bucketConfirmado = bucket
-      const { data } = supabase.storage.from(bucket).getPublicUrl(ruta)
-      return data.publicUrl
+      return await _urlFirmada(carpeta, ruta)
     }
     const msg = String(error?.message || '')
     if (msg.includes('Bucket not found') || msg.includes('row-level security') || msg.includes('Unauthorized')) {

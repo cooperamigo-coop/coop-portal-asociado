@@ -17,14 +17,18 @@ import SelectorDeptoMunicipio from '@/components/forms/SelectorDeptoMunicipio.vu
 import SelectorTipoTrabajador from '@/components/forms/SelectorTipoTrabajador.vue'
 import SeccionFinanciera   from '@/components/forms/SeccionFinanciera.vue'
 import CapturaDocumento from '@/components/forms/CapturaDocumento.vue'
+import ModalAutorizaciones from '@/components/forms/ModalAutorizaciones.vue'
 import { useAfiliacion }  from '@/composables/useAfiliacion'
 import { useBreakpoint }  from '@/composables/useBreakpoint'
 import { subirDocumentoSolicitud, obtenerMensajeErrorSubidaDocumento } from '@/services/documentos.service'
-import { IconCircleCheck, IconUserCheck, IconCheck, IconMapPin, IconX, IconUpload, IconEye, IconRefresh, IconFileDescription, IconLoader2, IconRotateClockwise2, IconHome, IconCar, IconShieldCheck, IconArrowRight, IconAlertTriangle, IconClock } from '@tabler/icons-vue'
+import { IconCircleCheck, IconUserCheck, IconCheck, IconMapPin, IconX, IconUpload, IconEye, IconRefresh, IconFileDescription, IconLoader2, IconRotateClockwise2, IconHome, IconCar, IconShieldCheck, IconArrowRight, IconAlertTriangle, IconClock, IconLock, IconUser, IconMail, IconMessage, IconDeviceMobile, IconPhone, IconBriefcase, IconInfoCircle } from '@tabler/icons-vue'
 import { ENTIDADES_PENSIONES, TIPOS_CONTRATO } from '@/data/formularioCredito'
 
 const router = useRouter()
 const { isMobile } = useBreakpoint()
+
+// Habilita todos los botones "Continuar" en local para poder revisar el flujo sin llenar datos
+const isDev = import.meta.env.DEV
 
 const devPreviewExito = false
 
@@ -76,21 +80,9 @@ const {
   verificarCedula, irAPaso, enviarSolicitud,
 } = useAfiliacion()
 
-function normalizarStorageKey(v) {
-  return String(v || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-}
-
-const documentosKey = computed(() => {
-  const cedula = String(numeroDocumentoInicial.value || datosPersonales.value.cedula || '').trim()
-  if (cedula) return `afiliacion_${normalizarStorageKey(cedula)}`
-  const email = String(emailInicial.value || '').trim()
-  if (email) return `afiliacion_${normalizarStorageKey(email)}`
-  return 'afiliacion'
-})
+// Carpeta de Storage: identificador aleatorio (no la cédula), generado y
+// persistido en useAfiliacion.js — ver documentos.value.carpeta_storage.
+const documentosKey = computed(() => documentos.value.carpeta_storage || 'afiliacion')
 
 const soporteTitulo = computed(() =>
   datosLaborales.value.tipo_trabajador === 'empleado'
@@ -214,6 +206,14 @@ const opsCanalesComunicacion = [
   { value: 'apps_web',            label: 'Aplicaciones o web'   },
   { value: 'llamada',             label: 'Llamada telefónica'   },
 ]
+const iconosCanales = {
+  direccion_principal: IconHome,
+  direccion_empresa:   IconMapPin,
+  correo:              IconMail,
+  sms:                 IconMessage,
+  apps_web:            IconDeviceMobile,
+  llamada:             IconPhone,
+}
 
 // ── Pasos del indicador (pasos 1-5, excluyendo 0 y 6) ──────────────────────
 const pasos = computed(() => ([
@@ -221,7 +221,7 @@ const pasos = computed(() => ([
   { label: 'Laboral y financiera' },
   { label: 'Cónyuge o', label2: necesitaConyuge ? 'compañero(a) permanente' : 'compañero(a) permanente — Omitido', headerJoin: true },
   { label: 'Referencias' },
-  { label: 'Declaraciones y', label2: 'autorizaciones', noWrapLabel: true, headerJoin: true },
+  { label: 'Declaraciones', label2: 'y enviar solicitud' },
 ]))
 
 // Estilos reutilizables
@@ -283,7 +283,7 @@ const grid3070 = (mobile) => ({
 })
 const gridFechaLugar = (mobile) => ({
   display: 'grid',
-  gridTemplateColumns: mobile ? '1fr' : '1fr 1fr 2fr',
+  gridTemplateColumns: mobile ? '1fr' : '1fr 1fr',
   gap: 'var(--sp-lg)',
 })
 const grid207010 = (mobile) => ({
@@ -293,11 +293,67 @@ const grid207010 = (mobile) => ({
 })
 const spanFull = { gridColumn: '1 / -1' }
 
+const textoLegalSecciones = [
+  {
+    titulo: 'DECLARACIÓN DE ORIGEN LÍCITO DE FONDOS',
+    parrafos: [
+      'En cumplimiento de las disposiciones legales vigentes, en particular las normas que regulan el Sistema de Administración del Riesgo de Lavado de Activos y Financiamiento del Terrorismo <strong>(SARLAFT)</strong>, declaro a COOPERAMIGÓ, bajo mi responsabilidad personal y con plena conciencia de las consecuencias legales que implica una declaración falsa, que los recursos, fondos y bienes de mi propiedad o a mi disposición provienen exclusivamente de actividades lícitas descritas en el presente formulario.',
+      'Así mismo, declaro que no permitiré que terceros efectúen depósitos en mis cuentas con fondos provenientes de actividades ilícitas, y que no realizaré transacciones destinadas a tales actividades, conforme a lo establecido en el Código Penal Colombiano y en las normas que regulan el SARLAFT o cualquier disposición que las modifique, sustituya o adicione.',
+      'Autorizo a COOPERAMIGÓ para verificar y reportar a las entidades competentes la información suministrada en este formulario, la cual declaro ser veraz, completa y legal.',
+    ],
+  },
+  {
+    titulo: 'AUTORIZACIÓN DE COMUNICACIONES',
+    parrafos: [
+      'Autorizo a COOPERAMIGÓ para enviar y/o confirmar información relacionada con operaciones, transacciones, obligaciones crediticias y campañas comerciales de la cooperativa, a través de cualquier medio de comunicación, incluyendo mensajes de texto al número celular y/o correo electrónico registrados como de mi uso o propiedad. El costo de dichas comunicaciones será asumido por COOPERAMIGÓ.',
+    ],
+  },
+  {
+    titulo: 'AUTORIZACIÓN DE CONSULTA Y REPORTE EN CENTRALES DE RIESGO',
+    parrafos: [
+      'Autorizo a COOPERAMIGÓ para consultar y reportar, ante las centrales de riesgo legalmente constituidas, la información que se refiera a mi comportamiento financiero, crediticio y comercial, de conformidad con las disposiciones legales aplicables.',
+    ],
+  },
+  {
+    titulo: 'AUTORIZACIÓN DE TRATAMIENTO DE DATOS PERSONALES',
+    parrafos: [
+      'Autorizo a COOPERAMIGÓ para tratar mis datos personales de conformidad con su Política de Tratamiento de Datos Personales, disponible en <strong>www.cooperamigo.coop</strong>, y para los fines legales, contractuales y comerciales descritos en dicha política, relacionados con el objeto social de la cooperativa.',
+      'En ejercicio de mis derechos como titular de los datos, podré consultar, actualizar, rectificar o solicitar la supresión de mis datos personales a través de los canales habilitados por COOPERAMIGÓ.',
+    ],
+  },
+  {
+    titulo: 'OBLIGACIÓN DE ACTUALIZACIÓN',
+    parrafos: [
+      'Me comprometo a informar oportunamente a COOPERAMIGÓ cualquier cambio en los datos consignados en esta solicitud, y a actualizarlos al menos una vez al año a través de los canales dispuestos para tal fin: oficinas físicas, plataforma virtual o aplicación móvil de la cooperativa.',
+    ],
+  },
+  {
+    titulo: 'DECLARACIÓN DE ESTADO DE SALUD',
+    nota: 'Aplica exclusivamente para efectos del seguro de vida asociado y/o fondo de solidaridad.',
+    parrafos: [
+      'Manifiesto que al momento de la presente afiliación gozo de buen estado de salud y no presento enfermedades preexistentes que no hayan sido declaradas. Autorizo a cualquier institución médica que me haya atendido a suministrar mi historia clínica a la compañía aseguradora designada por COOPERAMIGÓ, en los términos y para los fines del seguro o amparo correspondiente.',
+    ],
+  },
+  {
+    titulo: 'DISPOSICIÓN DE DOCUMENTOS ANEXOS',
+    parrafos: [
+      'Autorizo a COOPERAMIGÓ para proceder a la destrucción de los documentos físicos anexados a esta solicitud, en caso de que, vencidos treinta (30) días calendario contados desde la notificación formal de su rechazo o aplazamiento —realizada a través del correo electrónico o medio de contacto registrado—, no hubieren sido reclamados por el solicitante.',
+    ],
+  },
+  {
+    titulo: 'ACEPTACIÓN DE NORMAS INTERNAS',
+    parrafos: [
+      'Manifiesto que conozco y acataré las leyes, estatutos, reglamentos internos y demás normas que rigen a COOPERAMIGÓ, así como las decisiones que, en el ejercicio de sus funciones, adopten los organismos de dirección, administración y control de la cooperativa.',
+    ],
+  },
+]
+
 const modalLugarNacimientoVisible = ref(false)
 const tempLugarNacimiento = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
 const modalLugarExpedicionVisible = ref(false)
 const tempLugarExpedicion = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
 const modalLugarExpedicionConyugeVisible = ref(false)
+const modalDeclaracionesVisible = ref(false)
 const tempLugarExpedicionConyuge = ref({ depto_codigo: '', depto_nombre: '', municipio_codigo: '', municipio_nombre: '' })
 const modalDireccionVisible = ref(false)
 const modalDireccionNegocioVisible = ref(false)
@@ -418,7 +474,7 @@ const firmaArchivoNombre = ref('')
 const mostrarModalSubirFirma = ref(false)
 const _dibujandoFirma = ref(false)
 const _firmaTrazoPrev = ref(null)
-const _firmaCanvasCssHeight = 140
+const _firmaCanvasCssHeight = 175
 const firmaImagen = ref('')
 const firmaMetodo = computed({
   get: () => firma.value?.firma_metodo ?? 'dibujar',
@@ -485,6 +541,16 @@ function prepararCanvasFirma() {
   ctx.beginPath()
   ctx.moveTo(12, cssH - 24)
   ctx.lineTo(cssW - 12, cssH - 24)
+  ctx.stroke()
+
+  // "X" sobre la línea, a la izquierda, para indicar dónde firmar
+  ctx.strokeStyle = '#9ca3af'
+  ctx.lineWidth = 1.4
+  ctx.beginPath()
+  ctx.moveTo(14, cssH - 34)
+  ctx.lineTo(22, cssH - 26)
+  ctx.moveTo(22, cssH - 34)
+  ctx.lineTo(14, cssH - 26)
   ctx.stroke()
 }
 
@@ -978,7 +1044,7 @@ function onDocumentoAreaClick() {
   if (emailValidado.value) return
   const email = emailInicial.value.trim()
   if (!email || !RE_EMAIL.test(email)) return
-  if (import.meta.env.DEV) {
+  if (isDev) {
     emailValidado.value = true
     return
   }
@@ -999,7 +1065,7 @@ async function onOtpValidado() {
 }
 
 async function onVerificarYContinuarClick() {
-  if (import.meta.env.DEV) {
+  if (isDev) {
     emailValidado.value = true
     continuarDespuesOtp.value = false
     await verificarYContinuar()
@@ -1023,7 +1089,7 @@ async function onVerificarYContinuarClick() {
 
 // Lifecycle para canvas de firma
 function esFueraDeHorario() {
-  if (import.meta.env.DEV) return false
+  if (isDev) return false
   const bogota = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }))
   const dia = bogota.getDay()
   const hora = bogota.getHours()
@@ -1044,154 +1110,156 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <PortalLayout
-    :hide-nav="paso === 6 || devPreviewExito"
-    :bg-image="(paso === 6 || devPreviewExito) ? '/imagen2.png' : '/imagen1.png'"
-    :bg-position-mobile="(paso === 6 || devPreviewExito) ? '0% 75%' : 'center'"
-  >
+  <PortalLayout>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- PASO 0: Verificación inicial                                        -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <div v-if="paso === 0" class="paso0-wrapper">
-    <div class="paso0-container">
-
-      <div v-if="!borradorDisponible" :style="{ marginBottom: '20px' }">
-        <div class="step-greeting-title">
-          <span class="greeting-hi">¡Saludos!</span><span class="greeting-sub">Comencemos con tu solicitud</span>
-        </div>
-      </div>
-
+      
       <!-- Borrador disponible -->
       <template v-if="borradorDisponible">
-        <div class="borrador-wrapper animate-in">
-
-          <div class="borrador-icono">
-            <IconRotateClockwise2 :size="28" />
+        <div class="paso0-container" style="display: block; padding: 40px;">
+          <div :style="{ marginBottom: '20px' }">
+            <div class="step-greeting-title">
+              <span class="greeting-hi">¡Saludos!</span><span class="greeting-sub">Comencemos con tu solicitud</span>
+            </div>
           </div>
 
-          <div class="borrador-titulo">Tienes una solicitud en curso</div>
+          <div class="borrador-wrapper animate-in">
+            <div class="borrador-icono">
+              <IconRotateClockwise2 :size="28" />
+            </div>
 
-          <div class="borrador-desc">
-            Encontramos una solicitud que empezaste anteriormente.<br>
-            ¿Te gustaría retomar desde donde quedaste?
+            <div class="borrador-titulo">Tienes una solicitud en curso</div>
+
+            <div class="borrador-desc">
+              Encontramos una solicitud que empezaste anteriormente.<br>
+              ¿Te gustaría retomar desde donde quedaste?
+            </div>
+
+            <div v-if="borradorDisponible?.guardadoEn" class="borrador-fecha">
+              <IconClock :size="12" />
+              Progreso guardado el <strong>{{ formatearFecha(borradorDisponible.guardadoEn) }}</strong>
+            </div>
+
+            <button class="borrador-btn-continuar" @click="onRestaurarBorrador">
+              <span>Continuar solicitud</span>
+              <span class="borrador-btn-circle"><IconArrowRight :size="14" /></span>
+            </button>
+
+            <button class="borrador-btn-reset" @click="descartarBorrador">
+              Empezar de nuevo
+            </button>
           </div>
-
-          <div v-if="borradorDisponible?.guardadoEn" class="borrador-fecha">
-            <IconClock :size="12" />
-            Progreso guardado el <strong>{{ formatearFecha(borradorDisponible.guardadoEn) }}</strong>
-          </div>
-
-          <button class="borrador-btn-continuar" @click="onRestaurarBorrador">
-            <span>Continuar solicitud</span>
-            <span class="borrador-btn-circle"><IconArrowRight :size="14" /></span>
-          </button>
-
-          <button class="borrador-btn-reset" @click="descartarBorrador">
-            Empezar de nuevo
-          </button>
-
         </div>
       </template>
 
       <!-- Formulario de verificación -->
       <template v-else>
-        <div class="paso0-layout">
+        <div class="paso0-container">
+          <h1 class="paso0-title">Afíliate <span>(100% en línea)</span></h1>
+          <p class="paso0-desc">Únete a la cooperativa en minutos, sin filas ni papeleo. Te acompañamos en cada paso del proceso.</p>
 
-          <!-- Columna izquierda: campos -->
-          <div class="paso0-fields">
-            <CampoTexto
-              v-model="emailInicial"
-              label="1. Correo electrónico"
-              type="email"
-              placeholder="su.correo@ejemplo.com"
-              required
-              :error="errorEmail"
-              @keyup.enter="onVerificarYContinuarClick"
-            />
+          <div class="paso0-split">
+            <div class="paso0-col-left">
+              <div class="paso0-fields">
+                <div class="paso0-field-row">
+                  <div class="paso0-number">1</div>
+                  <div class="paso0-input-wrapper">
+                    <CampoTexto
+                      v-model="emailInicial"
+                      label="Correo electrónico *"
+                      type="email"
+                      placeholder="su.correo@ejemplo.com"
+                      :error="errorEmail"
+                      @keyup.enter="onVerificarYContinuarClick"
+                    />
+                  </div>
+                </div>
 
-            <CampoSelect
-              v-model="tipoDocumentoInicial"
-              label="2. Tipo de documento"
-              required
-              :opciones="opsTipoDocVerificacion"
-              :disabled="!emailInicial || !!errorEmail"
-              @click="onDocumentoAreaClick"
-            />
+                <div class="paso0-field-row">
+                  <div class="paso0-number">2</div>
+                  <div class="paso0-input-wrapper">
+                    <CampoSelect
+                      v-model="tipoDocumentoInicial"
+                      label="Tipo de documento *"
+                      :opciones="opsTipoDocVerificacion"
+                      :disabled="!emailInicial || !!errorEmail"
+                      @click="onDocumentoAreaClick"
+                    />
+                  </div>
+                </div>
 
-            <CampoTexto
-              v-model="numeroDocumentoInicial"
-              label="3. Número de documento"
-              placeholder="Sin puntos ni espacios"
-              required
-              solo-numeros
-              :maxlength="15"
-              :disabled="!tipoDocumentoInicial"
-              :error="errorNumeroDoc"
-              @click="onDocumentoAreaClick"
-            />
+                <div class="paso0-field-row">
+                  <div class="paso0-number">3</div>
+                  <div class="paso0-input-wrapper">
+                    <CampoTexto
+                      v-model="numeroDocumentoInicial"
+                      label="Número de documento *"
+                      placeholder="Sin puntos ni espacios"
+                      solo-numeros
+                      :maxlength="15"
+                      :disabled="!tipoDocumentoInicial"
+                      :error="errorNumeroDoc"
+                      @click="onDocumentoAreaClick"
+                    />
+                  </div>
+                </div>
 
-            <!-- Badge: correo verificado -->
-            <div v-if="emailValidado" :style="{
-              display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)',
-              padding: 'var(--sp-sm) var(--sp-md)',
-              borderRadius: 'var(--r-md)',
-              background: 'var(--color-success-bg)',
-            }">
-              <IconCircleCheck :size="15" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
-              <span :style="{
-                fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)',
-                color: 'var(--color-success)',
-              }">Correo electrónico verificado</span>
+                <div v-if="emailValidado" :style="{
+                  display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)',
+                  padding: 'var(--sp-sm) var(--sp-md)',
+                  borderRadius: 'var(--r-md)',
+                  background: 'var(--color-success-bg)',
+                }">
+                  <IconCircleCheck :size="15" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
+                  <span :style="{
+                    fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)',
+                    color: 'var(--color-success)',
+                  }">Correo electrónico verificado</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="paso0-col-right">
+              <div class="paso0-auth">
+                <label class="paso0-auth-label">
+                  <input
+                    type="checkbox"
+                    v-model="aceptaAutorizacion"
+                    class="auth-checkbox"
+                  />
+                  <span class="paso0-auth-text">
+                    Autorizo a Cooperamigó para tratar mis datos personales con la finalidad de gestionar mi proceso de afiliación, contactarme y suministrarme información relacionada con los servicios y beneficios de la cooperativa.
+                    Asimismo, autorizo, cuando sea necesario, la consulta de mi información en operadores de información y riesgo, con el fin de validar mis datos.
+                    <br><br>
+                    Declaro que conozco mis derechos como titular de la información. Igualmente, manifiesto que he leído y acepto los
+                    <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer">Términos y condiciones</a>
+                    y la
+                    <a href="https://cooperamigo.coop/politica-tratamiento-datos" target="_blank" rel="noopener noreferrer">Política de tratamiento de datos personales</a>.
+                  </span>
+                </label>
+              </div>
+
+              <div class="paso0-actions">
+                <button
+                  class="paso0-verify-btn"
+                  :disabled="isDev ? false : (!aceptaAutorizacion || !!errorEmail || !emailValidado || loadingVerificacion)"
+                  @click="onVerificarYContinuarClick"
+                >
+                  <span v-if="loadingVerificacion" class="paso0-spinner" />
+                  <template v-else>
+                    <span>Verificar y continuar</span>
+                    <span class="paso0-btn-circle"><IconArrowRight :size="16" stroke-width="2.5" /></span>
+                  </template>
+                </button>
+              </div>
             </div>
           </div>
-
-          <!-- Divisor vertical -->
-          <div class="paso0-divider" aria-hidden="true"></div>
-
-          <!-- Columna derecha: autorización + botón -->
-          <div class="paso0-auth">
-            <label :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-sm)', cursor: 'pointer' }">
-              <input
-                type="checkbox"
-                v-model="aceptaAutorizacion"
-                class="auth-checkbox"
-                :style="{
-                  marginTop: '3px', flexShrink: '0', cursor: 'pointer',
-                  accentColor: 'var(--color-primary)', width: '15px', height: '15px',
-                }"
-              />
-              <span :style="{
-                fontSize: 'var(--text-xs)', color: 'var(--color-text-2)',
-                fontWeight: 'var(--fw-medium)', lineHeight: '1.6',
-              }">
-                Autorizo a Cooperamigó para tratar mis datos personales con la finalidad de gestionar mi proceso de afiliación, contactarme y suministrarme información relacionada con los servicios y beneficios de la cooperativa.
-                Asimismo, autorizo, cuando sea necesario, la consulta de mi información en operadores de información y riesgo, con el fin de validar mis datos.
-                Declaro que conozco mis derechos como titular de la información. Igualmente, manifiesto que he leído y acepto los
-                <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">Términos y condiciones</a>
-                y la
-                <a href="https://cooperamigo.coop/politica-tratamiento-datos" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">Política de tratamiento de datos personales</a>.
-              </span>
-            </label>
-
-            <button
-              class="paso0-verify-btn"
-              :disabled="!aceptaAutorizacion || !!errorEmail || !emailValidado || loadingVerificacion"
-              @click="onVerificarYContinuarClick"
-            >
-              <span v-if="loadingVerificacion" class="paso0-spinner" />
-              <template v-else>
-                <span>Verificar y continuar</span>
-                <span class="paso0-btn-circle"><IconArrowRight :size="14" /></span>
-              </template>
-            </button>
-          </div>
-
         </div>
       </template>
     </div>
-    </div>
-
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- PASO 6: Éxito                                                       -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
@@ -1206,7 +1274,7 @@ onBeforeUnmount(() => {
             <IconCircleCheck :size="32" />
           </div>
           <div :style="{ display: 'flex', flexDirection: 'column', gap: '4px' }">
-            <h1 class="af-exito-titulo">¡Solicitud de afiliación enviada!</h1>
+            <h1 class="af-exito-titulo">¡Solicitud de afiliación radicada!</h1>
             <p class="af-exito-subtitulo">Tu solicitud fue recibida y está siendo procesada.</p>
           </div>
         </div>
@@ -1259,61 +1327,26 @@ onBeforeUnmount(() => {
           <StepIndicator :pasos="pasos" :actual="paso" />
         </div>
 
-        <!-- Layout dos columnas: sidebar + contenido -->
+        <!-- Layout: indicador vertical a la izquierda + contenido a la derecha -->
         <div class="formulario-layout">
 
-          <!-- Sidebar sticky (solo desktop) -->
-          <aside v-if="!isMobile" class="formulario-sidebar">
-            <div class="formulario-sidebar-inner">
-              <p class="sidebar-proceso-label">Progreso</p>
-              <StepIndicator :pasos="pasos" :actual="paso" :vertical="true" />
+          <!-- Indicador de progreso vertical (solo desktop) -->
+          <div v-if="!isMobile" class="formulario-sidebar">
+            <div :style="{ position: 'sticky', top: 'var(--sp-2xl)' }">
+              <StepIndicator :pasos="pasos" :actual="paso" vertical />
             </div>
-          </aside>
+          </div>
 
           <!-- Columna de contenido -->
           <div class="formulario-content">
 
-      <div :style="{ marginBottom: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)' }">
-        <div :style="{
-          fontFamily: 'var(--font-display)',
-          fontSize: isMobile ? 'var(--text-lg)' : 'var(--text-2xl)',
-          fontWeight: 'var(--fw-extrabold)',
-          color: 'var(--color-text-1)',
-          marginBottom: '2px',
-          lineHeight: '1.1',
-          textAlign: isMobile ? 'center' : 'left',
-        }">Formato único de afiliación y/o conocimiento del asociado.</div>
-      </div>
+      <h1 class="paso0-title">Solicitud de afiliación <span>({{ pasos[paso - 1]?.label2 ? `${pasos[paso - 1]?.label} ${pasos[paso - 1]?.label2}` : pasos[paso - 1]?.label }})</span></h1>
 
       <div :style="{
-        background: 'var(--color-bg-card)',
-        border: '1px solid var(--color-border-card)',
         borderRadius: 'var(--r-md)',
         overflow: 'hidden',
-        boxShadow: 'var(--shadow-card)',
         position: 'relative',
       }">
-
-        <div :style="{
-          padding: 'var(--sp-md) var(--sp-xl)',
-          background: 'var(--color-primary)',
-          color: 'white',
-          fontFamily: 'var(--font-display)',
-          fontSize: 'var(--text-base)',
-          fontWeight: 'var(--fw-bold)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--sp-sm)',
-        }">
-          <IconUserCheck :size="20" />
-          <template v-if="pasos[paso - 1]?.headerJoin && pasos[paso - 1]?.label2">
-            <div :style="{ whiteSpace: 'nowrap' }">{{ `${pasos[paso - 1]?.label} ${pasos[paso - 1]?.label2}` }}</div>
-          </template>
-          <div v-else :style="{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1.1' }">
-            <div :style="{ whiteSpace: 'nowrap' }">{{ pasos[paso - 1]?.label }}</div>
-            <div v-if="pasos[paso - 1]?.label2">{{ pasos[paso - 1]?.label2 }}</div>
-          </div>
-        </div>
 
         <div :style="{ padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-xl)' }">
 
@@ -1339,8 +1372,11 @@ onBeforeUnmount(() => {
           />
 
           <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-            <div :style="estiloBloque">
-              <div :style="{ ...estiloSubtituloCentrado(isMobile), marginTop: '0' }">Datos generales</div>
+            <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+                <IconFileDescription :size="20" /> Datos generales
+              </div>
+              <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)' }">
               <div :style="grid3(isMobile)">
                 <CampoTexto
                   :model-value="fechaSolicitudFormateada"
@@ -1361,10 +1397,14 @@ onBeforeUnmount(() => {
                   required
                 />
               </div>
+              </div>
             </div>
 
-            <div :style="estiloBloque">
-              <div :style="{ ...estiloSubtituloCentrado(isMobile), marginTop: '0' }">Información personal</div>
+            <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+                <IconUserCheck :size="20" /> Información personal
+              </div>
+              <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)' }">
               <div :style="grid3(isMobile)">
                 <CampoSelect
                   v-model="datosPersonales.tipo_identificacion"
@@ -1479,6 +1519,7 @@ onBeforeUnmount(() => {
                   label="Nacionalidad"
                   placeholder="Nacionalidad"
                   required
+                  :style="spanFull"
                 />
                 <div :style="spanFull">
                   <div :style="grid4(isMobile)">
@@ -1531,10 +1572,14 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
               </div>
+              </div>
             </div>
 
-            <div :style="estiloBloque">
-              <div :style="{ ...estiloSubtituloCentrado(isMobile), marginTop: '0' }">Contacto y residencia</div>
+            <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+                <IconMapPin :size="20" /> Contacto y residencia
+              </div>
+              <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)' }">
               <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
                 <div :style="grid2(isMobile)">
                   <CampoTexto
@@ -1610,59 +1655,82 @@ onBeforeUnmount(() => {
                   />
                 </div>
               </div>
-            </div>
-
-            <div :style="estiloBloque">
-              <div :style="{ ...estiloSubtituloCentrado(isMobile), marginTop: '0' }">Canales de comunicación</div>
-              <div :style="grid3(isMobile)">
-                <CampoCheck
-                  v-for="op in opsCanalesComunicacion"
-                  :key="op.value"
-                  :model-value="Array.isArray(datosPersonales.canales_comunicacion) && datosPersonales.canales_comunicacion.includes(op.value)"
-                  :label="op.label"
-                  @update:model-value="() => toggleCanal(op.value)"
-                />
               </div>
             </div>
 
-            <div :style="estiloBloque">
-              <div :style="{ ...estiloSubtituloCentrado(isMobile), marginTop: '0' }">Exposición política y pública</div>
-              <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-                <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
-                  <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-extrabold)' }">
-                    ¿Administra recursos públicos?
+            <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+                <IconCheck :size="20" /> Canales de comunicación
+              </div>
+              <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)' }">
+              <div :style="grid3(isMobile)">
+                <div
+                  v-for="op in opsCanalesComunicacion"
+                  :key="op.value"
+                  :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', padding: 'var(--sp-md)', borderRadius: 'var(--r-md)', background: 'var(--color-bg-surface-alt)' }"
+                >
+                  <div :style="{ width: '36px', height: '36px', borderRadius: 'var(--r-md)', background: 'var(--color-bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
+                    <component :is="iconosCanales[op.value]" :size="18" :style="{ color: Array.isArray(datosPersonales.canales_comunicacion) && datosPersonales.canales_comunicacion.includes(op.value) ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
                   </div>
-                  <div :style="{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--sp-md)' }">
-                    <CampoCheck
-                      :model-value="datosPersonales.administra_recursos_publicos === true"
-                      label="Sí"
-                      @update:model-value="() => { datosPersonales.administra_recursos_publicos = true }"
+                  <div :style="{ flex: 1, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">{{ op.label }}</div>
+                  <label :style="{ display: 'flex', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }">
+                    <input
+                      type="checkbox"
+                      :checked="Array.isArray(datosPersonales.canales_comunicacion) && datosPersonales.canales_comunicacion.includes(op.value)"
+                      :style="{ display: 'none' }"
+                      @change="toggleCanal(op.value)"
                     />
-                    <CampoCheck
-                      :model-value="datosPersonales.administra_recursos_publicos === false"
-                      label="No"
-                      @update:model-value="() => { datosPersonales.administra_recursos_publicos = false }"
-                    />
+                    <span :style="{
+                      width: '38px', height: '22px', borderRadius: '999px',
+                      background: (Array.isArray(datosPersonales.canales_comunicacion) && datosPersonales.canales_comunicacion.includes(op.value)) ? 'var(--color-primary)' : 'var(--color-border)',
+                      position: 'relative', transition: 'background var(--transition-fast)', flexShrink: '0',
+                    }">
+                      <span :style="{
+                        position: 'absolute', top: '3px',
+                        left: (Array.isArray(datosPersonales.canales_comunicacion) && datosPersonales.canales_comunicacion.includes(op.value)) ? '19px' : '3px',
+                        width: '16px', height: '16px', borderRadius: '50%', background: '#fff', transition: 'left var(--transition-fast)',
+                      }" />
+                    </span>
+                  </label>
+                </div>
+              </div>
+              </div>
+            </div>
+
+            <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+                <IconAlertTriangle :size="20" /> Exposición política y pública
+              </div>
+              <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)' }">
+              <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+                <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', padding: 'var(--sp-md)', borderRadius: 'var(--r-md)', background: 'var(--color-bg-surface-alt)' }">
+                  <div :style="{ width: '36px', height: '36px', borderRadius: 'var(--r-md)', background: 'var(--color-bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
+                    <IconLock :size="18" :style="{ color: datosPersonales.administra_recursos_publicos ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
                   </div>
+                  <div :style="{ flex: 1, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">¿Administra recursos públicos?</div>
+                  <label :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', cursor: 'pointer', userSelect: 'none' }">
+                    <input type="checkbox" :checked="datosPersonales.administra_recursos_publicos === true" :style="{ display: 'none' }" @change="datosPersonales.administra_recursos_publicos = !datosPersonales.administra_recursos_publicos" />
+                    <span :style="{ width: '42px', height: '24px', borderRadius: '999px', background: datosPersonales.administra_recursos_publicos ? 'var(--color-primary)' : 'var(--color-border)', position: 'relative', transition: 'background var(--transition-fast)' }">
+                      <span :style="{ position: 'absolute', top: '3px', left: datosPersonales.administra_recursos_publicos ? '21px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'left var(--transition-fast)' }" />
+                    </span>
+                    <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: datosPersonales.administra_recursos_publicos ? 'var(--color-primary)' : 'var(--color-text-3)' }">{{ datosPersonales.administra_recursos_publicos ? 'Sí' : 'No' }}</span>
+                  </label>
                 </div>
 
-                <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
-                  <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-extrabold)' }">
-                    ¿Es persona expuesta públicamente (PEP)?
+                <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', padding: 'var(--sp-md)', borderRadius: 'var(--r-md)', background: 'var(--color-bg-surface-alt)' }">
+                  <div :style="{ width: '36px', height: '36px', borderRadius: 'var(--r-md)', background: 'var(--color-bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
+                    <IconUser :size="18" :style="{ color: datosPersonales.persona_expuesta_publicamente ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
                   </div>
-                  <div :style="{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--sp-md)' }">
-                    <CampoCheck
-                      :model-value="datosPersonales.persona_expuesta_publicamente === true"
-                      label="Sí"
-                      @update:model-value="() => { datosPersonales.persona_expuesta_publicamente = true }"
-                    />
-                    <CampoCheck
-                      :model-value="datosPersonales.persona_expuesta_publicamente === false"
-                      label="No"
-                      @update:model-value="() => { datosPersonales.persona_expuesta_publicamente = false }"
-                    />
-                  </div>
+                  <div :style="{ flex: 1, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">¿Es persona expuesta públicamente (PEP)?</div>
+                  <label :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', cursor: 'pointer', userSelect: 'none' }">
+                    <input type="checkbox" :checked="datosPersonales.persona_expuesta_publicamente === true" :style="{ display: 'none' }" @change="datosPersonales.persona_expuesta_publicamente = !datosPersonales.persona_expuesta_publicamente" />
+                    <span :style="{ width: '42px', height: '24px', borderRadius: '999px', background: datosPersonales.persona_expuesta_publicamente ? 'var(--color-primary)' : 'var(--color-border)', position: 'relative', transition: 'background var(--transition-fast)' }">
+                      <span :style="{ position: 'absolute', top: '3px', left: datosPersonales.persona_expuesta_publicamente ? '21px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'left var(--transition-fast)' }" />
+                    </span>
+                    <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: datosPersonales.persona_expuesta_publicamente ? 'var(--color-primary)' : 'var(--color-text-3)' }">{{ datosPersonales.persona_expuesta_publicamente ? 'Sí' : 'No' }}</span>
+                  </label>
                 </div>
+              </div>
               </div>
             </div>
           </div>
@@ -1830,7 +1898,11 @@ onBeforeUnmount(() => {
         <!-- PASO 2: Laboral y financiera                                -->
         <!-- ─────────────────────────────────────────────────────────── -->
         <div v-if="paso === 2">
-          <div :style="estiloSeccionTituloCentrado(isMobile)">Laboral y financiera</div>
+          <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', marginBottom: 'var(--sp-lg)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconBriefcase :size="20" /> Laboral y financiera
+            </div>
+          </div>
 
           <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
             <div :style="estiloBloque">
@@ -2006,7 +2078,7 @@ onBeforeUnmount(() => {
                   fontSize: 'var(--text-sm)',
                   color: 'var(--color-text-2)',
                   lineHeight: '1.5',
-                  background: 'var(--color-p-light)',
+                  background: 'var(--color-border)',
                   borderRadius: 'var(--r-md)',
                   padding: 'var(--sp-md) var(--sp-lg)',
                 }">
@@ -2152,8 +2224,11 @@ onBeforeUnmount(() => {
         <div v-if="paso === 3">
 
           <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-            <div v-if="necesitaConyuge" :style="estiloBloque">
-              <div :style="{ ...estiloSubtituloCentrado(isMobile), marginTop: '0' }">Datos del cónyuge / compañero(a)</div>
+            <div v-if="necesitaConyuge" :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+                <IconUser :size="20" /> Datos del cónyuge / compañero(a)
+              </div>
+              <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)' }">
               <div :style="grid3(isMobile)">
                 <CampoSelect
                   v-model="datosConyuge.tipo_identificacion"
@@ -2238,22 +2313,25 @@ onBeforeUnmount(() => {
                   @update:model-value="datosConyuge.apellidos = $event.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').toUpperCase()"
                 />
               </div>
+              </div>
             </div>
 
             <div
               v-else
               :style="{
-                background: 'var(--color-bg-card)',
-                borderBottom: '1px solid var(--color-border)',
+                background: 'var(--color-bg-surface-alt)',
                 borderRadius: 'var(--r-md)',
-                padding: 'var(--sp-xl)',
-                textAlign: 'center',
+                padding: 'var(--sp-lg) var(--sp-xl)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--sp-sm)',
                 color: 'var(--color-text-2)',
                 fontSize: 'var(--text-base)',
                 fontWeight: 'var(--fw-medium)',
               }"
             >
-              Usted ha indicado que su estado civil es <span :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">{{ datosPersonales.estado_civil || 'No informado' }}</span>. Por lo tanto, puede omitir este paso y continuar.
+              <IconInfoCircle :size="20" :style="{ color: 'var(--color-text-3)', flexShrink: '0' }" />
+              <span>Usted ha indicado que su estado civil es <span :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">{{ datosPersonales.estado_civil || 'No informado' }}</span>. Por lo tanto, puede omitir este paso y continuar.</span>
             </div>
           </div>
 
@@ -2299,9 +2377,6 @@ onBeforeUnmount(() => {
                         <div :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)', fontSize: 'var(--text-lg)' }">
                           Lugar de expedición
                         </div>
-                        <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">
-                          Seleccione departamento y municipio
-                        </div>
                       </div>
                     </div>
                     <button :style="{
@@ -2343,8 +2418,11 @@ onBeforeUnmount(() => {
         <div v-if="paso === 4">
 
           <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
-            <div :style="estiloBloque">
-              <div :style="{ ...estiloSubtituloCentrado(isMobile), marginTop: '0' }">Referencias</div>
+            <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+                <IconFileDescription :size="20" /> Referencias
+              </div>
+              <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)' }">
 
               <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
                 <!-- Referencia Personal -->
@@ -2356,7 +2434,7 @@ onBeforeUnmount(() => {
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
                     marginBottom: 'var(--sp-md)',
-                  }">Personal</div>
+                  }">1. Personal</div>
                   <div :style="{
                     display: 'grid',
                     gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
@@ -2390,7 +2468,7 @@ onBeforeUnmount(() => {
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
                     marginBottom: 'var(--sp-md)',
-                  }">Familiar</div>
+                  }">2. Familiar</div>
                   <div :style="{
                     display: 'grid',
                     gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr',
@@ -2430,7 +2508,7 @@ onBeforeUnmount(() => {
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
                     marginBottom: 'var(--sp-md)',
-                  }">Financiera</div>
+                  }">3. Financiera</div>
                   <div :style="{
                     display: 'grid',
                     gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
@@ -2482,7 +2560,7 @@ onBeforeUnmount(() => {
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
                     marginBottom: 'var(--sp-md)',
-                  }">Comercial</div>
+                  }">4. Comercial</div>
                   <div :style="{
                     display: 'grid',
                     gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
@@ -2505,6 +2583,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
               </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2514,89 +2593,50 @@ onBeforeUnmount(() => {
         <!-- ─────────────────────────────────────────────────────────── -->
         <div v-if="paso === 5">
 
-          <!-- ── Texto legal ────────────────────────────────────────── -->
-          <div :style="{
-            background: 'var(--color-bg-card)',
-            borderRadius: 'var(--r-md)',
-            padding: 'var(--sp-xl)',
-            marginBottom: 'var(--sp-xl)',
-            fontSize: 'var(--text-sm)',
-            color: 'var(--color-text-2)',
-            lineHeight: '1.7',
-            textAlign: 'justify',
-            textJustify: 'inter-word',
-          }">
-            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', textAlign: 'left' }">
-              DECLARACIÓN DE ORIGEN LÍCITO DE FONDOS
-            </p>
-            <p :style="{ marginBottom: 'var(--sp-md)' }">
-              En cumplimiento de las disposiciones legales vigentes, en particular las normas que regulan el Sistema de Administración del Riesgo de Lavado de Activos y Financiamiento del Terrorismo <strong>(SARLAFT)</strong>, declaro a COOPERAMIGÓ, bajo mi responsabilidad personal y con plena conciencia de las consecuencias legales que implica una declaración falsa, que los recursos, fondos y bienes de mi propiedad o a mi disposición provienen exclusivamente de actividades lícitas descritas en el presente formulario.
-            </p>
-            <p :style="{ marginBottom: 'var(--sp-md)' }">
-              Así mismo, declaro que no permitiré que terceros efectúen depósitos en mis cuentas con fondos provenientes de actividades ilícitas, y que no realizaré transacciones destinadas a tales actividades, conforme a lo establecido en el Código Penal Colombiano y en las normas que regulan el SARLAFT o cualquier disposición que las modifique, sustituya o adicione.
-            </p>
-            <p :style="{ marginBottom: 'var(--sp-md)' }">
-              Autorizo a COOPERAMIGÓ para verificar y reportar a las entidades competentes la información suministrada en este formulario, la cual declaro ser veraz, completa y legal.
-            </p>
-
-            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', marginTop: 'var(--sp-lg)', textAlign: 'left' }">
-              AUTORIZACIÓN DE COMUNICACIONES
-            </p>
-            <p :style="{ marginBottom: 'var(--sp-md)' }">
-              Autorizo a COOPERAMIGÓ para enviar y/o confirmar información relacionada con operaciones, transacciones, obligaciones crediticias y campañas comerciales de la cooperativa, a través de cualquier medio de comunicación, incluyendo mensajes de texto al número celular y/o correo electrónico registrados como de mi uso o propiedad. El costo de dichas comunicaciones será asumido por COOPERAMIGÓ.
-            </p>
-
-            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', marginTop: 'var(--sp-lg)', textAlign: 'left' }">
-              AUTORIZACIÓN DE CONSULTA Y REPORTE EN CENTRALES DE RIESGO
-            </p>
-            <p :style="{ marginBottom: 'var(--sp-md)' }">
-              Autorizo a COOPERAMIGÓ para consultar y reportar, ante las centrales de riesgo legalmente constituidas, la información que se refiera a mi comportamiento financiero, crediticio y comercial, de conformidad con las disposiciones legales aplicables.
-            </p>
-
-            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', marginTop: 'var(--sp-lg)', textAlign: 'left' }">
-              AUTORIZACIÓN DE TRATAMIENTO DE DATOS PERSONALES
-            </p>
-            <p :style="{ marginBottom: 'var(--sp-md)' }">
-              Autorizo a COOPERAMIGÓ para tratar mis datos personales de conformidad con su Política de Tratamiento de Datos Personales, disponible en <strong>www.cooperamigo.coop</strong>, y para los fines legales, contractuales y comerciales descritos en dicha política, relacionados con el objeto social de la cooperativa.
-            </p>
-            <p :style="{ marginBottom: 'var(--sp-md)' }">
-              En ejercicio de mis derechos como titular de los datos, podré consultar, actualizar, rectificar o solicitar la supresión de mis datos personales a través de los canales habilitados por COOPERAMIGÓ.
-            </p>
-
-            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', marginTop: 'var(--sp-lg)', textAlign: 'left' }">
-              OBLIGACIÓN DE ACTUALIZACIÓN
-            </p>
-            <p :style="{ marginBottom: 'var(--sp-md)' }">
-              Me comprometo a informar oportunamente a COOPERAMIGÓ cualquier cambio en los datos consignados en esta solicitud, y a actualizarlos al menos una vez al año a través de los canales dispuestos para tal fin: oficinas físicas, plataforma virtual o aplicación móvil de la cooperativa.
-            </p>
-
-            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', marginTop: 'var(--sp-lg)', textAlign: 'left' }">
-              DECLARACIÓN DE ESTADO DE SALUD
-            </p>
-            <p :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontStyle: 'italic', marginBottom: 'var(--sp-sm)' }">
-              Aplica exclusivamente para efectos del seguro de vida asociado y/o fondo de solidaridad.
-            </p>
-            <p :style="{ marginBottom: 'var(--sp-md)' }">
-              Manifiesto que al momento de la presente afiliación gozo de buen estado de salud y no presento enfermedades preexistentes que no hayan sido declaradas. Autorizo a cualquier institución médica que me haya atendido a suministrar mi historia clínica a la compañía aseguradora designada por COOPERAMIGÓ, en los términos y para los fines del seguro o amparo correspondiente.
-            </p>
-
-            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', marginTop: 'var(--sp-lg)', textAlign: 'left' }">
-              DISPOSICIÓN DE DOCUMENTOS ANEXOS
-            </p>
-            <p :style="{ marginBottom: 'var(--sp-md)' }">
-              Autorizo a COOPERAMIGÓ para proceder a la destrucción de los documentos físicos anexados a esta solicitud, en caso de que, vencidos treinta (30) días calendario contados desde la notificación formal de su rechazo o aplazamiento —realizada a través del correo electrónico o medio de contacto registrado—, no hubieren sido reclamados por el solicitante.
-            </p>
-
-            <p :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-md)', marginTop: 'var(--sp-lg)', textAlign: 'left' }">
-              ACEPTACIÓN DE NORMAS INTERNAS
-            </p>
-            <p :style="{ marginBottom: 'var(--sp-md)' }">
-              Manifiesto que conozco y acataré las leyes, estatutos, reglamentos internos y demás normas que rigen a COOPERAMIGÓ, así como las decisiones que, en el ejercicio de sus funciones, adopten los organismos de dirección, administración y control de la cooperativa.
-            </p>
+          <!-- ── Declaraciones y autorizaciones (texto legal) ─────────── -->
+          <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden', marginBottom: 'var(--sp-xl)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)' }">
+              <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)' }">
+                <IconShieldCheck :size="20" /> Declaraciones y autorizaciones
+              </div>
+              <div v-if="declaraciones.acepta_declaraciones_legales !== true" :style="{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 12px', borderRadius: 'var(--r-pill)', background: 'var(--color-bg-surface-alt)' }">
+                <span :style="{ fontSize: '10px', fontWeight: 'var(--fw-extrabold)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-3)' }">Pendiente</span>
+              </div>
+            </div>
+            <div :style="{ padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-xl)' }">
+              <div>
+                <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-xs)' }">Declaración de origen lícito, autorizaciones y demás compromisos</div>
+                <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', lineHeight: '1.5' }">
+                  Con el fin de dar trámite a su solicitud de afiliación, es requisito indispensable que lea, comprenda y acepte expresamente las declaraciones y autorizaciones de la Cooperativa.
+                  <span
+                    v-if="declaraciones.acepta_declaraciones_legales !== true"
+                    :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-bold)', cursor: 'pointer', textDecoration: 'underline' }"
+                    @click="modalDeclaracionesVisible = true"
+                  > Clic aquí para revisar y autorizar contenido.</span>
+                </div>
+                <div v-if="declaraciones.acepta_declaraciones_legales === true" :style="{ display: 'inline-flex', alignItems: 'center', gap: 'var(--sp-xs)', color: 'var(--color-success-text)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-sm)', cursor: 'pointer' }" @click="modalDeclaracionesVisible = true">
+                  <IconCircleCheck :size="16" />
+                  <span>Declaraciones aceptadas</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div :style="estiloSubtituloCentrado(isMobile)">Documentos requeridos</div>
-          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)', marginBottom: 'var(--sp-xl)' }">
+          <ModalAutorizaciones
+            v-model:visible="modalDeclaracionesVisible"
+            :aceptado="declaraciones.acepta_declaraciones_legales === true"
+            titulo="Declaraciones y autorizaciones"
+            :secciones="textoLegalSecciones"
+            @aceptar="declaraciones.acepta_declaraciones_legales = true; declaraciones.fecha_aceptacion_declaraciones_legales = new Date().toISOString()"
+            @rechazar="declaraciones.acepta_declaraciones_legales = false; declaraciones.fecha_aceptacion_declaraciones_legales = null"
+          />
+
+          <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', marginBottom: 'var(--sp-xl)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconUpload :size="20" /> Documentos requeridos
+            </div>
+            <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)' }">
+          <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
             <CapturaDocumento
               :solicitud-id="null"
               :storage-key="documentosKey"
@@ -2608,28 +2648,30 @@ onBeforeUnmount(() => {
               @completado="documentos.doc_cedula_solicitante_url = $event"
             />
 
-            <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }">
+            <div :style="{ borderRadius: 'var(--r-lg)', overflow: 'hidden', background: documentos.doc_soporte_ingresos_laboral_url ? 'var(--color-success-bg)' : '#f8f8f8' }">
               <div :style="{
                 display: 'flex',
-                alignItems: 'center',
+                flexDirection: isMobile ? 'column' : 'row',
+                alignItems: isMobile ? 'stretch' : 'center',
                 gap: 'var(--sp-md)',
-                padding: 'var(--sp-md) var(--sp-xl)',
-                background: documentos.doc_soporte_ingresos_laboral_url ? 'var(--color-success-bg)' : 'var(--color-bg-surface)',
+                padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)',
               }">
-                <div :style="{
-                  width: '36px', height: '36px', borderRadius: '50%',
-                  background: documentos.doc_soporte_ingresos_laboral_url ? 'var(--color-success)' : 'var(--color-primary)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0',
-                }">
-                  <IconCircleCheck v-if="documentos.doc_soporte_ingresos_laboral_url" :size="18" :style="{ color: '#fff' }" />
-                  <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
-                </div>
-                <div :style="{ flex: '1', minWidth: '0' }">
-                  <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)' }">
-                    {{ soporteTitulo }}<span v-if="!documentos.doc_soporte_ingresos_laboral_url" :style="{ marginLeft: '4px', color: 'var(--color-error)' }">*</span>
+                <div :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-md)', flex: '1', minWidth: '0' }">
+                  <div :style="{
+                    width: '36px', height: '36px', borderRadius: '50%',
+                    background: documentos.doc_soporte_ingresos_laboral_url ? 'var(--color-success)' : 'var(--color-primary)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0',
+                  }">
+                    <IconCircleCheck v-if="documentos.doc_soporte_ingresos_laboral_url" :size="18" :style="{ color: '#fff' }" />
+                    <IconFileDescription v-else :size="18" :style="{ color: '#fff' }" />
                   </div>
-                  <div :style="{ fontSize: 'var(--text-sm)', color: documentos.doc_soporte_ingresos_laboral_url ? 'var(--color-success-text)' : 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">
-                    {{ documentos.doc_soporte_ingresos_laboral_url ? 'Documento cargado correctamente' : soporteDescripcion }}
+                  <div :style="{ minWidth: '0' }">
+                    <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)', lineHeight: '1.1' }">
+                      {{ soporteTitulo }}<span v-if="!documentos.doc_soporte_ingresos_laboral_url" :style="{ color: 'var(--color-error)' }">*</span>
+                    </div>
+                    <div :style="{ fontSize: 'var(--text-sm)', color: documentos.doc_soporte_ingresos_laboral_url ? 'var(--color-success-text)' : 'var(--color-text-3)', marginTop: '0', lineHeight: '1.3' }">
+                      {{ documentos.doc_soporte_ingresos_laboral_url ? 'Documento cargado correctamente' : soporteDescripcion }}
+                    </div>
                   </div>
                 </div>
 
@@ -2637,21 +2679,22 @@ onBeforeUnmount(() => {
                   <IconLoader2 :size="16" class="spin" />
                 </div>
                 <div v-else-if="documentos.doc_soporte_ingresos_laboral_url" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', flexShrink: '0' }">
-                  <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-success)', background: 'white', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirSoporte">
+                  <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: 'none', background: 'var(--color-success-bg)', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirSoporte">
                     <IconEye :size="13" /> Visualizar
                   </button>
-                  <button :style="{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--sp-xs)', display: 'flex', color: 'var(--color-success-text)' }" @click="quitarSoporte">
+                  <button :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-success-text)', padding: 'var(--sp-xs)', display: 'flex' }" @click="quitarSoporte">
                     <IconRefresh :size="16" />
                   </button>
                 </div>
-                <div v-else :style="{ flexShrink: '0' }">
+                <div v-else :style="{ display: 'flex', gap: 'var(--sp-sm)' }">
                   <label :style="{
-                    display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)',
-                    padding: '6px 14px', borderRadius: 'var(--r-pill)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    padding: '6px 12px', borderRadius: 'var(--r-pill)',
                     border: '1px solid var(--color-border)', background: 'white',
                     cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)',
+                    flex: isMobile ? '1' : 'unset', minWidth: isMobile ? 'unset' : '170px',
                   }">
-                    <IconUpload :size="14" />Subir PDF
+                    <IconUpload :size="14" /> Subir PDF
                     <input type="file" accept=".pdf" :style="{ display: 'none' }" @change="onFileSoporte" />
                   </label>
                 </div>
@@ -2662,17 +2705,19 @@ onBeforeUnmount(() => {
               </div>
             </div>
           </div>
+          </div>
+          </div>
 
           <!-- ── Acompañamiento de asesor ─────────────────────── -->
-          <div :style="estiloSubtituloCentrado(isMobile)">Acompañamiento de asesor</div>
-          <div :style="{
-            background: 'var(--color-bg-card)',
-            borderRadius: 'var(--r-xl)',
-            padding: 'var(--sp-xl)',
+          <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', marginBottom: 'var(--sp-xl)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconUserCheck :size="20" /> Acompañamiento de asesor
+            </div>
+            <div :style="{
+            padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)',
             display: 'flex',
             flexDirection: 'column',
             gap: 'var(--sp-lg)',
-            marginBottom: 'var(--sp-xl)',
           }">
             <div :style="{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 'var(--sp-md)', flexWrap: 'wrap' }">
               <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-semibold)', flex: '1', minWidth: '180px' }">
@@ -2687,118 +2732,74 @@ onBeforeUnmount(() => {
               </label>
               <CampoTexto v-if="declaraciones.tuvo_asesoria === true" v-model="declaraciones.codigo_asesor" label="Código del asesor" placeholder="00000" required solo-numeros :maxlength="5" />
             </div>
+            </div>
           </div>
 
           <!-- ── Sección 10: Declaraciones SARLAFT ─────────────────── -->
-          <div :style="estiloSubtituloCentrado(isMobile)">Declaraciones adicionales</div>
-          <div :style="{
-            background: 'var(--color-bg-card)',
-            borderRadius: 'var(--r-xl)',
-            padding: 'var(--sp-xl)',
+          <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', marginBottom: 'var(--sp-xl)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconAlertTriangle :size="20" /> Declaraciones adicionales
+            </div>
+            <div :style="{
+            padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)',
             display: 'flex',
             flexDirection: 'column',
             gap: 'var(--sp-lg)',
-            marginBottom: 'var(--sp-xl)',
           }">
-            <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 110px 110px', gap: 'var(--sp-md)', alignItems: 'center' }">
-              <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-extrabold)', minWidth: '0' }">
-                1. ¿Manejo o he manejado dineros públicos de la nación, departamento, municipio o algún ente descentralizado?
+            <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', padding: 'var(--sp-md)', borderRadius: 'var(--r-md)', background: 'var(--color-bg-surface-alt)' }">
+              <div :style="{ width: '36px', height: '36px', borderRadius: 'var(--r-md)', background: 'var(--color-bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
+                <IconLock :size="18" :style="{ color: declaraciones.maneja_dinero_publico ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
               </div>
-              <div :style="{ minWidth: '0' }">
-                <CampoCheck
-                  :model-value="declaraciones.maneja_dinero_publico === true"
-                  label="Sí"
-                  @update:model-value="() => { declaraciones.maneja_dinero_publico = true }"
-                />
-              </div>
-              <div :style="{ minWidth: '0' }">
-                <CampoCheck
-                  :model-value="declaraciones.maneja_dinero_publico === false"
-                  label="No"
-                  @update:model-value="() => { declaraciones.maneja_dinero_publico = false }"
-                />
-              </div>
+              <div :style="{ flex: 1, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">1. ¿Manejo o he manejado dineros públicos de la nación, departamento, municipio o algún ente descentralizado?</div>
+              <label :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', cursor: 'pointer', userSelect: 'none' }">
+                <input type="checkbox" :checked="declaraciones.maneja_dinero_publico === true" :style="{ display: 'none' }" @change="declaraciones.maneja_dinero_publico = !declaraciones.maneja_dinero_publico" />
+                <span :style="{ width: '42px', height: '24px', borderRadius: '999px', background: declaraciones.maneja_dinero_publico ? 'var(--color-primary)' : 'var(--color-border)', position: 'relative', transition: 'background var(--transition-fast)' }">
+                  <span :style="{ position: 'absolute', top: '3px', left: declaraciones.maneja_dinero_publico ? '21px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'left var(--transition-fast)' }" />
+                </span>
+                <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: declaraciones.maneja_dinero_publico ? 'var(--color-primary)' : 'var(--color-text-3)' }">{{ declaraciones.maneja_dinero_publico ? 'Sí' : 'No' }}</span>
+              </label>
             </div>
 
-            <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 110px 110px', gap: 'var(--sp-md)', alignItems: 'center' }">
-              <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-extrabold)', minWidth: '0' }">
-                2. ¿Soy contratista con el estado, departamento, municipio o algún ente descentralizado?
+            <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', padding: 'var(--sp-md)', borderRadius: 'var(--r-md)', background: 'var(--color-bg-surface-alt)' }">
+              <div :style="{ width: '36px', height: '36px', borderRadius: 'var(--r-md)', background: 'var(--color-bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
+                <IconBriefcase :size="18" :style="{ color: declaraciones.es_contratista_estado ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
               </div>
-              <div :style="{ minWidth: '0' }">
-                <CampoCheck
-                  :model-value="declaraciones.es_contratista_estado === true"
-                  label="Sí"
-                  @update:model-value="() => { declaraciones.es_contratista_estado = true }"
-                />
-              </div>
-              <div :style="{ minWidth: '0' }">
-                <CampoCheck
-                  :model-value="declaraciones.es_contratista_estado === false"
-                  label="No"
-                  @update:model-value="() => { declaraciones.es_contratista_estado = false }"
-                />
-              </div>
+              <div :style="{ flex: 1, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">2. ¿Soy contratista con el estado, departamento, municipio o algún ente descentralizado?</div>
+              <label :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', cursor: 'pointer', userSelect: 'none' }">
+                <input type="checkbox" :checked="declaraciones.es_contratista_estado === true" :style="{ display: 'none' }" @change="declaraciones.es_contratista_estado = !declaraciones.es_contratista_estado" />
+                <span :style="{ width: '42px', height: '24px', borderRadius: '999px', background: declaraciones.es_contratista_estado ? 'var(--color-primary)' : 'var(--color-border)', position: 'relative', transition: 'background var(--transition-fast)' }">
+                  <span :style="{ position: 'absolute', top: '3px', left: declaraciones.es_contratista_estado ? '21px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'left var(--transition-fast)' }" />
+                </span>
+                <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: declaraciones.es_contratista_estado ? 'var(--color-primary)' : 'var(--color-text-3)' }">{{ declaraciones.es_contratista_estado ? 'Sí' : 'No' }}</span>
+              </label>
             </div>
 
-            <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 110px 110px', gap: 'var(--sp-md)', alignItems: 'center' }">
-              <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-extrabold)', minWidth: '0' }">
-                3. ¿Actualmente soy líder comunitario o miembro de alta jerarquía en algún partido político?
+            <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', padding: 'var(--sp-md)', borderRadius: 'var(--r-md)', background: 'var(--color-bg-surface-alt)' }">
+              <div :style="{ width: '36px', height: '36px', borderRadius: 'var(--r-md)', background: 'var(--color-bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
+                <IconUser :size="18" :style="{ color: declaraciones.es_lider_politico ? 'var(--color-primary)' : 'var(--color-text-3)' }" />
               </div>
-              <div :style="{ minWidth: '0' }">
-                <CampoCheck
-                  :model-value="declaraciones.es_lider_politico === true"
-                  label="Sí"
-                  @update:model-value="() => { declaraciones.es_lider_politico = true }"
-                />
-              </div>
-              <div :style="{ minWidth: '0' }">
-                <CampoCheck
-                  :model-value="declaraciones.es_lider_politico === false"
-                  label="No"
-                  @update:model-value="() => { declaraciones.es_lider_politico = false }"
-                />
-              </div>
+              <div :style="{ flex: 1, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">3. ¿Actualmente soy líder comunitario o miembro de alta jerarquía en algún partido político?</div>
+              <label :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-xs)', cursor: 'pointer', userSelect: 'none' }">
+                <input type="checkbox" :checked="declaraciones.es_lider_politico === true" :style="{ display: 'none' }" @change="declaraciones.es_lider_politico = !declaraciones.es_lider_politico" />
+                <span :style="{ width: '42px', height: '24px', borderRadius: '999px', background: declaraciones.es_lider_politico ? 'var(--color-primary)' : 'var(--color-border)', position: 'relative', transition: 'background var(--transition-fast)' }">
+                  <span :style="{ position: 'absolute', top: '3px', left: declaraciones.es_lider_politico ? '21px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'left var(--transition-fast)' }" />
+                </span>
+                <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: declaraciones.es_lider_politico ? 'var(--color-primary)' : 'var(--color-text-3)' }">{{ declaraciones.es_lider_politico ? 'Sí' : 'No' }}</span>
+              </label>
             </div>
-          </div>
-
-          <!-- ── Autorización tratamiento de datos ──────────────────── -->
-          <div :style="{
-            background: 'var(--color-bg-card)',
-            borderRadius: 'var(--r-xl)',
-            padding: 'var(--sp-xl)',
-            transition: 'all var(--transition-fast)',
-          }">
-            <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 90px 90px', gap: 'var(--sp-md)', alignItems: 'center' }">
-              <div :style="{ fontSize: 'var(--text-base)', color: 'var(--color-text-1)', fontWeight: 'var(--fw-extrabold)', minWidth: '0' }">
-                Autorizo el tratamiento de mis datos personales. *
-              </div>
-              <div :style="{ minWidth: '0' }">
-                <CampoCheck
-                  :model-value="declaraciones.autoriza_tratamiento_datos === true"
-                  label="Sí"
-                  @update:model-value="() => { declaraciones.autoriza_tratamiento_datos = true; declaraciones.fecha_autorizacion_datos = new Date().toISOString() }"
-                />
-              </div>
-              <div :style="{ minWidth: '0' }">
-                <CampoCheck
-                  :model-value="declaraciones.autoriza_tratamiento_datos === false"
-                  label="No"
-                  @update:model-value="() => { declaraciones.autoriza_tratamiento_datos = false; declaraciones.fecha_autorizacion_datos = null }"
-                />
-              </div>
             </div>
           </div>
 
           <!-- 6. Firma electrónica de la solicitud -->
-          <div :style="{ borderRadius: 'var(--r-lg)', border: '2px solid var(--color-primary)', overflow: 'hidden', marginTop: 'var(--sp-xl)' }">
-            <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
-              <IconShieldCheck :size="18" style="color: white;" />
-              <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'white' }">Firma y ratificación de la solicitud</span>
+          <div :style="{ borderRadius: 'var(--r-lg)', overflow: 'hidden', marginTop: 'var(--sp-xl)' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', background: 'var(--color-bg-surface-alt)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconShieldCheck :size="20" :style="{ color: 'var(--color-primary)' }" />
+              <span :style="{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)' }">Firma solicitud de afiliación</span>
             </div>
-            <div :style="{ padding: 'var(--sp-xl)', background: 'white', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+            <div :style="{ padding: 'var(--sp-xl)', background: 'var(--color-bg-surface-alt)', '--bg-label': 'var(--color-bg-surface-alt)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
 
-              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', lineHeight: '1.65', background: 'var(--color-bg-surface)', padding: 'var(--sp-md)', borderRadius: 'var(--r-md)', border: '1px solid var(--color-border-light)' }">
-                Al firmar, certifica que la información proporcionada es veraz y autoriza a <strong>Cooperamigó</strong> para realizar las validaciones correspondientes.
+              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', lineHeight: '1.65' }">
+                Con su firma, usted declara que la información suministrada es veraz, completa y se encuentra actualizada. Asimismo, autoriza a la <strong>Cooperativa Multiactiva Luis Amigó</strong> para realizar las consultas, verificaciones y validaciones que sean necesarias para el estudio, análisis y trámite de su solicitud de afiliación.
               </div>
 
               <CampoTexto
@@ -2810,8 +2811,8 @@ onBeforeUnmount(() => {
               />
 
               <div :style="{ display: 'flex', gap: '6px', flexWrap: 'wrap' }">
-                <button type="button" @click="firmaMetodo = 'dibujar'" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (firmaMetodo === 'dibujar' ? 'var(--color-primary)' : 'var(--color-border)'), background: firmaMetodo === 'dibujar' ? 'rgba(17,76,90,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'dibujar' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Firmar en pantalla</button>
-                <button type="button" @click="firmaMetodo = 'subir'; mostrarModalSubirFirma = true" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-border)'), background: firmaMetodo === 'subir' ? 'rgba(17,76,90,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Cargar firma</button>
+                <button type="button" @click="firmaMetodo = 'dibujar'" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: 'none', background: firmaMetodo === 'dibujar' ? 'rgba(23, 43, 54,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'dibujar' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Firmar en pantalla</button>
+                <button type="button" @click="firmaMetodo = 'subir'; mostrarModalSubirFirma = true" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: 'none', background: firmaMetodo === 'subir' ? 'rgba(23, 43, 54,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Cargar firma</button>
               </div>
 
               <div v-if="firmaMetodo === 'dibujar'" :style="{ display: 'flex', flexDirection: 'column', gap: '8px' }">
@@ -2820,7 +2821,7 @@ onBeforeUnmount(() => {
                     ref="firmaCanvasRef"
                     width="720"
                     height="220"
-                    :style="{ width: '100%', height: '140px', touchAction: 'none', display: 'block', cursor: 'crosshair' }"
+                    :style="{ width: '100%', height: '175px', touchAction: 'none', display: 'block', cursor: 'crosshair' }"
                     @mousedown="iniciarFirmaDibujo"
                     @mousemove="moverFirmaDibujo"
                     @mouseup="terminarFirmaDibujo"
@@ -2898,17 +2899,6 @@ onBeforeUnmount(() => {
                 <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--color-success-text)' }">Firma registrada el {{ formatearFecha(firma.firma_fecha_iso) }}</span>
               </div>
 
-              <PortalButton
-                variant="primary"
-                :full="true"
-                pill
-                :loading="loading"
-                :disabled="!firma?.nombre_firma || !firmaImagen"
-                @click="firmarYEnviar()"
-              >
-                <IconShieldCheck :size="16" style="display:inline-block;vertical-align:middle;margin-right:6px;" />
-                Firmar y enviar solicitud
-              </PortalButton>
             </div>
           </div>
         </div>
@@ -2922,33 +2912,34 @@ onBeforeUnmount(() => {
         />
 
         <!-- ── Navegación ─────────────────────────────────────────────── -->
-        <div :style="{
-          display: 'flex',
-          flexDirection: isMobile ? 'column-reverse' : 'row',
-          justifyContent: 'space-between',
-          alignItems: 'stretch',
-          marginTop: 'var(--sp-2xl)',
-          gap: 'var(--sp-md)',
-        }">
-          <PortalButton
-            variant="secondary"
-            :full="isMobile"
-            pill
-            @click="paso > 1 ? irAPaso(paso - 1) : router.push('/')"
-          >
+        <div :style="{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--sp-2xl)', gap: 'var(--sp-md)' }">
+          <PortalButton variant="secondary" pill @click="paso > 1 ? irAPaso(paso - 1) : router.push('/')" :style="{ width: '150px', height: '40px', justifyContent: 'center' }">
             {{ paso === 1 ? 'Cancelar' : 'Anterior' }}
           </PortalButton>
-          <PortalButton
+          <button
             v-if="paso < 5"
-            variant="primary"
-            :disabled="!pasoValido"
-            :loading="loading"
-            :full="isMobile"
-            pill
+            class="nav-continuar-btn"
+            :disabled="loading || (!isDev && !pasoValido)"
             @click="irAPaso(paso + 1)"
           >
-            Siguiente
-          </PortalButton>
+            <span v-if="loading" class="paso0-spinner" />
+            <template v-else>
+              <span>Continuar</span>
+              <span class="nav-continuar-circle"><IconArrowRight :size="14" /></span>
+            </template>
+          </button>
+          <button
+            v-if="paso === 5"
+            class="btn-firmar"
+            :disabled="loading || (!isDev && (!firma?.nombre_firma || !firmaImagen))"
+            @click="firmarYEnviar()"
+          >
+            <span v-if="loading" class="paso0-spinner" />
+            <template v-else>
+              <span>Firmar solicitud y enviar</span>
+              <span class="btn-firmar-circle"><IconArrowRight :size="14" /></span>
+            </template>
+          </button>
         </div><!-- /nav buttons -->
       </div><!-- /padding -->
     </div><!-- /card -->
@@ -3130,143 +3121,230 @@ onBeforeUnmount(() => {
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-/* ─── Paso 0: layout ─── */
+/* ─── Paso 0: layout (Split Design) ─── */
 .paso0-wrapper {
   width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 24px;
 }
 
 .paso0-container {
-  width: 100%;
-  max-width: 420px;
-  margin: 0 auto;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 20px;
-  padding: 40px 32px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-}
-
-.paso0-layout {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-lg);
-  padding: 0 var(--sp-xl);
+  max-width: 900px;
+  width: 100%;
+  background: var(--color-bg-card);
+  border-radius: 20px;
+  overflow: hidden;
+  margin: 0 auto;
+  padding: 48px;
+}
+
+.paso0-split {
+  display: flex;
+  flex-direction: row;
+  gap: 48px;
+  margin-top: 8px;
+}
+
+.paso0-col-left,
+.paso0-col-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.paso0-col-right {
+  justify-content: space-between;
+}
+
+@media (max-width: 767px) {
+  .paso0-split {
+    flex-direction: column;
+    gap: 24px;
+  }
+}
+
+.paso0-title {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1.1;
+  margin: 0 0 6px 0;
+}
+
+.paso0-title span {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.paso0-desc {
+  font-size: 0.95rem;
+  color: var(--color-text-2);
+  line-height: 1.5;
+  margin: 0 0 32px 0;
 }
 
 .paso0-fields {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-lg);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.paso0-field-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.paso0-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  margin-top: -12px;
+}
+
+.paso0-input-wrapper {
+  flex: 1;
+}
+
+.paso0-error {
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
 .paso0-divider {
-  display: none;
+  height: 1px;
+  background: var(--color-border-light);
+  margin: 0 0 24px 0;
 }
 
 .paso0-auth {
+  margin-bottom: 32px;
+}
+
+.paso0-auth-label {
   display: flex;
-  flex-direction: column;
-  gap: var(--sp-lg);
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.auth-checkbox {
+  margin-top: 2px;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.paso0-auth-text {
+  font-size: 0.75rem;
+  color: var(--color-text-2);
+  line-height: 1.5;
+}
+
+.paso0-auth-text a {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.paso0-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .paso0-verify-btn {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
+  justify-content: center;
+  gap: 12px;
   height: 44px;
-  border-radius: var(--r-pill);
+  padding: 0 16px 0 24px;
+  border-radius: 22px;
   background: var(--color-primary);
   color: #ffffff;
   border: none;
-  cursor: pointer;
   font-family: var(--font-body);
-  font-size: var(--text-base);
-  font-weight: var(--fw-semibold);
-  padding: 0 8px 0 28px;
-  box-shadow: var(--shadow-btn);
-  transition: all var(--transition-base);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.paso0-verify-btn:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  transform: translateY(-2px);
 }
 
 .paso0-verify-btn:disabled {
-  opacity: 0.55;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
-.paso0-verify-btn:not(:disabled):hover {
-  background: var(--color-primary-dark);
-  transform: translateY(-1px);
-}
-
-.paso0-verify-btn:not(:disabled):hover .paso0-btn-circle {
-  transform: translateX(2px);
-}
-
 .paso0-btn-circle {
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: transform var(--transition-base);
+  transition: transform 0.3s;
+}
+
+.paso0-verify-btn:hover:not(:disabled) .paso0-btn-circle {
+  transform: translateX(4px);
 }
 
 .paso0-spinner {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
+  width: 20px;
+  height: 20px;
   border: 2.5px solid transparent;
   border-top-color: rgba(255, 255, 255, 0.9);
   border-right-color: rgba(255, 255, 255, 0.25);
-  animation: spin 0.65s linear infinite;
-  flex-shrink: 0;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 960px) {
   .paso0-container {
-    padding: 26px;
-    border-radius: 16px;
+    padding: 32px 24px;
   }
 
-  .paso0-layout {
-    padding: 0;
+  .paso0-actions {
+    justify-content: center;
   }
-
+  
   .paso0-verify-btn {
-    width: auto;
-    align-self: flex-end;
-    padding: 0 8px 0 20px;
-    justify-content: flex-start;
-    gap: 10px;
-  }
-}
-
-@media (min-width: 768px) {
-  .paso0-wrapper {
     width: 100%;
+    justify-content: space-between;
   }
+}
 
-  .paso0-container {
-    max-width: 480px;
-    margin: 0 0 0 auto;
-  }
-
-  .paso0-layout {
-    flex-direction: column;
-    padding: 0;
-  }
-
-  .paso0-divider {
-    display: none;
-  }
-
-  .paso0-verify-btn {
-    width: 50%;
-    margin: 0 0 0 auto;
+@media (max-width: 600px) {
+  .paso0-wrapper {
+    padding: 16px;
   }
 }
 
@@ -3400,7 +3478,7 @@ onBeforeUnmount(() => {
 @media (min-width: 768px) {
   .borrador-wrapper {
     max-width: 480px;
-    margin: 0 0 0 auto;
+    margin: 0 auto;
   }
 }
 
@@ -3542,7 +3620,7 @@ onBeforeUnmount(() => {
 
 /* ─── Layout formulario afiliación ─── */
 :deep(.portal-main__inner) {
-  max-width: 1020px;
+  max-width: 1200px;
 }
 
 .af-form-activo {
@@ -3570,15 +3648,12 @@ onBeforeUnmount(() => {
 .formulario-layout {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
-  gap: 0;
+  align-items: stretch;
+  gap: var(--sp-3xl);
   width: 100%;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--color-bg-card);
   border-radius: 20px;
-  padding: 24px 32px 32px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  padding: 32px 40px 40px;
   box-sizing: border-box;
 }
 
@@ -3586,7 +3661,7 @@ onBeforeUnmount(() => {
   .formulario-layout {
     border-radius: 16px;
     padding: 20px 16px 28px;
-    flex-direction: column;
+    gap: 0;
   }
 
   :deep(.portal-main__inner) {
@@ -3595,35 +3670,19 @@ onBeforeUnmount(() => {
 }
 
 .formulario-sidebar {
-  width: 200px;
-  flex-shrink: 0;
-  position: sticky;
-  top: 32px;
-  align-self: flex-start;
-  padding-right: var(--sp-2xl);
-}
-
-.formulario-sidebar-inner {
-  padding-top: 0;
-}
-
-.sidebar-proceso-label {
-  font-family: var(--font-display);
-  font-size: var(--text-sm);
-  font-weight: var(--fw-semibold);
-  color: var(--color-text-3);
-  margin: 0 0 var(--sp-lg) 0;
+  flex: 0 0 220px;
+  padding-top: var(--sp-xs);
 }
 
 .formulario-content {
   flex: 1;
+  width: 100%;
   min-width: 0;
-  max-width: 800px;
 }
 
 @media (max-width: 960px) {
-  .formulario-sidebar {
-    display: none;
+  .formulario-layout {
+    flex-direction: column;
   }
 
   .formulario-content {
@@ -3632,34 +3691,125 @@ onBeforeUnmount(() => {
   }
 }
 
+/* ─── Botones de navegación (Continuar / Firmar y enviar) ─── */
+.nav-continuar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 0 52px 0 28px;
+  height: 44px;
+  border-radius: var(--r-pill);
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--fw-semibold);
+  box-shadow: var(--shadow-btn);
+  transition: all var(--transition-base);
+  gap: 10px;
+  min-width: 160px;
+}
+
+.nav-continuar-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.nav-continuar-btn:not(:disabled):hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+.nav-continuar-btn:not(:disabled):hover .nav-continuar-circle {
+  transform: translateY(-50%) translateX(2px);
+}
+
+.nav-continuar-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: transform var(--transition-base);
+}
+
+.btn-firmar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  width: auto;
+  height: 44px;
+  border-radius: var(--r-pill);
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--fw-semibold);
+  box-shadow: var(--shadow-btn);
+  transition: all var(--transition-base);
+  padding: 0 52px 0 28px;
+}
+
+.btn-firmar:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-firmar:not(:disabled):hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-firmar:not(:disabled):hover .btn-firmar-circle {
+  transform: translateY(-50%) translateX(2px);
+}
+
+.btn-firmar-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: transform var(--transition-base);
+}
+
 /* ─── Pantalla de éxito afiliación ─── */
 .af-exito-wrap {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
+  width: 100%;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   align-items: center;
-  padding: 48px 220px;
-  overflow-y: auto;
+  padding: 48px 0;
 }
 
 @media (max-width: 767px) {
   .af-exito-wrap {
-    align-items: flex-end;
-    padding: 0;
+    padding: 24px 0;
   }
 
   .af-exito-card {
     width: 100%;
     max-width: 100%;
-    max-height: 92dvh;
-    overflow-y: auto;
-    border-top-left-radius: 24px;
-    border-top-right-radius: 24px;
-    border-bottom-left-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
   }
 
   .af-exito-header {
@@ -3686,16 +3836,13 @@ onBeforeUnmount(() => {
   width: 100%;
   max-width: 480px;
   min-height: 480px;
-  background: var(--color-bg-card);
   border-radius: var(--r-xl);
   overflow: hidden;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.10);
   display: flex;
   flex-direction: column;
 }
 
 .af-exito-header {
-  background: var(--color-primary);
   padding: 24px 32px 20px;
   text-align: center;
   display: flex;
@@ -3708,11 +3855,11 @@ onBeforeUnmount(() => {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--color-bg-surface-alt);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
@@ -3720,14 +3867,14 @@ onBeforeUnmount(() => {
   font-family: var(--font-display);
   font-size: var(--text-xl);
   font-weight: var(--fw-extrabold);
-  color: #ffffff;
+  color: var(--color-primary);
   margin: 0;
   line-height: 1.2;
 }
 
 .af-exito-subtitulo {
   font-size: var(--text-sm);
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--color-text-3);
   margin: 0;
   line-height: 1.5;
 }
@@ -3764,43 +3911,48 @@ onBeforeUnmount(() => {
 }
 
 .af-exito-btn {
-  margin: auto var(--sp-2xl) var(--sp-2xl);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--sp-sm);
+  position: relative;
   width: calc(100% - var(--sp-2xl) * 2);
-  height: 48px;
+  margin: auto var(--sp-2xl) var(--sp-2xl);
+  height: 52px;
   border-radius: var(--r-pill);
   background: var(--color-primary);
   color: #ffffff;
-  font-family: var(--font-body);
-  font-size: var(--text-base);
-  font-weight: var(--fw-bold);
   border: none;
   cursor: pointer;
-  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--fw-semibold);
+  box-shadow: var(--shadow-btn);
+  transition: all var(--transition-base);
+  padding: 0 8px 0 28px;
 }
 
 .af-exito-btn:hover {
   background: var(--color-primary-dark);
-  box-shadow: 0 4px 16px rgba(17, 76, 90, 0.25);
+  transform: translateY(-1px);
 }
 
 .af-exito-btn:hover .af-exito-btn-circle {
-  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-50%) translateX(2px);
 }
 
 .af-exito-btn-circle {
-  width: 24px;
-  height: 24px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  transition: background var(--transition-fast);
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: transform var(--transition-base);
 }
 
 /* ─── Modal: ya asociado ─── */

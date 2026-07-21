@@ -19,10 +19,10 @@
   --color-impulso:        #FE9932;
 
   /* === FONDOS === */
-  --color-bg-app:         #F8FAFA;
+  --color-bg-app:         #FFFFFF;
   --color-bg-card:        #FFFFFF;
   --color-bg-surface:     #F8FAFA;
-  --color-bg-surface-alt: #EDF3F0;
+  --color-bg-surface-alt: #F8F8F8;
 
   /* === TEXTO === */
   --color-text-1:          #172B36;
@@ -32,9 +32,9 @@
   --color-text-on-primary: #FFFFFF;
 
   /* === BORDES === */
-  --color-border:         #D9E8E2;
-  --color-border-light:   #EDF3F0;
-  --color-border-card:    #E8F0ED;
+  --color-border:         #E5E7EB;
+  --color-border-light:   #F8F8F8;
+  --color-border-card:    #F3F4F6;
 
   /* === SUCCESS === */
   --color-success-bg:     #DCFCE7;
@@ -74,6 +74,7 @@
   /* === BORDER RADIUS === */
   --r-sm:   6px;
   --r-md:   12px;
+  --r-input: 16px;
   --r-lg:   18px;
   --r-xl:   24px;
   --r-2xl:  32px;

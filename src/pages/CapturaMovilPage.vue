@@ -23,6 +23,15 @@ const videoRef  = ref(null)
 const canvasRef = ref(null)
 let stream = null
 
+// Marco guía: se dibuja vertical mientras el celular está en vertical, para que la
+// persona lo gire físicamente (no es una rotación por software/CSS ni bloquea nada).
+// Al rotar el celular de verdad, el navegador reacomoda el viewport y el marco pasa
+// a horizontal automáticamente.
+const esPortrait = ref(window.innerHeight >= window.innerWidth)
+function onResize() { esPortrait.value = window.innerHeight >= window.innerWidth }
+window.addEventListener('resize', onResize)
+onUnmounted(() => window.removeEventListener('resize', onResize))
+
 // Paso actual
 const esReverso = computed(() => !!urlFrente.value)
 const labelPaso = computed(() => esReverso.value ? 'Reverso' : 'Frente')
@@ -54,6 +63,15 @@ async function abrirVisor() {
   errorMsg.value = ''
   fase.value = 'visor'
   await nextTick()
+
+  // Si ya hay una cámara activa (p.ej. venimos de fotografiar el frente), la
+  // reutilizamos en lugar de pedir permiso/stream de nuevo — así se pasa
+  // directo al reverso sin volver a mostrar "Abrir cámara".
+  if (stream) {
+    if (videoRef.value) { videoRef.value.srcObject = stream; await videoRef.value.play() }
+    return
+  }
+
   try {
     stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
@@ -67,21 +85,59 @@ async function abrirVisor() {
   }
 }
 
+// Debe coincidir con el marco guía dibujado sobre el <video> (ver template, fase==='visor').
+// En vertical el marco se dibuja vertical (para invitar a girar el celular); en
+// horizontal (tras el giro físico) se dibuja horizontal, como la cédula real.
+const GUIA_PCT_LANDSCAPE = 0.94  // % del ancho, cuando el celular ya está horizontal
+const GUIA_PCT_PORTRAIT  = 0.68  // % del alto, mientras el celular sigue vertical
+const GUIA_ASPECTO   = 1.585     // aspectRatio cédula colombiana
+const GUIA_TOP_PCT   = 0.44      // top: 44% (centro vertical del marco)
+
 function capturar() {
   const video  = videoRef.value
   const canvas = canvasRef.value
   if (!video || !canvas) return
 
-  canvas.width  = video.videoWidth  || 1280
-  canvas.height = video.videoHeight || 720
-  canvas.getContext('2d').drawImage(video, 0, 0)
+  const videoW = video.videoWidth  || 1280
+  const videoH = video.videoHeight || 720
+  const vpW = window.innerWidth
+  const vpH = window.innerHeight
+  const portrait = vpH >= vpW
+
+  // El <video> se muestra con object-fit: cover — replicar ese mismo escalado
+  // para saber qué región del video real corresponde al marco guía en pantalla.
+  const scale = Math.max(vpW / videoW, vpH / videoH)
+  const offsetX = (videoW * scale - vpW) / 2
+  const offsetY = (videoH * scale - vpH) / 2
+
+  let guiaAnchoPantalla, guiaAltoPantalla
+  if (portrait) {
+    guiaAltoPantalla  = vpH * GUIA_PCT_PORTRAIT
+    guiaAnchoPantalla = guiaAltoPantalla / GUIA_ASPECTO
+  } else {
+    guiaAnchoPantalla = vpW * GUIA_PCT_LANDSCAPE
+    guiaAltoPantalla  = guiaAnchoPantalla / GUIA_ASPECTO
+  }
+  const guiaLeftPantalla  = (vpW - guiaAnchoPantalla) / 2
+  const guiaTopPantalla   = vpH * GUIA_TOP_PCT - guiaAltoPantalla / 2
+
+  // Clamp por seguridad: el marco guía nunca debería salirse del video real,
+  // pero si el navegador reporta dimensiones inusuales evitamos un crop inválido.
+  const sx = Math.max(0, Math.min(videoW - 1, (guiaLeftPantalla + offsetX) / scale))
+  const sy = Math.max(0, Math.min(videoH - 1, (guiaTopPantalla  + offsetY) / scale))
+  const sw = Math.max(1, Math.min(videoW - sx, guiaAnchoPantalla / scale))
+  const sh = Math.max(1, Math.min(videoH - sy, guiaAltoPantalla  / scale))
+
+  canvas.width  = Math.round(sw)
+  canvas.height = Math.round(sh)
+  canvas.getContext('2d').drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height)
 
   // BUG 1: canvas.toBlob() es asíncrono con callback — envolver en Promise
   new Promise((resolve) => {
     canvas.toBlob(resolve, 'image/jpeg', 0.88)
   }).then((blob) => {
     if (!blob) {
-      errorMsg.value = 'No se pudo capturar la foto. Intenta de nuevo.'
+      errorMsg.value = 'No se pudo capturar la foto. Inténtelo de nuevo.'
       fase.value = esReverso.value ? 'listo_reverso' : 'listo_frente'
       return
     }
@@ -108,7 +164,7 @@ function retomar() {
 
 async function confirmar() {
   if (!fotoBlob.value) {
-    errorMsg.value = 'No hay foto para enviar. Toma una foto primero.'
+    errorMsg.value = 'No hay foto para enviar. Tome una foto primero.'
     return
   }
   subiendo.value = true
@@ -153,7 +209,7 @@ async function confirmar() {
     }
   } catch (e) {
     console.error('[confirmar] Error:', e.message)
-    errorMsg.value = e.message || 'Error al enviar la foto. Intenta de nuevo.'
+    errorMsg.value = e.message || 'Error al enviar la foto. Inténtelo de nuevo.'
     // NO cambiar fase — quedarse en previsualizando para poder reintentar
   } finally {
     subiendo.value = false  // SIEMPRE desbloquear el botón
@@ -163,35 +219,12 @@ async function confirmar() {
 
 <template>
   <div :style="{
-    position:'fixed', inset:'0', background:'#0d1117',
+    position:'fixed', inset:'0', background:'var(--color-bg-card)',
     display:'flex', flexDirection:'column',
-    fontFamily:'system-ui,-apple-system,sans-serif',
-    color:'#fff', overflow:'hidden', userSelect:'none',
+    fontFamily:'var(--font-body)',
+    color:'var(--color-text-1)', overflow:'hidden', userSelect:'none',
   }">
 
-    <!-- HEADER -->
-    <div v-if="fase !== 'visor'" :style="{
-      padding:'14px 20px 10px', display:'flex',
-      alignItems:'center', justifyContent:'space-between', flexShrink:'0',
-    }">
-      <div>
-        <img src="/logo-principal.svg" :style="{ height:'26px', filter:'brightness(0) invert(1)', display:'block' }" alt="Cooperamigó"/>
-        <div :style="{
-          fontSize:'10px', color:'rgba(255,255,255,0.35)',
-          fontWeight:'600', letterSpacing:'0.06em', textTransform:'uppercase', marginTop:'4px',
-        }">Captura de cédula</div>
-      </div>
-      <div v-if="['listo_frente','listo_reverso'].includes(fase)"
-        :style="{ display:'flex', alignItems:'center', gap:'5px' }">
-        <div v-for="n in 2" :key="n" :style="{
-          width: n === (esReverso ? 2 : 1) ? '20px' : '8px',
-          height:'8px', borderRadius:'4px',
-          background: n === (esReverso ? 2 : 1) ? '#FFC801'
-            : n < (esReverso ? 2 : 1) ? '#22c55e' : 'rgba(255,255,255,0.15)',
-          transition:'all 0.3s ease',
-        }"/>
-      </div>
-    </div>
 
     <!-- VERIFICANDO -->
     <div v-if="fase==='verificando'" :style="{
@@ -200,10 +233,10 @@ async function confirmar() {
     }">
       <div :style="{
         width:'38px', height:'38px', borderRadius:'50%',
-        border:'3px solid rgba(255,255,255,0.1)',
-        borderTopColor:'#FFC801', animation:'spin 0.7s linear infinite',
+        border:'3px solid var(--color-border)',
+        borderTopColor:'var(--color-primary)', animation:'spin 0.7s linear infinite',
       }"/>
-      <p :style="{ color:'rgba(255,255,255,0.4)', fontSize:'14px', fontWeight:'500' }">
+      <p :style="{ color:'var(--color-text-3)', fontSize:'14px', fontWeight:'500' }">
         Verificando enlace...
       </p>
     </div>
@@ -213,10 +246,16 @@ async function confirmar() {
       flex:'1', display:'flex', flexDirection:'column', alignItems:'center',
       justifyContent:'center', padding:'32px', gap:'18px', textAlign:'center',
     }">
-      <div :style="{ fontSize:'52px' }">⏱️</div>
-      <p :style="{ fontSize:'20px', fontWeight:'800' }">Enlace expirado</p>
-      <p :style="{ color:'rgba(255,255,255,0.4)', fontSize:'14px', lineHeight:'1.6' }">
-        Genera un nuevo código QR<br/>desde el formulario en tu computador.
+      <div :style="{
+        width:'64px', height:'64px', borderRadius:'50%',
+        background:'var(--color-bg-surface-alt)',
+        display:'flex', alignItems:'center', justifyContent:'center',
+      }">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      </div>
+      <p :style="{ fontSize:'22px', fontWeight:'800', color:'var(--color-primary)', margin:'0' }">Enlace expirado</p>
+      <p :style="{ color:'var(--color-text-3)', fontSize:'14px', lineHeight:'1.6', margin:'0' }">
+        Genere un nuevo código QR<br/>en su computador.
       </p>
     </div>
 
@@ -225,121 +264,161 @@ async function confirmar() {
       flex:'1', display:'flex', flexDirection:'column', alignItems:'center',
       justifyContent:'center', padding:'32px', gap:'18px', textAlign:'center',
     }">
-      <div :style="{ fontSize:'52px' }">⚠️</div>
-      <p :style="{ fontSize:'18px', fontWeight:'700' }">Algo salió mal</p>
-      <p :style="{ color:'rgba(255,255,255,0.4)', fontSize:'14px' }">{{ errorMsg }}</p>
+      <div :style="{
+        width:'64px', height:'64px', borderRadius:'50%',
+        background:'var(--color-bg-surface-alt)',
+        display:'flex', alignItems:'center', justifyContent:'center',
+      }">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M10.36 3.94 2.72 17.4A1.5 1.5 0 0 0 4 19.7h16a1.5 1.5 0 0 0 1.3-2.3L13.64 3.94a1.5 1.5 0 0 0-2.6 0Z"/><path d="M12 16h.01"/></svg>
+      </div>
+      <p :style="{ fontSize:'22px', fontWeight:'800', color:'var(--color-primary)', margin:'0' }">Algo salió mal</p>
+      <p :style="{ color:'var(--color-text-3)', fontSize:'14px', margin:'0' }">{{ errorMsg }}</p>
     </div>
 
     <!-- LISTO FRENTE / REVERSO -->
     <div v-else-if="['listo_frente','listo_reverso'].includes(fase)" :style="{
       flex:'1', display:'flex', flexDirection:'column',
-      alignItems:'center', justifyContent:'space-between',
-      padding:'20px 28px 40px',
+      alignItems:'center', justifyContent:'center', overflow:'auto',
+      padding:'0 24px 28px',
     }">
       <!-- Texto -->
-      <div :style="{ textAlign:'center', paddingTop:'8px' }">
-        <p :style="{
-          fontSize:'11px', fontWeight:'700', letterSpacing:'0.1em',
-          textTransform:'uppercase', marginBottom:'10px',
-          color: esReverso ? '#86efac' : '#FFC801',
-        }">{{ esReverso ? '✓ Frente listo · Paso 2 de 2' : 'Paso 1 de 2' }}</p>
+      <div :style="{ textAlign:'center', marginBottom:'20px' }">
         <h1 :style="{
-          fontSize:'26px', fontWeight:'800',
-          letterSpacing:'-0.03em', lineHeight:'1.25', marginBottom:'10px',
+          fontSize:'22px', fontWeight:'800', color:'var(--color-primary)',
+          letterSpacing:'-0.02em', margin:'0 0 2px',
         }">
-          {{ esReverso ? 'Ahora fotografía' : 'Fotografía' }}<br/>
-          <span :style="{ color:'rgba(255,255,255,0.45)' }">
-            el {{ esReverso ? 'reverso' : 'frente' }} de tu cédula
-          </span>
+          Fotografía {{ esReverso ? 'del reverso' : 'del frente' }} de su cédula
         </h1>
         <p :style="{
-          color:'rgba(255,255,255,0.4)', fontSize:'13px',
-          lineHeight:'1.6', fontWeight:'500',
+          color:'var(--color-text-3)', fontSize:'13px',
+          lineHeight:'1.5', fontWeight:'500', margin:'0',
         }">
-          Ubica la cédula dentro del recuadro.<br/>
-          Asegúrate que el texto sea legible.
+          Ubique la cédula dentro del recuadro. Asegúrese que el texto sea legible.
         </p>
       </div>
 
-      <!-- Ilustración cédula -->
-      <div :style="{ position:'relative', width:'260px' }">
+      <!-- Marco guía con ilustración -->
+      <div :style="{
+        width:'100%', maxWidth:'400px',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        marginBottom:'28px',
+      }">
         <div :style="{
-          width:'100%', paddingBottom:'63%', borderRadius:'14px',
-          background: esReverso
-            ? 'linear-gradient(135deg,#162230 0%,#1e2d3d 100%)'
-            : 'linear-gradient(135deg,#1e2d3d 0%,#162230 100%)',
-          border:'2px solid rgba(255,255,255,0.1)',
-          position:'relative', overflow:'hidden',
-          boxShadow:'0 24px 60px rgba(0,0,0,0.6)',
+          position:'relative', width:'100%', aspectRatio:'1.3',
+          background:'var(--color-bg-surface-alt)', borderRadius:'20px',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          padding:'24px', boxSizing:'border-box',
         }">
+          <!-- Marco punteado -->
           <div :style="{
-            position:'absolute', inset:'0', padding:'14px',
-            display:'flex', flexDirection:'column', justifyContent:'space-between',
+            position:'absolute', inset:'22px',
+            border:'2px dashed var(--color-border)', borderRadius:'14px',
+          }"/>
+          <!-- Esquinas -->
+          <div v-for="(s,i) in [
+            {top:'22px',left:'22px',borderTop:'3px solid var(--color-primary)',borderLeft:'3px solid var(--color-primary)',borderRadius:'14px 0 0 0'},
+            {top:'22px',right:'22px',borderTop:'3px solid var(--color-primary)',borderRight:'3px solid var(--color-primary)',borderRadius:'0 14px 0 0'},
+            {bottom:'22px',left:'22px',borderBottom:'3px solid var(--color-primary)',borderLeft:'3px solid var(--color-primary)',borderRadius:'0 0 0 14px'},
+            {bottom:'22px',right:'22px',borderBottom:'3px solid var(--color-primary)',borderRight:'3px solid var(--color-primary)',borderRadius:'0 0 14px 0'},
+          ]" :key="i" :style="{ position:'absolute', width:'26px', height:'26px', ...s }"/>
+
+          <!-- Tarjeta ilustrativa: silueta de cédula colombiana -->
+          <div class="illustrative-card" :style="{
+            width:'72%', aspectRatio:'1.585', background:'#fff',
+            borderRadius:'10px', border:'1px solid var(--color-border)',
+            boxShadow:'0 8px 24px rgba(17,76,90,0.08)',
+            display:'flex', flexDirection:'column', padding:'10px 14px', gap:'8px',
+            boxSizing:'border-box',
           }">
-            <div v-if="!esReverso" :style="{ display:'flex', gap:'10px', alignItems:'center' }">
-              <div :style="{
-                width:'36px', height:'44px', borderRadius:'5px',
-                background:'rgba(255,200,1,0.12)',
-                border:'1px solid rgba(255,200,1,0.18)',
-                flexShrink:'0',
-              }"/>
-              <div :style="{ flex:'1' }">
-                <div v-for="w in ['55%','80%','40%']" :key="w" :style="{
-                  height:'6px', borderRadius:'3px',
-                  background:'rgba(255,255,255,0.12)',
-                  marginBottom:'5px', width:w,
-                }"/>
+            <template v-if="!esReverso">
+              <!-- Encabezado: bandera + "REPÚBLICA DE COLOMBIA" -->
+              <div :style="{ display:'flex', alignItems:'center', gap:'6px' }">
+                <div :style="{ width:'16px', height:'11px', borderRadius:'2px', flexShrink:'0', overflow:'hidden', display:'flex', flexDirection:'column' }">
+                  <div :style="{ flex:'2', background:'#FFC801' }"/>
+                  <div :style="{ flex:'1', background:'var(--color-border)' }"/>
+                  <div :style="{ flex:'1', background:'var(--color-border)' }"/>
+                </div>
+                <div class="shimmer-bar" :style="{ height:'7px', borderRadius:'2px', width:'62%' }"/>
               </div>
-            </div>
-            <div v-else :style="{
-              display:'flex', alignItems:'center', justifyContent:'center',
-              height:'100%', opacity:'0.3', fontSize:'32px',
-            }">🔄</div>
-            <div>
-              <div v-for="w in ['70%','90%','50%']" :key="w" :style="{
-                height:'5px', borderRadius:'3px',
-                background:'rgba(255,255,255,0.07)',
-                marginBottom:'4px', width:w,
-              }"/>
-            </div>
+              <!-- Cuerpo: foto + datos -->
+              <div :style="{ flex:'1', display:'flex', gap:'10px' }">
+                <div :style="{
+                  width:'26%', borderRadius:'4px', flexShrink:'0',
+                  background:'var(--color-border-light)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                }">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-border)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <div :style="{ flex:'1', display:'flex', flexDirection:'column', justifyContent:'center', gap:'6px' }">
+                  <div v-for="w in ['40%','80%','35%','65%']" :key="w" class="shimmer-bar" :style="{ height:'4px', borderRadius:'2px', width:w }"/>
+                </div>
+              </div>
+              <!-- Pie: fecha/lugar de expedición -->
+              <div v-for="w in ['55%','30%']" :key="w" class="shimmer-bar" :style="{ height:'4px', borderRadius:'2px', width:w }"/>
+            </template>
+            <template v-else>
+              <!-- Encabezado: código + QR -->
+              <div :style="{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'10px' }">
+                <div :style="{ display:'flex', flexDirection:'column', gap:'5px', paddingTop:'2px', flex:'1' }">
+                  <div v-for="w in ['70%','45%']" :key="w" class="shimmer-bar" :style="{ height:'4px', borderRadius:'2px', width:w }"/>
+                </div>
+                <div :style="{
+                  width:'30%', aspectRatio:'1', flexShrink:'0', borderRadius:'3px',
+                  background:'var(--color-border-light)', display:'grid',
+                  gridTemplateColumns:'repeat(4, 1fr)', gridTemplateRows:'repeat(4, 1fr)', gap:'2px', padding:'4px',
+                }">
+                  <div v-for="n in 16" :key="n" :style="{ background: [0,1,3,4,6,9,11,12,14,15].includes(n-1) ? 'var(--color-border)' : 'transparent', borderRadius:'1px' }"/>
+                </div>
+              </div>
+              <!-- Código de barras -->
+              <div :style="{ display:'flex', gap:'2px', height:'22%', alignItems:'stretch' }">
+                <div v-for="n in 22" :key="n" class="shimmer-bar" :style="{ flex:n%5===0?2:1, borderRadius:'1px' }"/>
+              </div>
+              <!-- MRZ -->
+              <div :style="{ flex:'1', display:'flex', flexDirection:'column', justifyContent:'flex-end', gap:'4px' }">
+                <div v-for="n in 3" :key="n" class="shimmer-bar" :style="{ height:'4px', borderRadius:'1px', width:'100%' }"/>
+              </div>
+            </template>
           </div>
         </div>
-        <!-- Esquinas decorativas -->
-        <div v-for="(s,i) in [
-          {top:'-5px',left:'-5px',borderTop:'3px solid #FFC801',borderLeft:'3px solid #FFC801'},
-          {top:'-5px',right:'-5px',borderTop:'3px solid #FFC801',borderRight:'3px solid #FFC801'},
-          {bottom:'-5px',left:'-5px',borderBottom:'3px solid #FFC801',borderLeft:'3px solid #FFC801'},
-          {bottom:'-5px',right:'-5px',borderBottom:'3px solid #FFC801',borderRight:'3px solid #FFC801'},
-        ]" :key="i" :style="{
-          position:'absolute', width:'18px', height:'18px', borderRadius:'2px', ...s,
-        }"/>
       </div>
 
       <!-- Botones -->
-      <div :style="{ width:'100%', display:'flex', flexDirection:'column', gap:'12px', alignItems:'center' }">
+      <div :style="{ width:'100%', maxWidth:'360px', display:'flex', flexDirection:'column', gap:'14px', flexShrink:'0' }">
         <button :style="{
-          width:'100%', padding:'17px', borderRadius:'16px',
-          border:'none', background:'#FFC801', color:'#0d1117',
-          fontFamily:'inherit', fontWeight:'800', fontSize:'16px',
+          width:'100%', padding:'16px', borderRadius:'999px',
+          border:'none', background:'var(--color-primary)', color:'#fff',
+          fontFamily:'inherit', fontWeight:'800', fontSize:'15px',
           cursor:'pointer', display:'flex', alignItems:'center',
           justifyContent:'center', gap:'10px',
-          boxShadow:'0 6px 28px rgba(255,200,1,0.4)',
           WebkitTapHighlightColor:'transparent', touchAction:'manipulation',
           letterSpacing:'-0.01em',
         }" @click="abrirVisor">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
             <circle cx="12" cy="13" r="4"/>
           </svg>
           Abrir cámara
         </button>
+
+        <div :style="{ display:'flex', alignItems:'center', gap:'10px' }">
+          <div :style="{ flex:'1', height:'1px', background:'var(--color-border)' }"/>
+          <span :style="{ fontSize:'12px', color:'var(--color-text-3)', fontWeight:'600' }">o</span>
+          <div :style="{ flex:'1', height:'1px', background:'var(--color-border)' }"/>
+        </div>
+
         <label :style="{
-          color:'rgba(255,255,255,0.28)', fontSize:'13px', fontWeight:'500',
-          cursor:'pointer', paddingBottom:'3px',
-          borderBottom:'1px solid rgba(255,255,255,0.12)',
+          width:'100%', padding:'15px', borderRadius:'999px',
+          border:'none', background:'var(--color-bg-surface-alt)',
+          color:'var(--color-text-2)',
+          fontWeight:'700', fontSize:'14px',
+          cursor:'pointer', display:'flex', alignItems:'center',
+          justifyContent:'center', gap:'8px',
+          WebkitTapHighlightColor:'transparent', boxSizing:'border-box',
         }">
-          o elige desde la galería
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          Seleccionar desde la galería
           <input type="file" accept="image/*" style="display:none" @change="onArchivoFallback"/>
         </label>
       </div>
@@ -360,10 +439,12 @@ async function confirmar() {
         <!-- box-shadow cubre toda la pantalla fuera del recuadro sin franjas adicionales -->
         <div :style="{
           position:'absolute',
-          top:'40%', left:'50%',
+          top:'44%', left:'50%',
           transform:'translate(-50%, -50%)',
-          width:'84%',
-          aspectRatio:'1.585',
+          ...(esPortrait
+            ? { height:'68%', width:'auto' }
+            : { width:'94%', height:'auto' }),
+          aspectRatio: esPortrait ? '0.631' : '1.585',
           borderRadius:'10px',
           boxShadow:'0 0 0 9999px rgba(0,0,0,0.7)',
           border:'1.5px solid rgba(255,255,255,0.18)',
@@ -376,25 +457,32 @@ async function confirmar() {
           <div :style="{ position:'absolute', bottom:'-1px', left:'-1px', width:'24px', height:'24px', borderBottom:'3px solid #FFC801', borderLeft:'3px solid #FFC801', borderRadius:'0 0 0 4px', zIndex:2 }"/>
           <div :style="{ position:'absolute', bottom:'-1px', right:'-1px', width:'24px', height:'24px', borderBottom:'3px solid #FFC801', borderRight:'3px solid #FFC801', borderRadius:'0 0 4px 0', zIndex:2 }"/>
 
+          <!-- Rota la silueta 90° cuando el marco está vertical, para que la cédula -->
+          <!-- (que siempre es horizontal) se vea correctamente orientada dentro del marco. -->
+          <div :style="{ position:'absolute', inset:'0', containerType:'size' }">
+          <div :style="{
+            position:'absolute', top:'50%', left:'50%',
+            width:  esPortrait ? '100cqh' : '100cqw',
+            height: esPortrait ? '100cqw' : '100cqh',
+            transform: esPortrait ? 'translate(-50%, -50%) rotate(90deg)' : 'translate(-50%, -50%)',
+          }">
           <!-- Silueta FRENTE de cédula colombiana -->
           <div v-if="!esReverso" :style="{
             position:'absolute', inset:'0',
             display:'flex', flexDirection:'column',
-            padding:'9% 7% 7%', gap:'7%',
+            padding:'9% 7% 7%', gap:'6%',
           }">
-            <!-- Cabecera: escudo + nombre institución -->
+            <!-- Cabecera: bandera + "REPÚBLICA DE COLOMBIA" -->
             <div :style="{ display:'flex', alignItems:'center', gap:'4%' }">
               <div :style="{
-                width:'11%', aspectRatio:'1',
-                borderRadius:'50%',
-                background:'rgba(255,255,255,0.05)',
-                border:'1px solid rgba(255,255,255,0.1)',
-                flexShrink:0,
-              }"/>
-              <div :style="{ flex:1, display:'flex', flexDirection:'column', gap:'4px' }">
-                <div :style="{ height:'4px', borderRadius:'2px', background:'rgba(255,255,255,0.1)', width:'60%' }"/>
-                <div :style="{ height:'3px', borderRadius:'2px', background:'rgba(255,255,255,0.06)', width:'40%' }"/>
+                width:'12%', aspectRatio:'1.55', borderRadius:'2px', flexShrink:0,
+                overflow:'hidden', display:'flex', flexDirection:'column',
+              }">
+                <div :style="{ flex:'2', background:'rgba(255,200,1,0.35)' }"/>
+                <div :style="{ flex:'1', background:'rgba(255,255,255,0.18)' }"/>
+                <div :style="{ flex:'1', background:'rgba(255,255,255,0.18)' }"/>
               </div>
+              <div :style="{ height:'5px', borderRadius:'2px', background:'rgba(255,255,255,0.14)', width:'60%' }"/>
             </div>
             <!-- Cuerpo: foto + datos -->
             <div :style="{ flex:1, display:'flex', gap:'6%' }">
@@ -407,15 +495,16 @@ async function confirmar() {
               }"/>
               <!-- Líneas de datos -->
               <div :style="{ flex:1, display:'flex', flexDirection:'column', justifyContent:'space-around', paddingTop:'3%' }">
-                <div v-for="(w, i) in ['82%','65%','72%','50%']" :key="i" :style="{
+                <div v-for="(w, i) in ['40%','82%','35%','65%']" :key="i" :style="{
                   height:'5px', borderRadius:'2px',
                   background:'rgba(255,255,255,0.09)', width:w,
                 }"/>
               </div>
             </div>
-            <!-- Zona MRZ inferior -->
-            <div :style="{ display:'flex', flexDirection:'column', gap:'3px' }">
-              <div v-for="n in 2" :key="n" :style="{ height:'4px', borderRadius:'1px', background:'rgba(255,255,255,0.05)', width:'100%' }"/>
+            <!-- Pie: fecha/lugar de expedición -->
+            <div :style="{ display:'flex', flexDirection:'column', gap:'4px' }">
+              <div :style="{ height:'4px', borderRadius:'2px', background:'rgba(255,255,255,0.07)', width:'55%' }"/>
+              <div :style="{ height:'4px', borderRadius:'2px', background:'rgba(255,255,255,0.05)', width:'30%' }"/>
             </div>
           </div>
 
@@ -426,17 +515,17 @@ async function confirmar() {
             justifyContent:'space-between',
             padding:'9% 7% 8%',
           }">
-            <!-- Chip + datos -->
-            <div :style="{ display:'flex', gap:'5%', alignItems:'center' }">
+            <!-- Código + QR -->
+            <div :style="{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'5%' }">
+              <div :style="{ flex:1, display:'flex', flexDirection:'column', gap:'5px', paddingTop:'2%' }">
+                <div v-for="w in ['65%','42%']" :key="w" :style="{ height:'4px', borderRadius:'2px', background:'rgba(255,255,255,0.08)', width:w }"/>
+              </div>
               <div :style="{
-                width:'17%', aspectRatio:'1.3',
-                borderRadius:'3px',
-                background:'rgba(255,200,1,0.06)',
-                border:'1px solid rgba(255,200,1,0.14)',
-                flexShrink:0,
-              }"/>
-              <div :style="{ flex:1, display:'flex', flexDirection:'column', gap:'5px' }">
-                <div v-for="w in ['75%','55%']" :key="w" :style="{ height:'4px', borderRadius:'2px', background:'rgba(255,255,255,0.08)', width:w }"/>
+                width:'22%', aspectRatio:'1', flexShrink:0, borderRadius:'3px',
+                background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)',
+                display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gridTemplateRows:'repeat(4, 1fr)', gap:'2px', padding:'8%',
+              }">
+                <div v-for="n in 16" :key="n" :style="{ background: [0,1,3,4,6,9,11,12,14,15].includes(n-1) ? 'rgba(255,255,255,0.28)' : 'transparent', borderRadius:'1px' }"/>
               </div>
             </div>
             <!-- Código de barras -->
@@ -452,6 +541,8 @@ async function confirmar() {
               <div v-for="n in 3" :key="n" :style="{ height:'4px', borderRadius:'1px', background:'rgba(255,255,255,0.06)', width:'100%' }"/>
             </div>
           </div>
+          </div>
+          </div>
 
           <!-- Línea de escaneo animada -->
           <div class="scan-line" :style="{
@@ -462,22 +553,15 @@ async function confirmar() {
         </div>
 
         <!-- Etiqueta instrucción sobre el marco -->
-        <div :style="{ position:'absolute', top:'18%', left:'0', right:'0', textAlign:'center' }">
+        <div :style="{ position:'absolute', top:'max(3%, env(safe-area-inset-top, 3%))', left:'0', right:'0', textAlign:'center' }">
           <span :style="{
-            background:'rgba(0,0,0,0.6)', WebkitBackdropFilter:'blur(10px)',
-            backdropFilter:'blur(10px)', borderRadius:'20px', padding:'7px 18px',
-            fontSize:'13px', fontWeight:'700', color:'#fff',
+            background:'#fff', borderRadius:'999px', padding:'7px 18px',
+            fontSize:'13px', fontWeight:'700', color:'var(--color-primary)',
             letterSpacing:'0.01em', display:'inline-block',
-          }">{{ esReverso ? 'Reverso' : 'Frente' }} · Centra la cédula</span>
+            boxShadow:'0 2px 10px rgba(0,0,0,0.25)',
+          }">{{ esReverso ? 'Reverso del documento' : 'Frente del documento' }}</span>
         </div>
 
-        <!-- Hint debajo del marco -->
-        <div :style="{ position:'absolute', top:'58%', left:'0', right:'0', textAlign:'center' }">
-          <p :style="{
-            fontSize:'12px', fontWeight:'500',
-            color:'rgba(255,255,255,0.38)', letterSpacing:'0.01em', margin:0,
-          }">Mantén la cédula plana y sin reflejos</p>
-        </div>
       </div>
 
       <!-- Botón disparador con safe-area para iOS -->
@@ -485,7 +569,7 @@ async function confirmar() {
         position:'absolute', bottom:'0', left:'0', right:'0',
         paddingTop:'20px',
         paddingBottom:'max(44px, env(safe-area-inset-bottom, 44px))',
-        display:'flex', alignItems:'center', justifyContent:'center',
+        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'14px',
         background:'linear-gradient(to top,rgba(0,0,0,0.8) 0%,transparent 100%)',
       }">
         <button :style="{
@@ -511,14 +595,15 @@ async function confirmar() {
       <button :style="{
         position:'absolute',
         top:'max(12px, env(safe-area-inset-top, 12px))',
-        left:'14px',
+        right:'14px',
+        width:'34px', height:'34px', borderRadius:'50%',
         background:'rgba(0,0,0,0.5)', WebkitBackdropFilter:'blur(8px)',
         backdropFilter:'blur(8px)',
-        border:'none', borderRadius:'10px', color:'rgba(255,255,255,0.8)',
-        padding:'8px 14px', fontSize:'13px', fontWeight:'600',
+        border:'none', color:'rgba(255,255,255,0.8)',
+        display:'flex', alignItems:'center', justifyContent:'center',
         cursor:'pointer', WebkitTapHighlightColor:'transparent',
       }" @click="detenerCamara(); fase = esReverso ? 'listo_reverso' : 'listo_frente'">
-        ✕ Cancelar
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
       </button>
     </div>
 
@@ -528,17 +613,30 @@ async function confirmar() {
       alignItems:'center', justifyContent:'center',
       padding:'32px', gap:'20px', textAlign:'center',
     }">
-      <div :style="{ fontSize:'48px' }">📷</div>
-      <p :style="{ fontSize:'17px', fontWeight:'700' }">Cámara no disponible</p>
-      <p :style="{ color:'rgba(255,255,255,0.4)', fontSize:'13px', lineHeight:'1.6' }">
-        Tu navegador no pudo acceder a la cámara.<br/>Sube la foto desde tu galería.
+      <div :style="{
+        width:'64px', height:'64px', borderRadius:'50%',
+        background:'var(--color-bg-surface-alt)',
+        display:'flex', alignItems:'center', justifyContent:'center',
+      }">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3l18 18"/>
+          <path d="M9 4h2l1.5 2H17a2 2 0 0 1 2 2v8.5M17.5 19H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h.5"/>
+          <path d="M9.17 15.17a3 3 0 1 0 4.24-4.24"/>
+        </svg>
+      </div>
+      <p :style="{ fontSize:'22px', fontWeight:'800', color:'var(--color-primary)', margin:'0' }">Cámara no disponible</p>
+      <p :style="{ color:'var(--color-text-3)', fontSize:'13px', lineHeight:'1.6', margin:'0' }">
+        Su navegador no pudo acceder a la cámara.<br/>Suba la foto desde su galería.
       </p>
       <label :style="{
-        padding:'16px 32px', borderRadius:'14px',
-        background:'#FFC801', color:'#0d1117',
+        padding:'15px 32px', borderRadius:'999px',
+        background:'var(--color-primary)', color:'#fff',
         fontWeight:'800', fontSize:'15px', cursor:'pointer',
+        display:'flex', alignItems:'center', gap:'8px',
+        WebkitTapHighlightColor:'transparent',
       }">
-        📁 Elegir desde galería
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        Elegir desde galería
         <input type="file" accept="image/*" style="display:none" @change="onArchivoFallback"/>
       </label>
     </div>
@@ -556,11 +654,11 @@ async function confirmar() {
       <!-- Badge FRENTE / REVERSO -->
       <div :style="{
         position:'absolute', top:'max(14px, env(safe-area-inset-top, 14px))', left:'14px',
-        background:'rgba(0,0,0,0.55)', WebkitBackdropFilter:'blur(8px)', backdropFilter:'blur(8px)',
-        borderRadius:'8px', padding:'5px 12px',
+        background:'#fff', borderRadius:'999px', padding:'5px 12px',
         fontSize:'11px', fontWeight:'800',
-        color: fase==='previsualizando' ? '#FFC801' : '#86efac',
+        color:'var(--color-primary)',
         textTransform:'uppercase', letterSpacing:'0.08em',
+        boxShadow:'0 2px 10px rgba(0,0,0,0.25)',
       }">
         {{ fase==='previsualizando' ? 'FRENTE' : 'REVERSO' }}
       </div>
@@ -580,9 +678,9 @@ async function confirmar() {
         }">¿El texto es claro y legible?</p>
 
         <button :disabled="subiendo" :style="{
-          padding:'15px', borderRadius:'14px', border:'none',
-          background: subiendo ? 'rgba(255,200,1,0.3)' : '#FFC801',
-          color: subiendo ? 'rgba(255,200,1,0.5)' : '#0d1117',
+          padding:'15px', borderRadius:'999px', border:'none',
+          background: subiendo ? 'rgba(17,76,90,0.4)' : 'var(--color-primary)',
+          color: subiendo ? 'rgba(255,255,255,0.5)' : '#fff',
           fontFamily:'inherit', fontWeight:'800', fontSize:'15px',
           cursor: subiendo ? 'not-allowed' : 'pointer',
           display:'flex', alignItems:'center', justifyContent:'center', gap:'8px',
@@ -590,8 +688,8 @@ async function confirmar() {
         }" @click="confirmar">
           <div v-if="subiendo" :style="{
             width:'16px', height:'16px', borderRadius:'50%',
-            border:'2.5px solid rgba(0,0,0,0.2)',
-            borderTopColor:'#0d1117', animation:'spin 0.7s linear infinite',
+            border:'2.5px solid rgba(255,255,255,0.3)',
+            borderTopColor:'#fff', animation:'spin 0.7s linear infinite',
           }"/>
           <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
@@ -601,7 +699,7 @@ async function confirmar() {
         </button>
 
         <button :disabled="subiendo" :style="{
-          padding:'13px', borderRadius:'14px',
+          padding:'13px', borderRadius:'999px',
           border:'1.5px solid rgba(255,255,255,0.15)',
           background:'rgba(255,255,255,0.08)',
           color: subiendo ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.85)',
@@ -632,40 +730,40 @@ async function confirmar() {
     <div v-else-if="fase==='completado'" :style="{
       flex:'1', display:'flex', flexDirection:'column',
       alignItems:'center', justifyContent:'center',
-      padding:'32px 28px', gap:'26px', textAlign:'center',
+      padding:'32px 28px', gap:'20px', textAlign:'center',
     }">
       <div :style="{
-        width:'80px', height:'80px', borderRadius:'50%',
-        background:'rgba(34,197,94,0.1)',
-        border:'2px solid rgba(34,197,94,0.3)',
+        width:'64px', height:'64px', borderRadius:'50%',
+        background:'var(--color-bg-surface-alt)',
         display:'flex', alignItems:'center', justifyContent:'center',
-        fontSize:'40px',
-      }">✅</div>
+      }">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
       <div>
         <p :style="{
-          fontSize:'26px', fontWeight:'800',
-          letterSpacing:'-0.03em', marginBottom:'10px',
+          fontSize:'22px', fontWeight:'800', color:'var(--color-primary)', margin:'0 0 6px',
         }">¡Todo listo!</p>
-        <p :style="{ color:'rgba(255,255,255,0.4)', fontSize:'14px', lineHeight:'1.7' }">
+        <p :style="{ color:'var(--color-text-3)', fontSize:'14px', lineHeight:'1.6', margin:'0' }">
           Ambas fotos fueron enviadas.<br/>
-          Cierra esta ventana y continúa<br/>
-          <strong :style="{ color:'rgba(255,255,255,0.7)' }">en tu computador.</strong>
+          Cierre esta ventana y continúe en su computador.
         </p>
       </div>
+
       <div :style="{
-        display:'grid', gridTemplateColumns:'1fr 1fr',
-        gap:'10px', width:'100%', maxWidth:'260px',
+        width:'100%', maxWidth:'260px', display:'flex', flexDirection:'column', gap:'8px',
+        background:'var(--color-bg-surface-alt)', borderRadius:'14px', padding:'14px 18px',
       }">
-        <div v-for="(url, nombre) in { Frente: urlFrente, Reverso: urlReverso }" :key="nombre">
-          <p :style="{
-            fontSize:'10px', fontWeight:'700', textTransform:'uppercase',
-            letterSpacing:'0.08em', color:'rgba(255,255,255,0.3)', marginBottom:'5px',
-          }">{{ nombre }}</p>
-          <img :src="url" :alt="nombre" :style="{
-            width:'100%', borderRadius:'10px',
-            border:'2px solid rgba(34,197,94,0.25)',
-            aspectRatio:'1.585', objectFit:'cover', display:'block',
-          }"/>
+        <div v-for="nombre in ['Frente', 'Reverso']" :key="nombre" :style="{
+          display:'flex', alignItems:'center', justifyContent:'space-between',
+        }">
+          <span :style="{ fontSize:'13px', fontWeight:'600', color:'var(--color-text-1)' }">{{ nombre }} del documento</span>
+          <span :style="{
+            width:'18px', height:'18px', borderRadius:'50%',
+            background:'var(--color-primary)',
+            display:'flex', alignItems:'center', justifyContent:'center', flexShrink:'0',
+          }">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
         </div>
       </div>
     </div>
@@ -673,16 +771,22 @@ async function confirmar() {
     <!-- Footer -->
     <div v-if="fase !== 'visor'" :style="{
       flexShrink:'0', textAlign:'center',
-      padding:'10px', fontSize:'10px',
-      color:'rgba(255,255,255,0.15)', fontWeight:'500',
+      padding:'10px', fontSize:'11px',
+      color:'var(--color-text-3)', fontWeight:'500',
     }">
-      COOPERATIVA MULTIACTIVA LUIS AMIGÓ - COOPERAMIGÓ · NIT 800.191.482-7
+      Cooperativa Multiactiva Luis Amigó NIT. 800.191.482-7 · www.cooperamigo.coop<br/>
+      © 2026. Todos los derechos reservados.
     </div>
   </div>
 </template>
 
 <style scoped>
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes rotateHint {
+  0%, 100% { transform: rotate(0deg); }
+  50%      { transform: rotate(-90deg); }
+}
+.rotate-hint { animation: rotateHint 1.6s ease-in-out infinite; }
 @keyframes scan {
   0%, 100% { top: 6%; }
   50% { top: 88%; }
@@ -690,4 +794,20 @@ async function confirmar() {
 .scan-line { animation: scan 2.4s ease-in-out infinite; }
 * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
 video { transform: scaleX(1); }
+
+@keyframes cardBreathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 8px 24px rgba(17,76,90,0.08); }
+  50%      { transform: scale(1.02); box-shadow: 0 12px 30px rgba(17,76,90,0.12); }
+}
+.illustrative-card { animation: cardBreathe 2.6s ease-in-out infinite; }
+
+@keyframes shimmerBar {
+  0%   { background-position: -120px 0; }
+  100% { background-position: 120px 0; }
+}
+.shimmer-bar {
+  background-image: linear-gradient(90deg, var(--color-border-light) 25%, #eef1f0 50%, var(--color-border-light) 75%);
+  background-size: 200px 100%;
+  animation: shimmerBar 1.6s linear infinite;
+}
 </style>

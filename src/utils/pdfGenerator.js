@@ -1,5 +1,40 @@
 import { jsPDF } from 'jspdf'
 
+let _fuenteCache = null
+
+function _base64FromArrayBuffer(buffer) {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+  return btoa(binary)
+}
+
+async function _asegurarFuenteDmSans(doc) {
+  if (_fuenteCache === false) return false
+  try {
+    if (!_fuenteCache) {
+      const urlRegular = new URL('../assets/fonts/DMSans-Regular.ttf', import.meta.url).href
+      const urlBold    = new URL('../assets/fonts/DMSans-Bold.ttf',    import.meta.url).href
+      const [bufRegular, bufBold] = await Promise.all([
+        fetch(urlRegular).then(r => r.arrayBuffer()),
+        fetch(urlBold).then(r => r.arrayBuffer()),
+      ])
+      _fuenteCache = {
+        regular: _base64FromArrayBuffer(bufRegular),
+        bold:    _base64FromArrayBuffer(bufBold),
+      }
+    }
+    doc.addFileToVFS('DMSans-Regular.ttf', _fuenteCache.regular)
+    doc.addFont('DMSans-Regular.ttf', 'DMSans', 'normal')
+    doc.addFileToVFS('DMSans-Bold.ttf', _fuenteCache.bold)
+    doc.addFont('DMSans-Bold.ttf', 'DMSans', 'bold')
+    return true
+  } catch {
+    _fuenteCache = false
+    return false
+  }
+}
+
 /**
  * Genera un PDF con dos imágenes, una arriba de la otra.
  * @param {string} imagenFrente  - Base64 o URL de la imagen frontal
@@ -8,6 +43,9 @@ import { jsPDF } from 'jspdf'
  */
 export async function generarPdfCedula(imagenFrente, imagenReverso) {
   const doc = new jsPDF()
+  const dmSansOk = await _asegurarFuenteDmSans(doc)
+  doc.setFont(dmSansOk ? 'DMSans' : 'helvetica', 'bold')
+
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 10
@@ -67,12 +105,23 @@ export async function generarPdfCedula(imagenFrente, imagenReverso) {
     const frente = calcularDimensiones(imgF, boxFrente)
     const reverso = calcularDimensiones(imgR, boxReverso)
 
-    // Etiquetas y marcos para dejar ambas fotos "encuadradas"
-    doc.setFontSize(10)
-    doc.text('Frente', margin, margin + 4)
-    doc.rect(boxFrente.x, boxFrente.y, boxFrente.w, boxFrente.h)
-    doc.text('Reverso', margin, boxReverso.y - 2)
-    doc.rect(boxReverso.x, boxReverso.y, boxReverso.w, boxReverso.h)
+    // Etiquetas (sin recuadro alrededor de las imágenes): solo "Frente"/"Reverso" en
+    // negrita, el resto de la línea en regular — centradas como una sola línea.
+    const font = dmSansOk ? 'DMSans' : 'helvetica'
+    const dibujarEtiqueta = (negrita, resto, y) => {
+      doc.setFontSize(10)
+      doc.setFont(font, 'bold')
+      const wNegrita = doc.getTextWidth(negrita)
+      doc.setFont(font, 'normal')
+      const wResto = doc.getTextWidth(resto)
+      const startX = (pageWidth - (wNegrita + wResto)) / 2
+      doc.setFont(font, 'bold')
+      doc.text(negrita, startX, y)
+      doc.setFont(font, 'normal')
+      doc.text(resto, startX + wNegrita, y)
+    }
+    dibujarEtiqueta('Frente', ' (Documento de identificación)', margin + 4)
+    dibujarEtiqueta('Reverso', ' (Documento de identificación)', boxReverso.y - 2)
 
     // Dibujar frente arriba y reverso abajo, ambos visibles en la misma página
     doc.addImage(imgF, 'JPEG', frente.x, frente.y, frente.w, frente.h)
