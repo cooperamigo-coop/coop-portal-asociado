@@ -23,6 +23,7 @@ import { useBreakpoint }  from '@/composables/useBreakpoint'
 import { subirDocumentoSolicitud, obtenerMensajeErrorSubidaDocumento } from '@/services/documentos.service'
 import { IconCircleCheck, IconUserCheck, IconCheck, IconMapPin, IconX, IconUpload, IconEye, IconRefresh, IconFileDescription, IconLoader2, IconRotateClockwise2, IconHome, IconCar, IconShieldCheck, IconArrowRight, IconAlertTriangle, IconClock, IconLock, IconUser, IconMail, IconMessage, IconDeviceMobile, IconPhone, IconBriefcase, IconInfoCircle } from '@tabler/icons-vue'
 import { ENTIDADES_PENSIONES, TIPOS_CONTRATO } from '@/data/formularioCredito'
+import { esFueraDeHorarioAtencion } from '@/utils/horarioAtencion'
 
 const router = useRouter()
 const { isMobile } = useBreakpoint()
@@ -1088,18 +1089,8 @@ async function onVerificarYContinuarClick() {
 }
 
 // Lifecycle para canvas de firma
-function esFueraDeHorario() {
-  if (isDev) return false
-  const bogota = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }))
-  const dia = bogota.getDay()
-  const hora = bogota.getHours()
-  if (dia === 0 || dia === 6) return true
-  if (hora < 8 || hora >= 17) return true
-  return false
-}
-
 onMounted(() => {
-  if (esFueraDeHorario()) { router.replace('/'); return }
+  if (esFueraDeHorarioAtencion()) { router.replace('/'); return }
   window.addEventListener('resize', _onResizeFirma)
   prepararCanvasFirmaOnMount()
 })

@@ -8,6 +8,7 @@ import ServiceCard from '@/components/ui/ServiceCard.vue'
 import CampoTexto from '@/components/forms/CampoTexto.vue'
 import { PROXIMAMENTE as proximamente } from '@/config/flags'
 import { useEstadoProcesos } from '@/composables/useEstadoProcesos'
+import { esFueraDeHorarioAtencion } from '@/utils/horarioAtencion'
 
 const router = useRouter()
 const route = useRoute()
@@ -62,7 +63,7 @@ function reiniciarConsulta() {
   reiniciar()
 }
 
-// ── Horario hábil: lunes–viernes 08:00–20:00 hora Colombia ──
+// ── Horario hábil: lunes–viernes 08:00–17:00 hora Colombia (sin fines de semana ni festivos) ──
 const ahora = ref(new Date())
 let _timer
 
@@ -73,15 +74,7 @@ onMounted(() => {
 
 onUnmounted(() => clearInterval(_timer))
 
-const fueraDeHorario = computed(() => {
-  if (import.meta.env.DEV) return false
-  const bogota = new Date(ahora.value.toLocaleString('en-US', { timeZone: 'America/Bogota' }))
-  const dia  = bogota.getDay()  // 0=dom, 6=sáb
-  const hora = bogota.getHours()
-  if (dia === 0 || dia === 6) return true
-  if (hora < 8 || hora >= 17) return true
-  return false
-})
+const fueraDeHorario = computed(() => esFueraDeHorarioAtencion(ahora.value))
 
 const bloqueado = computed(() => proximamente || fueraDeHorario.value)
 
@@ -177,7 +170,7 @@ const SERVICIOS_NO_ASOCIADO = [
 
         <!-- ── Vista: pregunta inicial ───────────────────────── -->
         <div v-if="paso === 'pregunta'" class="vista animate-in">
-          <div class="new-hero-layout" v-if="!proximamente">
+          <div class="new-hero-layout" v-if="!bloqueado">
             <div class="hero-split">
               <!-- Left Column: Text and Actions -->
               <div class="hero-left">
@@ -273,9 +266,9 @@ const SERVICIOS_NO_ASOCIADO = [
             </div>
           </div>
 
-          <div class="mantenimiento-full" v-else>
+          <div class="mantenimiento-full" v-else-if="proximamente">
             <h1 class="mantenimiento-title">Estamos offline.</h1>
-            
+
             <svg class="svg-unplugged" viewBox="0 0 800 200" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path class="cable-path" d="M -50 120 Q 150 120 200 160 T 380 100" stroke="var(--color-primary)" stroke-width="6" stroke-linecap="round"/>
               <g class="plug-left">
@@ -305,7 +298,7 @@ const SERVICIOS_NO_ASOCIADO = [
               <strong>Saludos. Estamos en mantenimiento programado.</strong><br/>
               Estamos realizando mejoras en el portal para brindarte una mejor experiencia.<br/>Volveremos a estar en línea muy pronto. ¡Gracias por tu paciencia!
             </p>
-            
+
             <div class="mantenimiento-footer">
                <a href="https://cooperamigo.coop/contacto" target="_blank" rel="noopener noreferrer">Soporte</a>
                <span class="mantenimiento-dot">·</span>
@@ -313,6 +306,22 @@ const SERVICIOS_NO_ASOCIADO = [
                <span class="mantenimiento-dot">·</span>
                <span class="mantenimiento-copy">© 2026 Cooperativa Multiactiva Luis Amigó</span>
             </div>
+          </div>
+
+          <div class="mantenimiento-full horario-full" v-else>
+            <div class="horario-icon-wrap" aria-hidden="true">
+              <div class="horario-icon-ring"></div>
+              <IconClock class="horario-icon" :size="40" :stroke-width="1.75" />
+            </div>
+
+            <h1 class="mantenimiento-title mantenimiento-title--sm">Fuera de horario de atención</h1>
+
+            <p class="mantenimiento-text">
+              <strong>En este momento el portal no está disponible.</strong><br/>
+              Nuestro horario de atención es de <strong>lunes a viernes, 8:00 a.m. a 5:00 p.m.</strong><br/>
+              Vuelve a intentarlo dentro de este horario. ¡Gracias por tu paciencia!
+            </p>
+
           </div>
 
         </div>
@@ -972,6 +981,56 @@ const SERVICIOS_NO_ASOCIADO = [
 
 .mantenimiento-copy {
   opacity: 0.6;
+}
+
+/* --- Horario (fuera de horario) --- */
+.mantenimiento-title--sm {
+  font-size: clamp(22px, 6vw, 38px);
+}
+
+.horario-icon-wrap {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+
+.horario-icon-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-pill);
+  background: var(--color-bg-surface-alt);
+  opacity: 1;
+}
+
+.horario-icon {
+  position: relative;
+  color: var(--color-primary);
+  animation: horario-tick 2.4s ease-in-out infinite;
+  transform-origin: 50% 50%;
+}
+
+@keyframes horario-tick {
+  0%, 92%, 100% { transform: rotate(0deg); }
+  94% { transform: rotate(-8deg); }
+  96% { transform: rotate(8deg); }
+  98% { transform: rotate(-4deg); }
+}
+
+.horario-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: var(--r-pill);
+  background: var(--color-bg-surface);
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  margin: 0 auto 28px;
 }
 
 /* --- SVG Illustration --- */
