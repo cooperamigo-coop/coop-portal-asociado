@@ -48,6 +48,7 @@ import { jsPDF } from 'jspdf'
 const { isMobile } = useBreakpoint()
 import { TIPOS_CONTRATO, ENTIDADES_PENSIONES } from '@/data/formularioCredito'
 import { ENTIDADES_BANCARIAS } from '@/data/colombiaData.js'
+import { esFueraDeHorarioAtencion } from '@/utils/horarioAtencion'
 
 const router = useRouter()
 
@@ -890,18 +891,8 @@ function _onResizeFirma() {
   prepararCanvasFirma()
 }
 
-function esFueraDeHorario() {
-  if (isDev) return false
-  const bogota = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }))
-  const dia = bogota.getDay()
-  const hora = bogota.getHours()
-  if (dia === 0 || dia === 6) return true
-  if (hora < 8 || hora >= 17) return true
-  return false
-}
-
 onMounted(() => {
-  if (esFueraDeHorario()) { router.replace('/'); return }
+  if (esFueraDeHorarioAtencion()) { router.replace('/'); return }
   window.addEventListener('resize', _onResizeFirma)
 })
 onBeforeUnmount(() => {
