@@ -45,12 +45,13 @@ function toggleActivo(tipo) {
       color: 'var(--color-text-1)',
       marginBottom: 'var(--sp-xs)',
     }">{{ titulo }}</div>
-    <div :style="{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--sp-md)' }">
+    <div :style="{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--sp-md)', alignItems: 'start' }">
       <!-- Card Propiedad Raíz -->
       <div :style="{ 
         borderRadius: 'var(--r-lg)', 
         border: 'none',
-        background: 'var(--color-bg-card)', 
+        background: '#f8f8f8', 
+        '--bg-label': '#f8f8f8', 
         padding: 'var(--sp-md)',
         transition: 'all var(--transition-fast)'
       }">
@@ -85,7 +86,8 @@ function toggleActivo(tipo) {
       <div :style="{ 
         borderRadius: 'var(--r-lg)', 
         border: 'none',
-        background: 'var(--color-bg-card)', 
+        background: '#f8f8f8', 
+        '--bg-label': '#f8f8f8', 
         padding: 'var(--sp-md)',
         transition: 'all var(--transition-fast)'
       }">

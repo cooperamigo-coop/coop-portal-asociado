@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { IconBriefcase, IconBuildingStore, IconHeartHandshake, IconBook, IconHome, IconChevronDown, IconCheck } from '@tabler/icons-vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import ServiceCard from '@/components/ui/ServiceCard.vue'
 
 const { isMobile } = useBreakpoint()
 
@@ -25,11 +26,11 @@ const dropdownStyle = ref({
 })
 
 const opciones = [
-  { value: 'empleado',      label: 'Empleado',       icono: IconBriefcase      },
-  { value: 'independiente', label: 'Independiente',   icono: IconBuildingStore  },
-  { value: 'pensionado',    label: 'Pensionado',      icono: IconHeartHandshake },
-  { value: 'estudiante',    label: 'Estudiante',      icono: IconBook           },
-  { value: 'cuidado_hogar', label: 'Cuidado Hogar', icono: IconHome         },
+  { value: 'empleado',      label: 'Empleado',       icono: IconBriefcase,       descripcion: 'Trabajador dependiente con contrato laboral activo.' },
+  { value: 'independiente', label: 'Independiente',  icono: IconBuildingStore,   descripcion: 'Trabajador por cuenta propia o dueño de negocio.' },
+  { value: 'pensionado',    label: 'Pensionado',     icono: IconHeartHandshake,  descripcion: 'Persona que recibe una mesada pensional.' },
+  { value: 'estudiante',    label: 'Estudiante',     icono: IconBook,            descripcion: 'Persona dedicada a su formación académica.' },
+  { value: 'cuidado_hogar', label: 'Cuidado Hogar',  icono: IconHome,            descripcion: 'Persona dedicada a las labores del hogar.' },
 ]
 
 const labelSeleccionado = computed(() => {
@@ -102,14 +103,6 @@ onUnmounted(() => {
 
 <template>
   <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
-    <label v-if="!isMobile" :style="{
-      fontSize:   'var(--text-sm)',
-      fontWeight: 'var(--fw-semibold)',
-      color:      error ? 'var(--color-error-text)' : 'var(--color-text-1)',
-    }">
-      Situación laboral actual <span :style="{ color: 'var(--color-error)' }">*</span>
-    </label>
-
     <div v-if="isMobile" ref="containerRef" class="campo-wrapper" :style="{ marginTop: 'var(--sp-xs)' }">
       <div 
         class="campo-field" 
@@ -133,7 +126,7 @@ onUnmounted(() => {
         </div>
 
         <label class="campo-label">
-          Situación laboral actual <span class="campo-required"> *</span>
+          Situación laboral actual<span class="campo-required">*</span>
         </label>
       </div>
 
@@ -163,50 +156,23 @@ onUnmounted(() => {
     </div>
 
     <div v-else :style="{
-      display:  'flex',
-      flexWrap: 'nowrap',
+      display:  'grid',
+      gridTemplateColumns: 'repeat(5, 1fr)',
       gap:      'var(--sp-sm)',
       marginTop:'var(--sp-xs)',
     }">
-      <div
+      <ServiceCard
         v-for="op in opciones"
         :key="op.value"
-        :style="{
-          flex:           '1',
-          display:        'flex',
-          flexDirection:  'column',
-          alignItems:     'center',
-          justifyContent: 'center',
-          gap:            '2px',
-          padding:        'var(--sp-lg) var(--sp-xs)',
-          borderRadius:   'var(--r-md)',
-          border:         modelValue === op.value
-            ? '2px solid var(--color-primary)'
-            : '1px solid var(--color-border)',
-          background:     modelValue === op.value
-            ? 'var(--color-bg-card)'
-            : 'var(--color-bg-surface)',
-          cursor:         'pointer',
-          transition:     'all var(--transition-fast)',
-          textAlign:      'center',
-        }"
+        :icon="op.icono"
+        :title="op.label"
+        :description="op.descripcion"
+        :selected="modelValue === op.value"
+        :show-action="false"
+        clickable
+        :style="{ padding: '16px' }"
         @click="$emit('update:modelValue', op.value)"
-      >
-        <component
-          :is="op.icono"
-          :size="18"
-          :style="{
-            color:      modelValue === op.value ? 'var(--color-primary)' : 'var(--color-text-3)',
-            transition: 'color var(--transition-fast)',
-          }"
-        />
-        <span :style="{
-          fontSize:   '9px',
-          fontWeight: modelValue === op.value ? 'var(--fw-bold)' : 'var(--fw-medium)',
-          color:      modelValue === op.value ? 'var(--color-primary)' : 'var(--color-text-2)',
-          lineHeight: '1.2',
-        }">{{ op.label }}</span>
-      </div>
+      />
     </div>
 
     <span v-if="error" :style="{

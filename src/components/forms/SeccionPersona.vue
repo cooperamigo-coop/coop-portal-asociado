@@ -298,38 +298,38 @@ const nivelEducativoOpciones = [
             readonly
             placeholder="Diligenciar dirección"
             :style="{
-              width: '100%', 
-              padding: '22px 12px 6px 12px',
-              height: '54px',
-              border: 'none',
-              borderBottom: '1px solid var(--color-border)',
-              borderRadius: 'var(--r-md)',
-              fontSize: 'var(--text-base)', 
+              width: '100%',
+              padding: '0 16px',
+              height: '48px',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--r-input)',
+              fontSize: 'var(--text-base)',
               fontFamily: 'var(--font-body)',
               background: 'transparent',
               color: 'var(--color-text-1)',
               textAlign: 'left',
-              cursor: 'pointer', 
-              outline: 'none', 
+              cursor: 'pointer',
+              outline: 'none',
               boxSizing: 'border-box',
-              transition: 'border-bottom-color var(--transition-fast), box-shadow var(--transition-fast)',
+              transition: 'border-color var(--transition-fast), box-shadow var(--transition-fast)',
             }"
             class="direccion-trigger"
           />
           <label :style="{
-            position: 'absolute', 
-            left: '12px', 
-            top: '4px',
-            transform: 'translateY(0)',
-            fontSize: '11px', 
-            fontWeight: 'var(--fw-medium)',
-            color: 'var(--color-text-3)',
-            background: 'transparent', 
-            padding: '0',
-            pointerEvents: 'none', 
+            position: 'absolute',
+            left: '12px',
+            top: '0',
+            transform: 'translateY(-50%)',
+            fontSize: '12px',
+            fontWeight: 'var(--fw-regular)',
+            color: 'var(--color-text-2)',
+            background: 'var(--bg-label, #ffffff)',
+            borderRadius: '3px',
+            padding: '0 4px',
+            pointerEvents: 'none',
             whiteSpace: 'nowrap',
           }">
-            Dirección residencia <span :style="{ color: 'var(--color-error)' }">*</span>
+            Dirección residencia<span :style="{ color: 'var(--color-error)' }">*</span>
           </label>
         </div>
         <CampoTexto
@@ -400,7 +400,6 @@ const nivelEducativoOpciones = [
 }
 
 .direccion-trigger:hover {
-  border-bottom-color: var(--color-primary) !important;
-  box-shadow: 0 1px 0 0 var(--color-primary);
+  border-color: var(--color-primary) !important;
 }
 </style>

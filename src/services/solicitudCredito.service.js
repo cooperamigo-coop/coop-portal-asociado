@@ -23,24 +23,16 @@ export async function crearBorrador(datos) {
 
 export async function actualizarBorrador(id, datos) {
   if (!id || id === 'null') throw new Error('ID de solicitud inválido')
-  const { data, error } = await supabase
-    .from('solicitudes_credito_portal')
-    .update({ ...datos, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .eq('estado', 'borrador')
-    .select()
-    .maybeSingle()
+  const { data, error } = await supabase.rpc('actualizar_borrador_credito_portal', {
+    p_id: id,
+    p_datos: datos,
+  })
   if (error) throw error
   return data // null si no hay fila que coincida (solicitud enviada o eliminada)
 }
 
 export async function enviarSolicitud(id) {
-  const { data, error } = await supabase
-    .from('solicitudes_credito_portal')
-    .update({ estado: 'enviado' })
-    .eq('id', id)
-    .select()
-    .maybeSingle()
+  const { data, error } = await supabase.rpc('enviar_solicitud_credito_portal', { p_id: id })
   if (error) throw error
   if (!data) throw new Error('Solicitud no encontrada o ya fue enviada')
   return data

@@ -185,6 +185,8 @@ export function useAfiliacion() {
     es_lider_politico: null,
     autoriza_tratamiento_datos: null,
     fecha_autorizacion_datos: null,
+    acepta_declaraciones_legales: null,
+    fecha_aceptacion_declaraciones_legales: null,
     tuvo_asesoria: null,
     codigo_asesor: '',
   })
@@ -192,6 +194,10 @@ export function useAfiliacion() {
   const documentos = ref({
     doc_cedula_solicitante_url: '',
     doc_soporte_ingresos_laboral_url: '',
+    // Carpeta de Storage aleatoria (no derivada de la cédula) para que no se
+    // pueda adivinar/enumerar la ruta de los documentos de otra persona.
+    // Se persiste en el borrador para mantener continuidad en la misma sesión.
+    carpeta_storage: `afiliacion_${crypto.randomUUID()}`,
   })
 
   // ── Firma electrónica ──────────────────────────────────────────────────────
@@ -392,6 +398,7 @@ export function useAfiliacion() {
         d.es_contratista_estado !== null &&
         d.es_lider_politico !== null &&
         d.autoriza_tratamiento_datos === true &&
+        d.acepta_declaraciones_legales === true &&
         asesoriaValida &&
         (skipDocs || String(documentos.value.doc_cedula_solicitante_url || '').trim().length > 0) &&
         (skipDocs || String(documentos.value.doc_soporte_ingresos_laboral_url || '').trim().length > 0)
@@ -419,6 +426,12 @@ export function useAfiliacion() {
 
     const email  = emailInicial.value.trim()
     const numDoc = numeroDocumentoInicial.value.trim()
+
+    // Atajo solo para desarrollo local: permite avanzar sin llenar el paso 0
+    if (import.meta.env.DEV) {
+      _prepararPaso1(email || 'dev@cooperamigo.coop', numDoc || '1000000000')
+      return
+    }
 
     if (!email) { errorEmail.value = 'El correo electrónico es requerido'; return }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errorEmail.value = 'Correo electrónico inválido'; return }
@@ -465,6 +478,12 @@ export function useAfiliacion() {
     datosPersonales.value.cedula = numDoc
     datosPersonales.value.tipo_identificacion =
       tipoDocumentoInicial.value === 'cedula_ciudadania' ? 'CC' : 'CE'
+    if (aceptaAutorizacion.value) {
+      declaraciones.value.autoriza_tratamiento_datos = true
+      declaraciones.value.fecha_autorizacion_datos = declaraciones.value.fecha_autorizacion_datos || new Date().toISOString()
+      // Persistir de inmediato la constancia de consentimiento, sin esperar al próximo autoguardado
+      _guardarProgreso(1)
+    }
     paso.value = 1
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -642,6 +661,11 @@ export function useAfiliacion() {
 
     if (!declaraciones.value.autoriza_tratamiento_datos) {
       error.value = 'Debe autorizar el tratamiento de sus datos personales para continuar.'
+      return
+    }
+
+    if (!declaraciones.value.acepta_declaraciones_legales) {
+      error.value = 'Debe leer y aceptar las declaraciones y autorizaciones para continuar.'
       return
     }
 
@@ -865,6 +889,8 @@ export function useAfiliacion() {
         es_lider_politico:                dc.es_lider_politico === true,
         autoriza_tratamiento_datos:       dc.autoriza_tratamiento_datos === true,
         fecha_autorizacion_datos:         dc.autoriza_tratamiento_datos === true ? (dc.fecha_autorizacion_datos || new Date().toISOString()) : null,
+        acepta_declaraciones_legales:     dc.acepta_declaraciones_legales === true,
+        fecha_aceptacion_declaraciones_legales: dc.acepta_declaraciones_legales === true ? (dc.fecha_aceptacion_declaraciones_legales || new Date().toISOString()) : null,
         tuvo_acompanamiento_asesor:       dc.tuvo_asesoria === true,
         codigo_asesor:                    dc.tuvo_asesoria === true ? dc.codigo_asesor : null,
         // Firma electrónica del solicitante
@@ -886,6 +912,9 @@ export function useAfiliacion() {
           : {}),
         ...(documentos.value.doc_soporte_ingresos_laboral_url
           ? { doc_soporte_ingresos_url: documentos.value.doc_soporte_ingresos_laboral_url }
+          : {}),
+        ...(documentos.value.carpeta_storage
+          ? { carpeta_storage: documentos.value.carpeta_storage }
           : {}),
       })
 
@@ -1065,12 +1094,15 @@ export function useAfiliacion() {
       es_lider_politico: null,
       autoriza_tratamiento_datos: null,
       fecha_autorizacion_datos: null,
+      acepta_declaraciones_legales: null,
+      fecha_aceptacion_declaraciones_legales: null,
       tuvo_asesoria: null,
       codigo_asesor: '',
     }
     documentos.value = {
       doc_cedula_solicitante_url: '',
       doc_soporte_ingresos_laboral_url: '',
+      carpeta_storage: `afiliacion_${crypto.randomUUID()}`,
     }
   }
 

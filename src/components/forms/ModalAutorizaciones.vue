@@ -8,8 +8,25 @@ const { isMobile } = useBreakpoint()
 const props = defineProps({
   visible:  { type: Boolean, default: false },
   aceptado: { type: Boolean, default: false },
+  titulo:   { type: String, default: 'Autorizaciones y declaraciones' },
+  // IMPORTANTE: `secciones` debe ser siempre contenido de código (hardcodeado
+  // en el componente padre), nunca datos provenientes de base de datos,
+  // parámetros de URL o entrada del usuario. `formatearHtmlSeguro()` solo
+  // permite <strong> — cualquier otra etiqueta se escapa — como defensa
+  // adicional en caso de que esto cambie en el futuro.
+  secciones: { type: Array, default: null },
 })
 const emit = defineEmits(['update:visible', 'aceptar', 'rechazar'])
+
+function formatearHtmlSeguro(texto) {
+  const escapado = String(texto ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+  return escapado
+    .replace(/&lt;strong&gt;/g, '<strong>')
+    .replace(/&lt;\/strong&gt;/g, '</strong>')
+}
 
 const scrollCompletado  = ref(false)
 const porcentajeScroll  = ref(0)
@@ -95,9 +112,9 @@ function cerrar() {
             display:        'flex',
             alignItems:     'center',
             justifyContent: 'space-between',
-            padding:        isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-xl) var(--sp-2xl)',
+            padding:        isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-2xl)',
             borderBottom:   '1px solid var(--color-border-card)',
-            background:     'var(--color-bg-surface)',
+            background:     'var(--color-bg-surface-alt)',
             flexShrink:     '0',
             gap:            'var(--sp-sm)',
           }">
@@ -123,12 +140,7 @@ function cerrar() {
                   whiteSpace:  'nowrap',
                   overflow:    'hidden',
                   textOverflow:'ellipsis',
-                }">Autorizaciones y declaraciones</div>
-                <div v-if="!isMobile" :style="{
-                  fontSize:   'var(--text-sm)',
-                  color:      'var(--color-text-3)',
-                  fontWeight: 'var(--fw-medium)',
-                }">Solicitud de crédito - Cooperativa Multiactiva Luis Amigó</div>
+                }">{{ titulo }}</div>
               </div>
             </div>
             <button :style="{
@@ -159,11 +171,11 @@ function cerrar() {
               alignItems:   'center',
               gap:          'var(--sp-sm)',
               padding:      'var(--sp-sm) var(--sp-2xl)',
-              background:   'var(--color-warning-bg)',
+              background:   'var(--color-primary)',
               borderBottom: '1px solid var(--color-border)',
               flexShrink:   '0',
               fontSize:     'var(--text-sm)',
-              color:        'var(--color-warning-text)',
+              color:        '#ffffff',
               fontWeight:   'var(--fw-semibold)',
             }"
           >
@@ -185,6 +197,21 @@ function cerrar() {
             ref="contenedorTexto"
             @scroll="onScroll"
           >
+            <template v-if="secciones">
+              <div v-for="(seccion, idx) in secciones" :key="seccion.titulo" :style="{ marginBottom: idx < secciones.length - 1 ? 'var(--sp-2xl)' : '0' }">
+                <p :style="{ fontWeight: 'var(--fw-semibold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-sm)', fontSize: 'var(--text-sm)' }">
+                  {{ seccion.titulo }}
+                </p>
+                <p v-if="seccion.nota" :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontStyle: 'italic', marginBottom: 'var(--sp-sm)' }" v-html="formatearHtmlSeguro(seccion.nota)" />
+                <p
+                  v-for="(parrafo, pIdx) in seccion.parrafos"
+                  :key="pIdx"
+                  :style="{ marginBottom: pIdx < seccion.parrafos.length - 1 ? 'var(--sp-md)' : '0' }"
+                  v-html="formatearHtmlSeguro(parrafo)"
+                />
+              </div>
+            </template>
+            <template v-else>
             <!-- Sección 1 -->
             <p :style="{
               fontWeight:   'var(--fw-semibold)',
@@ -282,6 +309,7 @@ function cerrar() {
             <p :style="{ marginBottom: 'var(--sp-2xl)' }">
               Declaro(amos) que he(mos) sido informado(s) de que el suministro de datos sensibles es facultativo y que no estoy(amos) obligado(s) a autorizar su tratamiento. No obstante, entiendo(emos) que su no autorización puede limitar la ejecución de algunos procesos asociados a la solicitud.
             </p>
+            </template>
           </div>
 
           <!-- Footer con botones — siempre visible, fuera del scroll -->

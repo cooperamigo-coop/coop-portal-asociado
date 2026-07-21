@@ -14,6 +14,7 @@ import PortalLayout           from '@/components/layout/PortalLayout.vue'
 import StepIndicator         from '@/components/ui/StepIndicator.vue'
 import ModalOtpEmail          from '@/components/forms/ModalOtpEmail.vue'
 import PortalButton           from '@/components/ui/PortalButton.vue'
+import ServiceCard            from '@/components/ui/ServiceCard.vue'
 import SelectorModalidad      from '@/components/forms/SelectorModalidad.vue'
 import SeccionDocumentos      from '@/components/forms/SeccionDocumentos.vue'
 import SelectorTipoTrabajador from '@/components/forms/SelectorTipoTrabajador.vue'
@@ -34,7 +35,7 @@ import {
   IconUser, IconUserX, IconMail, IconRotate, IconUsers, IconUserCheck, IconFileDescription,
   IconCheck, IconUpload, IconCamera, IconX, IconLoader2,
   IconPencil, IconAlertTriangle, IconFileCheck, IconFile, IconRotateClockwise2,
-  IconArrowRight, IconClock, IconEye,
+  IconArrowRight, IconClock, IconEye, IconLock
 } from '@tabler/icons-vue'
 import { useSolicitudCredito } from '@/composables/useSolicitudCredito'
 import { useCreditoRotativoPortal } from '@/composables/useCreditoRotativoPortal'
@@ -50,7 +51,14 @@ import { ENTIDADES_BANCARIAS } from '@/data/colombiaData.js'
 
 const router = useRouter()
 
+// Habilita todos los botones "Continuar" en local para poder revisar el flujo sin llenar datos
+const isDev = import.meta.env.DEV
+
 const devPreviewExito = false
+
+// Evita que "Sin codeudor" (valor por defecto de numCodudores) se muestre pre-seleccionado
+// hasta que la persona elija explícitamente una de las tres opciones
+const codeudorTocado = ref(false)
 
 const {
   paso, loading, error, enviado, radicadoFinal,
@@ -79,7 +87,13 @@ const {
 } = useSolicitudCredito()
 
 const modalAutorizacionesVisible = ref(false)
-const aceptaCondiciones = ref(false)
+const aceptaCondiciones = computed({
+  get: () => autorizaciones.value.acepta_tratamiento_datos_inicial,
+  set: (v) => {
+    autorizaciones.value.acepta_tratamiento_datos_inicial = v
+    autorizaciones.value.fecha_aceptacion_tratamiento_datos_inicial = v ? new Date().toISOString() : null
+  },
+})
 const errorCorreo = ref(null)
 const errorPlazo   = ref(null)
 const skipDocs = import.meta.env.VITE_SKIP_DOCS === 'true'
@@ -103,6 +117,7 @@ const modalPreviewDocUrl = ref('')
 const modalPreviewDocTitulo = ref('')
 
 const intentoContinuarPaso2 = ref(false)
+const intentoContinuarPaso3 = ref(false)
 
 function _nombreCorto(nombre) {
   if (!nombre) return ''
@@ -197,7 +212,10 @@ watch(() => documentos.value.doc_certificacion_bancaria_tercero_url, (url) => {
 
 watch(() => paso.value, (p) => {
   if (p !== 2) intentoContinuarPaso2.value = false
+  if (p !== 3) intentoContinuarPaso3.value = false
 })
+
+watch(numCodudores, () => { intentoContinuarPaso3.value = false })
 
 function abrirPreviewDoc(url, titulo) {
   if (!url) return
@@ -213,18 +231,24 @@ function cerrarPreviewDoc() {
 }
 
 function continuar() {
-  if (paso.value === 2 && erroresPaso2.value.length > 0) {
-    intentoContinuarPaso2.value = true
-    return
-  }
-  if (paso.value === 3 && hayErroresDuplicidad.value) {
-    return
-  }
-  if (paso.value === 4 && !skipDocs && !documentosCompletos.value) {
-    return
-  }
-  if (paso.value === 4 && !skipDocs && !autorizaciones.value.autorizacion_aceptada) {
-    return
+  if (!isDev) {
+    if (paso.value === 2 && erroresPaso2.value.length > 0) {
+      intentoContinuarPaso2.value = true
+      return
+    }
+    if (paso.value === 3 && numCodudores.value > 0 && erroresPaso3.value.length > 0) {
+      intentoContinuarPaso3.value = true
+      return
+    }
+    if (paso.value === 3 && hayErroresDuplicidad.value) {
+      return
+    }
+    if (paso.value === 4 && !skipDocs && !documentosCompletos.value) {
+      return
+    }
+    if (paso.value === 4 && !skipDocs && !autorizaciones.value.autorizacion_aceptada) {
+      return
+    }
   }
   intentoContinuarPaso2.value = false
   siguiente()
@@ -695,7 +719,7 @@ const firmaArchivoNombre = ref('')
 const mostrarModalSubirFirma = ref(false)
 const _dibujandoFirma = ref(false)
 const _firmaTrazoPrev = ref(null)
-const _firmaCanvasCssHeight = 140
+const _firmaCanvasCssHeight = 175
 
 function _invalidarFirma() {
   if (!firma.value.firma_hash) return
@@ -771,6 +795,16 @@ function prepararCanvasFirma() {
   ctx.beginPath()
   ctx.moveTo(12, cssH - 24)
   ctx.lineTo(cssW - 12, cssH - 24)
+  ctx.stroke()
+
+  // "X" sobre la línea, a la izquierda, para indicar dónde firmar
+  ctx.strokeStyle = '#9ca3af'
+  ctx.lineWidth = 1.4
+  ctx.beginPath()
+  ctx.moveTo(14, cssH - 34)
+  ctx.lineTo(22, cssH - 26)
+  ctx.moveTo(22, cssH - 34)
+  ctx.lineTo(14, cssH - 26)
   ctx.stroke()
 }
 
@@ -857,7 +891,7 @@ function _onResizeFirma() {
 }
 
 function esFueraDeHorario() {
-  if (import.meta.env.DEV) return false
+  if (isDev) return false
   const bogota = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }))
   const dia = bogota.getDay()
   const hora = bogota.getHours()
@@ -1561,6 +1595,20 @@ function actualizarGeneral(campo, valor) {
   general.value = nuevosDatos
 }
 
+let _ctxMedicionTexto = null
+function _medirAnchoTexto(texto, font) {
+  if (!_ctxMedicionTexto) _ctxMedicionTexto = document.createElement('canvas').getContext('2d')
+  _ctxMedicionTexto.font = font
+  return _ctxMedicionTexto.measureText(texto || '').width
+}
+const anchoBeneficiario = computed(() => {
+  const minW = isMobile.value ? 160 : 220
+  const maxW = isMobile.value ? window.innerWidth - 80 : 480
+  const texto = general.value.beneficiario_nombre || 'Nombre beneficiario (estudiante)'
+  const ancho = _medirAnchoTexto(texto, '600 16px "DM Sans", sans-serif') + 12
+  return Math.min(maxW, Math.max(minW, ancho)) + 'px'
+})
+
 const esEducativo = computed(() => general.value.modalidad_credito === 'educativo')
 const esOrdinario = computed(() => general.value.modalidad_credito === 'ordinario')
 const esCreditoNuevo = computed(() => general.value.tipo_operacion === 'credito_nuevo')
@@ -1672,7 +1720,7 @@ function onDocumentoAreaClick() {
   const email = verificacion.value.correo.trim()
   if (!email || !RE_EMAIL.test(email)) return
   // En desarrollo local no se exige OTP (igual que en afiliación)
-  if (import.meta.env.DEV) {
+  if (isDev) {
     emailValidado.value = true
     return
   }
@@ -1690,7 +1738,7 @@ function onOtpValidado() {
 </script>
 
 <template>
-  <PortalLayout :hide-nav="enviado || devPreviewExito" :bg-image="(enviado || devPreviewExito) ? '/imagen2.png' : '/imagen1.png'" :bg-position-mobile="(enviado || devPreviewExito) ? '0% 75%' : 'center'">
+  <PortalLayout>
 
     <!-- ═══ PANTALLA DE ÉXITO ═══════════════════════════════ -->
     <div v-if="enviado || devPreviewExito" class="exito-wrap">
@@ -1704,7 +1752,7 @@ function onOtpValidado() {
             <IconCircleCheck :size="32" />
           </div>
           <div :style="{ display: 'flex', flexDirection: 'column', gap: '4px' }">
-            <h1 class="exito-titulo">¡Solicitud radicada exitosamente!</h1>
+            <h1 class="exito-titulo">¡Solicitud de crédito radicada!</h1>
             <p class="exito-subtitulo">Tu solicitud de crédito fue recibida y está siendo procesada.</p>
           </div>
         </div>
@@ -1739,115 +1787,97 @@ function onOtpValidado() {
 
     <!-- ═══ PANTALLA PREVIA — Verificación de identidad ═════ -->
     <div v-else-if="!verificado" class="paso0-wrapper">
-
       <div class="paso0-container">
+          <h1 class="paso0-title">Solicita tu crédito <span>(100% en línea)</span></h1>
+          <p class="paso0-desc">Completa tu solicitud en minutos, sin filas ni papeleo. Te acompañamos en cada paso del proceso.</p>
 
-        <!-- Título -->
-        <div :style="{ marginBottom: '20px' }">
-          <div class="step-greeting-title">
-            <span class="greeting-hi">¡Saludos!</span><span class="greeting-sub">Comencemos con algunos datos</span>
-          </div>
-        </div>
+          <div class="paso0-split">
+            <div class="paso0-col-left">
+              <div class="paso0-fields">
+                <div class="paso0-field-row">
+                  <div class="paso0-number">1</div>
+                  <div class="paso0-input-wrapper">
+                    <CampoTexto
+                      :model-value="verificacion.correo"
+                      label="Correo electrónico *"
+                      type="email"
+                      placeholder="ejemplo@correo.com"
+                      :error="errorCorreo"
+                      @update:model-value="onCorreoCambiaConValidacion($event)"
+                      @blur="onCorreoBlur"
+                    />
+                  </div>
+                </div>
 
-        <div class="paso0-layout">
+                <div class="paso0-field-row">
+                  <div class="paso0-number">2</div>
+                  <div class="paso0-input-wrapper">
+                    <CampoSelect
+                      v-model="verificacion.tipo_documento"
+                      label="Tipo de documento *"
+                      :opciones="opsTipoDocVerificacion"
+                      :disabled="!verificacion.correo || !!errorCorreo"
+                    />
+                  </div>
+                </div>
 
-          <!-- Columna izquierda: campos -->
-          <div class="paso0-fields">
-            <CampoTexto
-              :model-value="verificacion.correo"
-              label="1. Correo electrónico"
-              type="email"
-              placeholder="su.correo@ejemplo.com"
-              required
-              :error="errorCorreo"
-              @update:model-value="onCorreoCambiaConValidacion($event)"
-              @blur="onCorreoBlur"
-            />
+                <div class="paso0-field-row">
+                  <div class="paso0-number">3</div>
+                  <div class="paso0-input-wrapper">
+                    <CampoTexto
+                      v-model="verificacion.numero_documento"
+                      label="Número de documento *"
+                      placeholder="Ingresa tu número de documento"
+                      solo-numeros
+                      :maxlength="15"
+                      :disabled="!verificacion.tipo_documento"
+                      @click="onDocumentoAreaClick"
+                    />
+                  </div>
+                </div>
 
-            <CampoSelect
-              v-model="verificacion.tipo_documento"
-              label="2. Tipo de documento"
-              required
-              :opciones="opsTipoDocVerificacion"
-              :disabled="!verificacion.correo || !!errorCorreo"
-            />
-
-            <CampoTexto
-              v-model="verificacion.numero_documento"
-              label="3. Número de documento"
-              placeholder="Sin puntos ni espacios"
-              required
-              solo-numeros
-              :maxlength="15"
-              :disabled="!verificacion.tipo_documento"
-              @click="onDocumentoAreaClick"
-            />
-
-            <!-- Badge: correo verificado -->
-            <div v-if="emailValidado" :style="{
-              display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)',
-              padding: 'var(--sp-sm) var(--sp-md)',
-              borderRadius: 'var(--r-md)',
-              background: 'var(--color-success-bg)',
-            }">
-              <IconCircleCheck :size="15" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
-              <span :style="{
-                fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)',
-                color: 'var(--color-success)',
-              }">Correo electrónico verificado</span>
+                <div v-if="errorVerificacion" class="paso0-error">
+                  {{ errorVerificacion }}
+                </div>
+              </div>
             </div>
 
-            <div v-if="errorVerificacion" :style="{
-              background:   'var(--color-error-bg)',
-              color:        'var(--color-error-text)',
-              padding:      'var(--sp-md) var(--sp-lg)',
-              borderRadius: 'var(--r-md)',
-              fontSize:     'var(--text-base)',
-              fontWeight:   'var(--fw-medium)',
-            }">{{ errorVerificacion }}</div>
+            <div class="paso0-col-right">
+              <div class="paso0-auth">
+                <label class="paso0-auth-label">
+                  <input
+                    v-model="aceptaCondiciones"
+                    type="checkbox"
+                    class="auth-checkbox"
+                  />
+                  <span class="paso0-auth-text">
+                    Autorizo a Cooperamigó para tratar mis datos personales, incluyendo contacto y correo electrónico, con la finalidad de contactarme, gestionar mi solicitud, realizar seguimiento y enviarme información relacionada con los productos y servicios ofrecidos. Asimismo, autorizo la consulta, reporte y actualización de mi información en centrales de información financiera y crediticia, con el fin de verificar mis datos y evaluar mi comportamiento crediticio.
+                    <br><br>
+                    Declaro que conozco mis derechos como titular de la información y que puedo ejercerlos conforme a la ley. Igualmente, manifiesto que he leído y acepto los
+                    <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer">términos y condiciones</a>
+                    y la
+                    <a href="https://cooperamigo.coop/politica-tratamiento-datos" target="_blank" rel="noopener noreferrer">política de tratamiento de datos personales</a>
+                    en <a href="https://www.cooperamigo.coop" target="_blank" rel="noopener noreferrer">www.cooperamigo.coop</a> para mi permanente consulta y revisión.
+                  </span>
+                </label>
+              </div>
+
+              <div class="paso0-actions">
+                <button
+                  class="paso0-verify-btn"
+                  :disabled="isDev ? false : (!aceptaCondiciones || !!errorCorreo || !emailValidado || loadingVerificacion)"
+                  @click="verificarYContinuar()"
+                >
+                  <span v-if="loadingVerificacion" class="paso0-spinner" />
+                  <template v-else>
+                    <span>Verificar y continuar</span>
+                    <span class="paso0-btn-circle"><IconArrowRight :size="14" /></span>
+                  </template>
+                </button>
+              </div>
+            </div>
           </div>
 
-          <!-- Divisor vertical -->
-          <div class="paso0-divider" aria-hidden="true"></div>
-
-          <!-- Columna derecha: autorización + botón -->
-          <div class="paso0-auth">
-            <label :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-sm)', cursor: 'pointer' }">
-              <input
-                v-model="aceptaCondiciones"
-                type="checkbox"
-                class="auth-checkbox"
-                :style="{ marginTop: '3px', flexShrink: '0', accentColor: 'var(--color-primary)', width: '15px', height: '15px', cursor: 'pointer' }"
-              />
-              <span :style="{
-                fontSize: 'var(--text-xs)', color: 'var(--color-text-2)',
-                fontWeight: 'var(--fw-medium)', lineHeight: '1.6',
-              }">
-                Autorizo a Cooperamigó para tratar mis datos personales, incluyendo contacto y correo electrónico, con la finalidad de contactarme, gestionar mi solicitud, realizar seguimiento y enviarme información relacionada con los productos y servicios ofrecidos.
-                Asimismo, autorizo la consulta, reporte y actualización de mi información en centrales de información financiera y crediticia, con el fin de verificar mis datos y evaluar mi comportamiento crediticio.
-                <br><br>
-                Declaro que conozco mis derechos como titular de la información y que puedo ejercerlos conforme a la ley. Igualmente, manifiesto que he leído y acepto los
-                <a href="https://cooperamigo.coop/terminos-condiciones" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">términos y condiciones</a>
-                y la
-                <a href="https://cooperamigo.coop/politica-tratamiento-datos" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">política de tratamiento de datos personales</a>
-                publicados en <a href="https://www.cooperamigo.coop" target="_blank" rel="noopener noreferrer" :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-semibold)', textDecoration: 'underline' }">www.cooperamigo.coop</a> para mi permanente consulta y revisión.
-              </span>
-            </label>
-
-            <button
-              class="paso0-verify-btn"
-              :disabled="!aceptaCondiciones || !!errorCorreo || !emailValidado || loadingVerificacion"
-              @click="verificarYContinuar()"
-            >
-              <span v-if="loadingVerificacion" class="paso0-spinner" />
-              <template v-else>
-                <span>Verificar y continuar</span>
-                <span class="paso0-btn-circle"><IconArrowRight :size="14" /></span>
-              </template>
-            </button>
-          </div>
-
-        </div>
       </div>
 
       <!-- Modal OTP (Teleport to body — no afecta la cadena v-if) -->
@@ -1984,21 +2014,20 @@ function onOtpValidado() {
         <StepIndicator :pasos="secciones" :actual="seccionActual" />
       </div>
 
-      <!-- ── Layout dos columnas: sidebar + contenido (pasos 2-5) ── -->
+      <!-- ── Layout: indicador vertical a la izquierda + contenido a la derecha (pasos 2-5) ── -->
       <div v-if="paso !== 1" class="formulario-layout">
 
-        <!-- Sidebar sticky (solo desktop) -->
-        <aside v-if="!isMobile" class="formulario-sidebar">
-          <div class="formulario-sidebar-inner">
-            <p class="sidebar-proceso-label">Progreso</p>
-            <StepIndicator :pasos="secciones" :actual="seccionActual" :vertical="true" />
+        <!-- Indicador de progreso vertical (solo desktop) -->
+        <div v-if="!isMobile" class="formulario-sidebar">
+          <div :style="{ position: 'sticky', top: 'var(--sp-2xl)' }">
+            <StepIndicator :pasos="secciones" :actual="seccionActual" vertical />
           </div>
-        </aside>
+        </div>
 
         <!-- Columna de contenido -->
         <div class="formulario-content">
 
-          <h2 class="paso2-titulo">Solicitud de crédito<span class="paso2-subtitulo"> (Diligenciar formulario)</span></h2>
+          <h1 class="paso0-title">Solicitud de crédito <span>({{ secciones[seccionActual - 1].label }})</span></h1>
 
       <!-- ── PASO 2: Formulario Completo (Estilo PDF) ───────── -->
       <div v-if="paso === 2" :style="{
@@ -2008,22 +2037,19 @@ function onOtpValidado() {
 
           <!-- 1. Información de la Solicitud -->
           <div id="seccion-solicitud" :style="{
-            background:   'var(--color-bg-card)',
-            border:       '1px solid var(--color-border-card)',
             borderRadius: 'var(--r-md)',
             overflow:     'hidden',
-            boxShadow:    'var(--shadow-card)',
           }">
             <div :style="{
-              padding:    isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)',
-              background: 'var(--color-primary)',
-              color:      'white',
-              fontFamily: 'var(--font-display)',
-              fontSize:   'var(--text-base)',
-              fontWeight: 'var(--fw-bold)',
-              display:    'flex',
-              alignItems: 'center',
-              gap:        'var(--sp-sm)',
+              padding:      isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)',
+              borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)',
+              color:        'var(--color-primary)',
+              fontFamily:   'var(--font-display)',
+              fontSize:     'var(--text-base)',
+              fontWeight:   'var(--fw-bold)',
+              display:      'flex',
+              alignItems:   'center',
+              gap:          'var(--sp-sm)',
             }">
               <IconFileDescription :size="20" />
               Información de la solicitud
@@ -2224,11 +2250,11 @@ function onOtpValidado() {
           </div>
 
           <!-- 2. Información del Solicitante -->
-          <div id="seccion-persona" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div id="seccion-persona" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconUserCheck :size="20" /> Información personal
             </div>
-            <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)' }">
+            <div :style="{ paddingTop: isMobile ? 'var(--sp-sm)' : 'var(--sp-md)', paddingRight: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', paddingBottom: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', paddingLeft: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)' }">
               <SeccionPersona :model-value="persona" titulo="" :bloquear-documento="true" :bloquear-correo="true" :direccion-estructurada="direccionEstructurada" :ubicacion="ubicacionResidencia" :show-nivel-educativo="true" @update:model-value="persona = $event" @update:direccion-estructurada="direccionEstructurada = $event" @update:ubicacion="ubicacionResidencia = $event" />
             </div>
           </div>
@@ -2243,11 +2269,11 @@ function onOtpValidado() {
           </div>
 
           <!-- 3. Información Laboral -->
-          <div id="seccion-laboral" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div id="seccion-laboral" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconRotate :size="20" /> Situación laboral
             </div>
-            <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: isMobile ? 'var(--sp-lg)' : 'var(--sp-xl)' }">
+            <div :style="{ paddingTop: isMobile ? 'var(--sp-sm)' : 'var(--sp-md)', paddingRight: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', paddingBottom: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', paddingLeft: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: isMobile ? 'var(--sp-lg)' : 'var(--sp-xl)' }">
               <SelectorTipoTrabajador :model-value="laboral.tipo_trabajador" @update:model-value="actualizarLaboral('tipo_trabajador', $event)" />
               <div v-if="laboral.tipo_trabajador" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
 
@@ -2299,34 +2325,34 @@ function onOtpValidado() {
           </div>
 
           <!-- 4. Información Financiera -->
-          <div id="seccion-financiera" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div id="seccion-financiera" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFileDescription :size="20" /> Información financiera
             </div>
-            <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)' }">
+            <div :style="{ paddingTop: isMobile ? 'var(--sp-sm)' : 'var(--sp-md)', paddingRight: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', paddingBottom: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', paddingLeft: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)' }">
               <SeccionFinanciera :model-value="financiera" titulo="" :salario-bloqueado="salarioBloqueado" :tipo-trabajador="laboral.tipo_trabajador" @update:model-value="financiera = $event" />
             </div>
           </div>
 
           <!-- 5. Patrimonio -->
-          <div id="seccion-patrimonio" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div id="seccion-patrimonio" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFile :size="20" /> Patrimonio
             </div>
-            <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)' }">
+            <div :style="{ paddingTop: isMobile ? 'var(--sp-sm)' : 'var(--sp-md)', paddingRight: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', paddingBottom: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', paddingLeft: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)' }">
               <SeccionPatrimonio :model-value="patrimonio" titulo="" @update:model-value="patrimonio = $event" />
             </div>
           </div>
 
           <!-- 6. Cuenta para desembolso -->
-          <div v-if="mostrarCuentaDesembolso" id="seccion-cuenta" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div v-if="mostrarCuentaDesembolso" id="seccion-cuenta" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFileCheck :size="20" /> {{ esEducativo ? 'Autorización de desembolso directo' : 'Cuenta para desembolso' }}
             </div>
             <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
               <template v-if="esEducativo">
                 <div :style="{ padding: 'var(--sp-xl)', borderRadius: 'var(--r-xl)', background: 'white', display: 'flex', flexDirection:'column', gap: 'var(--sp-lg)' }">
-                  <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', fontWeight: 'var(--fw-regular)', lineHeight: '1.5', textAlign: 'justify' }">
+                  <div :style="{ fontSize: '16px', color: 'var(--color-text-2)', fontWeight: 'var(--fw-regular)', lineHeight: '1.5', textAlign: 'justify' }">
                     Medellín, {{ new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) }}
                     <br /><br />
                     Señores
@@ -2344,14 +2370,13 @@ function onOtpValidado() {
                       placeholder="Nombre beneficiario (estudiante)"
                       :style="{
                         display: 'inline-block',
-                        minWidth: isMobile ? '160px' : '220px',
-                        maxWidth: isMobile ? '220px' : '260px',
+                        width: anchoBeneficiario,
                         border: 'none',
                         borderBottom: '1px solid var(--color-text-2)',
                         background: 'transparent',
                         color: 'var(--color-text-2)',
                         caretColor: 'var(--color-text-2)',
-                        fontSize: 'var(--text-sm)',
+                        fontSize: '16px',
                         fontWeight: 'var(--fw-medium)',
                         outline: 'none',
                         padding: '0 2px 0 2px',
@@ -2376,7 +2401,7 @@ function onOtpValidado() {
                       @change="autorizaciones.autorizacion_desembolso_directo_educativo = $event.target.checked; autorizaciones.fecha_autorizacion_desembolso_directo_educativo = $event.target.checked ? new Date().toISOString() : null"
                     />
                     <span :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', fontWeight: 'var(--fw-medium)', lineHeight: '1.6' }">
-                      Autorizo el desembolso directo del crédito a la institución educativa.<span :style="{ color: 'var(--color-error)' }"> *</span>
+                      Autorizo el desembolso directo del crédito a la institución educativa.<span :style="{ color: 'var(--color-error)' }">*</span>
                     </span>
                   </label>
                 </div>
@@ -2398,7 +2423,7 @@ function onOtpValidado() {
                   </label>
                 </div>
                 <template v-if="cuenta.cuenta_tercero">
-                  <div :style="{ padding: 'var(--sp-xl)', borderRadius: 'var(--r-lg)', border: '1px solid var(--color-border)', background: 'var(--color-bg-surface)', display: 'flex', flexDirection:'column', gap: 'var(--sp-lg)' }">
+                  <div :style="{ padding: 'var(--sp-xl)', borderRadius: 'var(--r-lg)', background: 'var(--color-bg-surface-alt)', '--bg-label': 'var(--color-bg-surface-alt)', display: 'flex', flexDirection:'column', gap: 'var(--sp-lg)' }">
                     <div :style="{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)' }">Datos del titular</div>
                     <CampoTexto :model-value="cuenta.nombre_tercero" label="Nombre completo" required @update:model-value="actualizarCuenta('nombre_tercero', $event ? $event.toUpperCase() : $event)" />
                     <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
@@ -2408,17 +2433,17 @@ function onOtpValidado() {
                   </div>
 
                   <!-- Carta de autorización -->
-                  <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }">
-                    <div :style="{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 'var(--sp-md)', padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', background: 'var(--color-bg-surface)' }">
+                  <div :style="{ borderRadius: 'var(--r-lg)', overflow: 'hidden' }">
+                    <div :style="{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 'var(--sp-md)', padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', background: '#f8f8f8' }">
                       <div :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-md)', flex: '1' }">
                         <div :style="{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--color-impulso)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
                           <IconUpload :size="18" :style="{ color: '#fff' }" />
                         </div>
                         <div :style="{ minWidth: '0' }">
                           <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)', lineHeight: '1.2' }">
-                            Carta de autorización <span :style="{ color: 'var(--color-error)' }">*</span>
+                            Carta de autorización<span :style="{ color: 'var(--color-error)' }">*</span>
                           </div>
-                          <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)', marginTop: '0', lineHeight: '1.3' }">Debe anexar carta firmada autorizando el desembolso de los recursos en cuenta de titularidad de un tercero.</div>
+                          <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)', marginTop: '0', lineHeight: '1.3' }">Anexar carta de autorización de desembolso en cuenta de titularidad de un tercero.</div>
                         </div>
                       </div>
                       <div v-if="cartaAutorizacion.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
@@ -2447,17 +2472,17 @@ function onOtpValidado() {
                   </div>
 
                   <!-- Certificación bancaria -->
-                  <div :style="{ border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }">
-                    <div :style="{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 'var(--sp-md)', padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', background: 'var(--color-bg-surface)' }">
+                  <div :style="{ borderRadius: 'var(--r-lg)', overflow: 'hidden' }">
+                    <div :style="{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 'var(--sp-md)', padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', background: '#f8f8f8' }">
                       <div :style="{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-md)', flex: '1' }">
                         <div :style="{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--color-impulso)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
                           <IconUpload :size="18" :style="{ color: '#fff' }" />
                         </div>
                         <div :style="{ minWidth: '0' }">
                           <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', fontSize: 'var(--text-base)', lineHeight: '1.2' }">
-                            Certificación bancaria <span :style="{ color: 'var(--color-error)' }">*</span>
+                            Certificación bancaria<span :style="{ color: 'var(--color-error)' }">*</span>
                           </div>
-                          <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)', marginTop: '0', lineHeight: '1.3' }">Por favor, anexe la certificación bancaria de la cuenta indicada.</div>
+                          <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-regular)', marginTop: '0', lineHeight: '1.3' }">Anexar certificación bancaria de la cuenta indicada.</div>
                         </div>
                       </div>
                       <div v-if="certBancaria.cargando" :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', color: 'var(--color-text-3)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }">
@@ -2491,7 +2516,7 @@ function onOtpValidado() {
 
           <div v-if="intentoContinuarPaso2 && erroresPaso2.length > 0" :style="{ borderRadius: 'var(--r-md)', padding: 'var(--sp-md) var(--sp-lg)', background: '#fff8f0', display: 'flex', gap: 'var(--sp-md)' }">
             <IconAlertTriangle :size="20" style="color: var(--color-impulso); flex-shrink: 0; margin-top: 2px;" />
-            <div>
+            <div :style="{ flex: '1', minWidth: '0' }">
               <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-impulso)', marginBottom: 'var(--sp-xs)' }">
                 No puede continuar: faltan {{ erroresPaso2.length }} campo{{ erroresPaso2.length > 1 ? 's' : '' }} obligatorio{{ erroresPaso2.length > 1 ? 's' : '' }} por completar:
               </div>
@@ -2510,42 +2535,33 @@ function onOtpValidado() {
       <div v-if="paso === 3" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2xl)', marginTop: 'var(--sp-lg)' }">
 
         <!-- Card selección -->
-        <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-          <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
-            <IconUsers :size="20" /> ¿Desea agregar codeudores?
+        <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+          <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <IconUsers :size="20" style="flex-shrink: 0;" />
+            <div>
+              <span :style="{ color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)' }">¿Desea agregar codeudores?</span>
+              <span :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)' }"> Esto le dará mayor respaldo a su solicitud.</span>
+            </div>
           </div>
           <div :style="{ padding: 'var(--sp-xl)' }">
             <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 'var(--sp-md)' }">
-              <div
+              <ServiceCard
                 v-for="opcion in [{ num: 0, titulo: 'Sin codeudor', desc: 'Continúa sin agregar codeudor' }, { num: 1, titulo: '1 Codeudor', desc: 'Agrega un codeudor a la solicitud' }, { num: 2, titulo: '2 Codeudores', desc: 'Agrega dos codeudores a la solicitud' }]"
                 :key="opcion.num"
-                :style="{
-                  display: 'flex',
-                  flexDirection: isMobile ? 'row' : 'column',
-                  alignItems: isMobile ? 'center' : 'center',
-                  gap: 'var(--sp-md)',
-                  padding: isMobile ? 'var(--sp-md) var(--sp-lg)' : 'var(--sp-xl)',
-                  borderRadius: 'var(--r-md)',
-                  textAlign: isMobile ? 'left' : 'center',
-                  border: numCodudores === opcion.num ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
-                  boxShadow: numCodudores === opcion.num ? 'var(--shadow-card)' : 'none',
-                  background: numCodudores === opcion.num ? 'var(--color-p-light)' : 'var(--color-bg-surface)',
-                  cursor: 'pointer', transition: 'all var(--transition-fast)',
-                }"
-                @click="numCodudores = opcion.num"
-              >
-                <IconUsers :size="isMobile ? 24 : 28" :style="{ color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-3)', flexShrink: '0' }" />
-                <div>
-                  <div :style="{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-base)', color: numCodudores === opcion.num ? 'var(--color-primary)' : 'var(--color-text-1)' }">{{ opcion.titulo }}</div>
-                  <div :style="{ fontSize: 'var(--text-xs)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)', marginTop: '2px' }">{{ opcion.desc }}</div>
-                </div>
-              </div>
+                :icon="IconUsers"
+                :title="opcion.titulo"
+                :description="opcion.desc"
+                :selected="codeudorTocado && numCodudores === opcion.num"
+                action-label="Seleccionar"
+                clickable
+                @click="numCodudores = opcion.num; codeudorTocado = true"
+              />
             </div>
           </div>
         </div>
 
         <!-- Banner de campos faltantes codeudores -->
-        <div v-if="numCodudores > 0 && erroresPaso3.length > 0" :style="{ borderRadius: 'var(--r-md)', padding: 'var(--sp-md) var(--sp-lg)', background: '#fff8f0', display: 'flex', gap: 'var(--sp-md)' }">
+        <div v-if="intentoContinuarPaso3 && numCodudores > 0 && erroresPaso3.length > 0" :style="{ borderRadius: 'var(--r-md)', padding: 'var(--sp-md) var(--sp-lg)', background: '#fff8f0', display: 'flex', gap: 'var(--sp-md)' }">
           <IconAlertTriangle :size="20" style="color: var(--color-impulso); flex-shrink: 0; margin-top: 2px;" />
           <div>
             <div :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'var(--color-impulso)', marginBottom: 'var(--sp-xs)' }">
@@ -2562,32 +2578,47 @@ function onOtpValidado() {
         </div>
 
         <!-- Tabs codeudores (solo cuando hay 2) -->
-        <div v-if="numCodudores === 2" :style="{ display: 'flex', borderBottom: '2px solid var(--color-border)' }">
-          <button
-            v-for="tab in [1, 2]"
-            :key="tab"
-            :style="{
-              padding: 'var(--sp-sm) var(--sp-xl)',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-body)',
-              fontSize: 'var(--text-base)',
-              fontWeight: 'var(--fw-bold)',
-              color: tabCodudorActivo === tab ? 'var(--color-primary)' : 'var(--color-text-3)',
-              borderBottom: tabCodudorActivo === tab ? '2px solid var(--color-primary)' : '2px solid transparent',
-              marginBottom: '-2px',
-              transition: 'all var(--transition-fast)',
-            }"
-            @click="tabCodudorActivo = tab"
-          >Codeudor {{ tab }}</button>
+        <div v-if="numCodudores === 2" :style="{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--sp-md)' }">
+          <div :style="{
+            display: 'inline-flex',
+            background: '#f8f8f8',
+            borderRadius: 'var(--r-pill)',
+            padding: '6px',
+            gap: '8px'
+          }">
+            <button
+              v-for="tab in [1, 2]"
+              :key="tab"
+              :style="{
+                padding: '10px 32px',
+                border: 'none',
+                borderRadius: 'var(--r-pill)',
+                background: tabCodudorActivo === tab ? '#ffffff' : 'transparent',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-base)',
+                fontWeight: 'var(--fw-bold)',
+                color: tabCodudorActivo === tab ? 'var(--color-primary)' : 'var(--color-text-2)',
+                boxShadow: tabCodudorActivo === tab ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }"
+              @click="tabCodudorActivo = tab"
+            >
+              <IconUserCheck v-if="tabCodudorActivo === tab" :size="18" />
+              <IconUser v-else :size="18" />
+              Codeudor {{ tab }}
+            </button>
+          </div>
         </div>
 
         <!-- Formulario codeudor 1 -->
         <template v-if="numCodudores >= 1 && (numCodudores < 2 || tabCodudorActivo === 1)">
           <!-- Información del codeudor 1 -->
-          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconUserCheck :size="20" /> Información del codeudor 1
             </div>
             <div :style="{ padding: 'var(--sp-xl)' }">
@@ -2605,8 +2636,8 @@ function onOtpValidado() {
             </div>
           </div>
           <!-- Laboral codeudor 1 -->
-          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconRotate :size="20" /> Información laboral — Codeudor 1
             </div>
             <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
@@ -2654,8 +2685,8 @@ function onOtpValidado() {
             </div>
           </div>
           <!-- Financiera codeudor 1 -->
-          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFileDescription :size="20" /> Información financiera — Codeudor 1
             </div>
             <div :style="{ padding: 'var(--sp-xl)' }">
@@ -2663,8 +2694,8 @@ function onOtpValidado() {
             </div>
           </div>
           <!-- Patrimonio codeudor 1 -->
-          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFile :size="20" /> Patrimonio — Codeudor 1
             </div>
             <div :style="{ padding: 'var(--sp-xl)' }">
@@ -2676,8 +2707,8 @@ function onOtpValidado() {
         <!-- Formulario codeudor 2 -->
         <template v-if="numCodudores >= 2 && tabCodudorActivo === 2">
           <!-- Información del codeudor 2 -->
-          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconUserCheck :size="20" /> Información del codeudor 2
             </div>
             <div :style="{ padding: 'var(--sp-xl)' }">
@@ -2695,8 +2726,8 @@ function onOtpValidado() {
             </div>
           </div>
           <!-- Laboral codeudor 2 -->
-          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconRotate :size="20" /> Información laboral — Codeudor 2
             </div>
             <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
@@ -2744,8 +2775,8 @@ function onOtpValidado() {
             </div>
           </div>
           <!-- Financiera codeudor 2 -->
-          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFileDescription :size="20" /> Información financiera — Codeudor 2
             </div>
             <div :style="{ padding: 'var(--sp-xl)' }">
@@ -2753,8 +2784,8 @@ function onOtpValidado() {
             </div>
           </div>
           <!-- Patrimonio codeudor 2 -->
-          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFile :size="20" /> Patrimonio — Codeudor 2
             </div>
             <div :style="{ padding: 'var(--sp-xl)' }">
@@ -2785,8 +2816,8 @@ function onOtpValidado() {
       <div v-if="paso === 4" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2xl)', marginTop: 'var(--sp-lg)' }">
 
         <!-- Cargue de documentos -->
-        <div id="seccion-documentos" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-          <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+        <div id="seccion-documentos" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+          <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
             <IconUpload :size="20" /> Cargue de documentos
           </div>
           <div :style="{ padding: 'var(--sp-xl)' }">
@@ -2807,8 +2838,8 @@ function onOtpValidado() {
         </div>
 
         <!-- Autorizaciones legales -->
-        <div id="seccion-autorizaciones" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-          <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)' }">
+        <div id="seccion-autorizaciones" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+          <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)' }">
             <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)' }">
               <IconShieldCheck :size="20" /> Autorizaciones
             </div>
@@ -2819,20 +2850,27 @@ function onOtpValidado() {
           <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
             <div>
               <div :style="{ fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)', marginBottom: 'var(--sp-xs)' }">Autorizaciones y declaraciones</div>
-              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', lineHeight: '1.5' }">Es indispensable que lea, comprenda y otorgue su consentimiento expreso respecto de las declaraciones legales y las políticas de tratamiento de datos personales, requisito necesario para dar trámite a su solicitud de crédito.</div>
+              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', lineHeight: '1.5' }">
+                Con el fin de dar trámite a su solicitud de crédito, es requisito indispensable que lea, comprenda y acepte expresamente las autorizaciones, declaraciones y la Política de Tratamiento de Datos Personales de la Cooperativa.
+                <span
+                  v-if="!autorizaciones.autorizacion_aceptada"
+                  :style="{ color: 'var(--color-primary)', fontWeight: 'var(--fw-bold)', cursor: 'pointer', textDecoration: 'underline' }"
+                  @click="modalAutorizacionesVisible = true"
+                > Clic aquí para revisar y autorizar contenido.</span>
+              </div>
+              <div v-if="autorizaciones.autorizacion_aceptada" :style="{ display: 'inline-flex', alignItems: 'center', gap: 'var(--sp-xs)', color: 'var(--color-success-text)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', marginTop: 'var(--sp-sm)', cursor: 'pointer' }" @click="modalAutorizacionesVisible = true">
+                <IconCircleCheck :size="16" />
+                <span>Autorizaciones aceptadas</span>
+              </div>
             </div>
-            <button class="btn-autorizacion" :class="autorizaciones.autorizacion_aceptada ? 'btn-autorizacion--aceptada' : 'btn-autorizacion--pendiente'" @click="modalAutorizacionesVisible = true">
-              <IconCircleCheck v-if="autorizaciones.autorizacion_aceptada" :size="16" />
-              <span>{{ autorizaciones.autorizacion_aceptada ? 'Autorizaciones aceptadas' : 'Revisar contenido...' }}</span>
-            </button>
           </div>
         </div>
 
         <ModalAutorizaciones v-model:visible="modalAutorizacionesVisible" :aceptado="autorizaciones.autorizacion_aceptada" @aceptar="autorizaciones.autorizacion_aceptada = true; autorizaciones.fecha_aceptacion_autorizacion = new Date().toISOString()" @rechazar="autorizaciones.autorizacion_aceptada = false; autorizaciones.fecha_aceptacion_autorizacion = null" />
 
         <!-- Acompañamiento de asesor -->
-        <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-          <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+        <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+          <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
             <IconUserCheck :size="20" /> Acompañamiento de asesor
           </div>
           <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
@@ -2878,8 +2916,8 @@ function onOtpValidado() {
           </div>
 
           <!-- 1. Información de la solicitud -->
-          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFileDescription :size="20" /> Información de la solicitud
             </div>
             <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 'var(--sp-md)' }">
@@ -2924,8 +2962,8 @@ function onOtpValidado() {
           </div>
 
           <!-- 2. Información personal del titular -->
-          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconUser :size="20" /> Información personal
             </div>
             <div :style="{ padding: 'var(--sp-lg)' }">
@@ -2970,8 +3008,8 @@ function onOtpValidado() {
             </div>
           </div>
 
-          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconRotate :size="20" /> Situación laboral
             </div>
             <div :style="{ padding: 'var(--sp-lg)' }">
@@ -3032,8 +3070,8 @@ function onOtpValidado() {
             </div>
           </div>
 
-          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFileDescription :size="20" /> Información financiera
             </div>
             <div :style="{ padding: 'var(--sp-lg)' }">
@@ -3120,8 +3158,8 @@ function onOtpValidado() {
             </div>
           </div>
 
-          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFile :size="20" /> Patrimonio
             </div>
             <div :style="{ padding: 'var(--sp-lg)' }">
@@ -3138,8 +3176,8 @@ function onOtpValidado() {
             </div>
           </div>
 
-          <div v-if="!esEducativo && mostrarCuentaDesembolso" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div v-if="!esEducativo && mostrarCuentaDesembolso" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFileCheck :size="20" /> Cuenta para desembolso
             </div>
             <div :style="{ padding: 'var(--sp-lg)' }">
@@ -3174,8 +3212,8 @@ function onOtpValidado() {
             </div>
           </div>
 
-          <div v-if="esEducativo" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)' }">
+          <div v-if="esEducativo" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-md)' }">
               <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)' }">
                 <IconFileCheck :size="20" /> Autorización de desembolso directo
               </div>
@@ -3210,8 +3248,8 @@ function onOtpValidado() {
           <template v-if="numCodudores > 0">
 
             <!-- Codeudor 1 -->
-            <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
                 <IconUserCheck :size="20" /> Codeudor 1
               </div>
               <div :style="{ padding: 'var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
@@ -3424,8 +3462,8 @@ function onOtpValidado() {
             </div>
 
             <!-- Codeudor 2 -->
-            <div v-if="numCodudores >= 2" :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div v-if="numCodudores >= 2" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
                 <IconUserCheck :size="20" /> Codeudor 2
               </div>
               <div :style="{ padding: 'var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
@@ -3640,8 +3678,8 @@ function onOtpValidado() {
           </template>
 
           <!-- 4. Documentos adjuntos — checklist -->
-          <div :style="{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', background: 'var(--color-primary)', color: 'white', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconUpload :size="20" /> Documentos adjuntos
             </div>
             <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
@@ -3666,15 +3704,15 @@ function onOtpValidado() {
           </div>
 
           <!-- 5. Firma electrónica de la solicitud -->
-          <div :style="{ borderRadius: 'var(--r-lg)', border: '2px solid var(--color-primary)', overflow: 'hidden' }">
-            <div :style="{ padding: '10px var(--sp-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
-              <IconShieldCheck :size="18" style="color: white;" />
-              <span :style="{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)', color: 'white' }">Firma solicitud de crédito</span>
+          <div :style="{ borderRadius: 'var(--r-lg)', overflow: 'hidden' }">
+            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', background: 'var(--color-bg-surface-alt)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <IconShieldCheck :size="20" :style="{ color: 'var(--color-primary)' }" />
+              <span :style="{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', color: 'var(--color-primary)' }">Firma solicitud de crédito</span>
             </div>
-            <div :style="{ padding: 'var(--sp-xl)', background: 'white', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
+            <div :style="{ padding: 'var(--sp-xl)', background: 'var(--color-bg-surface-alt)', '--bg-label': 'var(--color-bg-surface-alt)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
 
-              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', lineHeight: '1.65', background: 'var(--color-bg-surface)', padding: 'var(--sp-md)', borderRadius: 'var(--r-md)', border: '1px solid var(--color-border-light)' }">
-                Con su firma, declara que la información suministrada es veraz, completa y actualizada, y autoriza a <strong>Cooperamigó</strong> para realizar las verificaciones, consultas y validaciones que considere necesarias para el estudio y trámite de su solicitud.
+              <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)', lineHeight: '1.65' }">
+                Con su firma, usted declara que la información suministrada es veraz, completa y se encuentra actualizada. Asimismo, autoriza a la <strong>Cooperativa Multiactiva Luis Amigó</strong> para realizar las consultas, verificaciones y validaciones que sean necesarias para el estudio, análisis y trámite de su solicitud de crédito.
                 <template v-if="numCodudores > 0"> Una vez firmada, se notificará automáticamente a {{ numCodudores === 1 ? 'el codeudor' : 'los codeudores' }} para completar el proceso.</template>
               </div>
 
@@ -3686,8 +3724,8 @@ function onOtpValidado() {
               />
 
               <div :style="{ display: 'flex', gap: '6px', flexWrap: 'wrap' }">
-                <button type="button" @click="firmaMetodo = 'dibujar'" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (firmaMetodo === 'dibujar' ? 'var(--color-primary)' : 'var(--color-border)'), background: firmaMetodo === 'dibujar' ? 'rgba(17,76,90,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'dibujar' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Firmar en pantalla</button>
-                <button type="button" @click="firmaMetodo = 'subir'; mostrarModalSubirFirma = true" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-border)'), background: firmaMetodo === 'subir' ? 'rgba(17,76,90,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Cargar firma</button>
+                <button type="button" @click="firmaMetodo = 'dibujar'" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: 'none', background: firmaMetodo === 'dibujar' ? 'rgba(23, 43, 54,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'dibujar' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Firmar en pantalla</button>
+                <button type="button" @click="firmaMetodo = 'subir'; mostrarModalSubirFirma = true" :style="{ padding: '6px 10px', borderRadius: 'var(--r-pill)', border: 'none', background: firmaMetodo === 'subir' ? 'rgba(23, 43, 54,0.08)' : 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: firmaMetodo === 'subir' ? 'var(--color-primary)' : 'var(--color-text-2)' }">Cargar firma</button>
               </div>
 
               <div v-if="firmaMetodo === 'dibujar'" :style="{ display: 'flex', flexDirection: 'column', gap: '8px' }">
@@ -3696,7 +3734,7 @@ function onOtpValidado() {
                     ref="firmaCanvasRef"
                     width="720"
                     height="220"
-                    :style="{ width: '100%', height: '140px', touchAction: 'none', display: 'block', cursor: 'crosshair' }"
+                    :style="{ width: '100%', height: '175px', touchAction: 'none', display: 'block', cursor: 'crosshair' }"
                     @mousedown="iniciarFirmaDibujo"
                     @mousemove="moverFirmaDibujo"
                     @mouseup="terminarFirmaDibujo"
@@ -3786,16 +3824,16 @@ function onOtpValidado() {
         </div>
 
       <!-- Navegación -->
-      <div :style="{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--sp-2xl)', gap: 'var(--sp-md)' }">
-        <PortalButton v-if="paso !== 1" variant="secondary" pill @click="anterior()">Anterior</PortalButton>
-        <div v-else></div>
+      <div :style="{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--sp-2xl)', gap: 'var(--sp-md)' }">
+        <PortalButton v-if="paso !== 1" variant="secondary" pill @click="anterior()" :style="{ width: '150px', height: '40px', justifyContent: 'center' }">Anterior</PortalButton>
         <button
           v-if="!esUltimoPaso && paso !== 1"
           class="nav-continuar-btn"
-          :disabled="loading ||
+          :disabled="loading || (!isDev && (
             (paso === 2 && (erroresPaso2.length > 0 || esMenorDeEdad)) ||
             (paso === 3 && (hayErroresDuplicidad || hayErroresCodeudoresPaso3)) ||
-            (paso === 4 && !skipDocs && (!documentosCompletos || !autorizaciones.autorizacion_aceptada))"
+            (paso === 4 && !skipDocs && (!documentosCompletos || !autorizaciones.autorizacion_aceptada))
+          ))"
           @click="continuar()"
         >
           <span v-if="loading" class="paso0-spinner" />
@@ -3809,7 +3847,7 @@ function onOtpValidado() {
         <button
           v-if="esUltimoPaso && paso !== 1"
           class="btn-firmar"
-          :disabled="loading || !firma.nombre_firma || !firmaImagen || !pasoSolicitudValido"
+          :disabled="loading || (!isDev && (!firma.nombre_firma || !firmaImagen || !pasoSolicitudValido))"
           @click="firmarYEnviar()"
         >
           <span v-if="loading" class="paso0-spinner" />
@@ -3925,32 +3963,21 @@ function onOtpValidado() {
 <style scoped>
 /* ─── Pantalla de éxito ─── */
 .exito-wrap {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
+  width: 100%;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   align-items: center;
-  padding: 48px 220px;
-  overflow-y: auto;
+  padding: 48px 0;
 }
 
 @media (max-width: 767px) {
   .exito-wrap {
-    align-items: flex-end;
-    padding: 0;
+    padding: 24px 0;
   }
 
   .exito-card {
     width: 100%;
     max-width: 100%;
-    max-height: 92dvh;
-    overflow-y: auto;
-    border-top-left-radius: 24px;
-    border-top-right-radius: 24px;
-    border-bottom-left-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
   }
 }
 
@@ -3958,16 +3985,13 @@ function onOtpValidado() {
   width: 100%;
   max-width: 480px;
   min-height: 480px;
-  background: var(--color-bg-card);
   border-radius: var(--r-xl);
   overflow: hidden;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.10);
   display: flex;
   flex-direction: column;
 }
 
 .exito-header {
-  background: var(--color-primary);
   padding: 24px 32px 20px;
   text-align: center;
   display: flex;
@@ -3994,11 +4018,11 @@ function onOtpValidado() {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--color-bg-surface-alt);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
@@ -4006,14 +4030,14 @@ function onOtpValidado() {
   font-family: var(--font-display);
   font-size: var(--text-xl);
   font-weight: var(--fw-extrabold);
-  color: #ffffff;
+  color: var(--color-primary);
   margin: 0;
   line-height: 1.2;
 }
 
 .exito-subtitulo {
   font-size: var(--text-sm);
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--color-text-3);
   margin: 0;
   line-height: 1.5;
 }
@@ -4081,7 +4105,7 @@ function onOtpValidado() {
 
 .exito-nota {
   margin: 0 var(--sp-2xl) var(--sp-xl);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--color-text-3);
   line-height: 1.6;
   padding: var(--sp-lg) var(--sp-xl);
@@ -4264,12 +4288,12 @@ function onOtpValidado() {
   display: flex;
   align-items: center;
   gap: var(--sp-lg);
-  box-shadow: 0 4px 12px rgba(17, 76, 90, 0.08);
+  box-shadow: 0 4px 12px rgba(23, 43, 54, 0.08);
   transition: box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .banner-borrador:hover {
-  box-shadow: 0 6px 20px rgba(17, 76, 90, 0.12);
+  box-shadow: 0 6px 20px rgba(23, 43, 54, 0.12);
   transform: translateY(-2px);
 }
 
@@ -4283,7 +4307,7 @@ function onOtpValidado() {
   justify-content: center;
   flex-shrink: 0;
   color: var(--color-primary);
-  box-shadow: 0 2px 8px rgba(17, 76, 90, 0.1);
+  box-shadow: 0 2px 8px rgba(23, 43, 54, 0.1);
 }
 
 .banner-borrador-content {
@@ -4371,12 +4395,12 @@ function onOtpValidado() {
     flex-wrap: wrap;
     gap: var(--sp-md);
     padding: var(--sp-md) var(--sp-lg);
-    box-shadow: 0 2px 8px rgba(17, 76, 90, 0.06);
+    box-shadow: 0 2px 8px rgba(23, 43, 54, 0.06);
   }
 
   .banner-borrador:hover {
     transform: none;
-    box-shadow: 0 2px 8px rgba(17, 76, 90, 0.06);
+    box-shadow: 0 2px 8px rgba(23, 43, 54, 0.06);
   }
 
   .banner-borrador-icon {
@@ -4655,8 +4679,7 @@ function onOtpValidado() {
   font-weight: var(--fw-semibold);
   box-shadow: var(--shadow-btn);
   transition: all var(--transition-base);
-  padding: 0 8px 0 28px;
-  min-width: 300px;
+  padding: 0 52px 0 28px;
 }
 
 .btn-firmar:disabled {
@@ -4667,6 +4690,12 @@ function onOtpValidado() {
 .btn-firmar:not(:disabled):hover {
   background: var(--color-primary-dark);
   transform: translateY(-1px);
+}
+
+@media (min-width: 961px) {
+  .step-indicator {
+    padding: var(--sp-lg) 0;
+  }
 }
 
 .btn-firmar:not(:disabled):hover .btn-firmar-circle {
@@ -4729,40 +4758,9 @@ function onOtpValidado() {
   filter: brightness(0.96);
 }
 
-/* ─── Título paso 2 ─── */
-.paso2-titulo {
-  font-family: var(--font-display);
-  font-size: var(--text-2xl);
-  font-weight: var(--fw-extrabold);
-  color: var(--color-text-1);
-  margin: 0;
-  line-height: 1.1;
-  padding-top: 0;
-}
-
-.paso2-subtitulo {
-  display: block;
-  font-size: var(--text-sm);
-  font-weight: var(--fw-regular);
-  color: var(--color-text-2);
-  margin-top: 2px;
-}
-
 .step-indicator-mobile {
   padding: var(--sp-md) 0 var(--sp-sm);
   width: 100%;
-}
-
-@media (max-width: 960px) {
-  .paso2-titulo {
-    font-size: var(--text-lg);
-    text-align: center;
-  }
-
-  .paso2-subtitulo {
-    font-size: var(--text-xs);
-    text-align: center;
-  }
 }
 
 @media (min-width: 961px) {
@@ -4831,9 +4829,9 @@ function onOtpValidado() {
   transition: transform var(--transition-base);
 }
 
-/* ─── Ampliar contenedor para dar espacio al sidebar ─── */
+/* ─── Ampliar contenedor para aprovechar el ancho ─── */
 :deep(.portal-main__inner) {
-  max-width: 1020px;
+  max-width: 1200px;
 }
 
 /* ─── Layout dos columnas pasos 2-5 ─── */
@@ -4851,15 +4849,12 @@ function onOtpValidado() {
 .formulario-layout {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
-  gap: 0;
+  align-items: stretch;
+  gap: var(--sp-3xl);
   width: 100%;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--color-bg-card);
   border-radius: 20px;
-  padding: 24px 32px 32px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  padding: 32px 40px 40px;
   box-sizing: border-box;
 }
 
@@ -4867,34 +4862,19 @@ function onOtpValidado() {
   .formulario-layout {
     border-radius: 16px;
     padding: 20px 16px 28px;
+    gap: 0;
   }
 }
 
 .formulario-sidebar {
-  width: 200px;
-  flex-shrink: 0;
-  position: sticky;
-  top: 32px;
-  align-self: flex-start;
-  padding-right: var(--sp-2xl);
-}
-
-.formulario-sidebar-inner {
-  padding-top: 0;
-}
-
-.sidebar-proceso-label {
-  font-family: var(--font-display);
-  font-size: var(--text-sm);
-  font-weight: var(--fw-semibold);
-  color: var(--color-text-3);
-  margin: 0 0 var(--sp-lg) 0;
+  flex: 0 0 220px;
+  padding-top: var(--sp-xs);
 }
 
 .formulario-content {
   flex: 1;
+  width: 100%;
   min-width: 0;
-  max-width: 800px;
 }
 
 @media (max-width: 960px) {
@@ -4904,10 +4884,6 @@ function onOtpValidado() {
 
   .formulario-layout {
     flex-direction: column;
-  }
-
-  .formulario-sidebar {
-    display: none;
   }
 
   .formulario-content {
@@ -4924,12 +4900,7 @@ function onOtpValidado() {
   width: 100%;
   max-width: 420px;
   margin: 0 auto;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 20px;
   padding: 40px 32px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
   box-sizing: border-box;
 }
 
@@ -5042,7 +5013,7 @@ function onOtpValidado() {
 @media (min-width: 768px) {
   .borrador-wrapper {
     max-width: 480px;
-    margin: 0 0 0 auto;
+    margin: 0 auto;
   }
 }
 
@@ -5149,175 +5120,230 @@ function onOtpValidado() {
   }
 }
 
-/* ─── Paso 0: layout ─── */
+/* ─── Paso 0: layout (Split Design) ─── */
 .paso0-wrapper {
   width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 24px;
 }
 
 .paso0-container {
-  width: 100%;
-  max-width: 420px;
-  margin: 0 auto;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 20px;
-  padding: 40px 32px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-}
-
-.paso0-layout {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-lg);
-  padding: 0 var(--sp-xl);
+  max-width: 900px;
+  width: 100%;
+  background: var(--color-bg-card);
+  border-radius: 20px;
+  overflow: hidden;
+  margin: 0 auto;
+  padding: 48px;
+}
+
+.paso0-split {
+  display: flex;
+  flex-direction: row;
+  gap: 48px;
+  margin-top: 8px;
+}
+
+.paso0-col-left,
+.paso0-col-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.paso0-col-right {
+  justify-content: space-between;
+}
+
+@media (max-width: 767px) {
+  .paso0-split {
+    flex-direction: column;
+    gap: 24px;
+  }
+}
+
+.paso0-title {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1.1;
+  margin: 0 0 6px 0;
+}
+
+.paso0-title span {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.paso0-desc {
+  font-size: 0.95rem;
+  color: var(--color-text-2);
+  line-height: 1.5;
+  margin: 0 0 32px 0;
 }
 
 .paso0-fields {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-lg);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.paso0-field-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.paso0-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  margin-top: -12px; /* para alinear con el input flotante que tiene label */
+}
+
+.paso0-input-wrapper {
+  flex: 1;
+}
+
+.paso0-error {
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
 .paso0-divider {
-  display: none;
+  height: 1px;
+  background: var(--color-border-light);
+  margin: 0 0 24px 0;
 }
 
 .paso0-auth {
+  margin-bottom: 32px;
+}
+
+.paso0-auth-label {
   display: flex;
-  flex-direction: column;
-  gap: var(--sp-lg);
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.auth-checkbox {
+  margin-top: 2px;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.paso0-auth-text {
+  font-size: 0.75rem;
+  color: var(--color-text-2);
+  line-height: 1.5;
+}
+
+.paso0-auth-text a {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.paso0-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .paso0-verify-btn {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
+  justify-content: center;
+  gap: 12px;
   height: 44px;
-  border-radius: var(--r-pill);
+  padding: 0 16px 0 24px;
+  border-radius: 22px;
   background: var(--color-primary);
   color: #ffffff;
   border: none;
-  cursor: pointer;
   font-family: var(--font-body);
-  font-size: var(--text-base);
-  font-weight: var(--fw-semibold);
-  padding: 0 8px 0 24px;
-  box-shadow: var(--shadow-btn);
-  transition: all var(--transition-base);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.paso0-verify-btn:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  transform: translateY(-2px);
 }
 
 .paso0-verify-btn:disabled {
-  opacity: 0.55;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
-.paso0-verify-btn:not(:disabled):hover {
-  background: var(--color-primary-dark);
-  transform: translateY(-1px);
-}
-
-.paso0-verify-btn:not(:disabled):hover .paso0-btn-circle {
-  transform: translateX(2px);
-}
-
 .paso0-btn-circle {
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: transform var(--transition-base);
+  transition: transform 0.3s;
+}
+
+.paso0-verify-btn:hover:not(:disabled) .paso0-btn-circle {
+  transform: translateX(4px);
 }
 
 .paso0-spinner {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
+  width: 20px;
+  height: 20px;
   border: 2.5px solid transparent;
   border-top-color: rgba(255, 255, 255, 0.9);
   border-right-color: rgba(255, 255, 255, 0.25);
-  animation: spin 0.65s linear infinite;
-  flex-shrink: 0;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-@media (max-width: 767px) {
+@media (max-width: 960px) {
   .paso0-container {
-    padding: 26px;
-    border-radius: 16px;
+    padding: 32px 24px;
   }
 
-  .paso0-layout {
-    padding: 0;
+  .paso0-actions {
+    justify-content: center;
   }
-
-  .borrador-wrapper {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    max-width: 100%;
-    margin: 0;
-    border-radius: 24px 24px 0 0;
-    padding: 32px 26px calc(36px + env(safe-area-inset-bottom, 0px));
-    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
-    z-index: 50;
-  }
-
-  .borrador-wrapper .banner-borrador {
-    border: none;
-    box-shadow: none;
-    padding: 0;
-    margin-bottom: 0;
-    background: transparent;
-  }
-
+  
   .paso0-verify-btn {
-    width: auto;
-    align-self: flex-end;
-    padding: 0 8px 0 20px;
-    justify-content: flex-start;
-    gap: 10px;
-  }
-}
-
-@media (min-width: 768px) {
-  .paso0-wrapper {
     width: 100%;
+    justify-content: space-between;
   }
+}
 
-  .paso0-container {
-    max-width: 480px;
-    margin: 0 0 0 auto;
-    background: rgba(255, 255, 255, 0.88);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-radius: 20px;
-    padding: 40px 32px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+@media (max-width: 600px) {
+  .paso0-wrapper {
+    padding: 16px;
   }
-
-  .paso0-layout {
-    flex-direction: column;
-    padding: 0;
-  }
-
-  .paso0-divider {
-    display: none;
-  }
-
-  .paso0-verify-btn {
-      width: 50%;
-      margin: 0 0 0 auto;
-    }
 }
 </style>

@@ -49,8 +49,7 @@ defineEmits(['update:modelValue'])
       lineHeight: '1.5',
       flex: '1',
     }">
-      {{ label }}
-      <span v-if="required" :style="{ color: 'var(--color-error)' }"> *</span>
+      {{ label }}<span v-if="required" :style="{ color: 'var(--color-error)' }">*</span>
     </span>
   </div>
 </template>

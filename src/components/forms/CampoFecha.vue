@@ -45,7 +45,7 @@ function onBlur()  { focused.value = false; emit('blur') }
           'campo-label--error':   !!error,
         }"
       >
-        {{ label }}<span v-if="required" class="campo-required"> *</span>
+        {{ label.replace(/\s*\*\s*$/, '') }}<span v-if="required" class="campo-required">*</span>
       </label>
     </div>
     <span v-if="error" class="campo-msg campo-msg--error">{{ error }}</span>

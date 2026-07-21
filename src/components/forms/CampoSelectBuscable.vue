@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { IconChevronDown, IconSearch, IconX, IconCheck } from '@tabler/icons-vue'
+import { IconChevronDown, IconSearch, IconX, IconCheck, IconLock } from '@tabler/icons-vue'
 
 const props = defineProps({
   modelValue:  { type: String, default: '' },
@@ -175,7 +175,7 @@ onUnmounted(() => {
           'csb-label--error':   !!error,
         }"
       >
-        {{ label }}<span v-if="required" class="csb-required"> *</span>
+        {{ label.replace(/\s*\*\s*$/, '') }}<span v-if="required" class="csb-required">*</span>
       </label>
 
       <!-- Botón limpiar -->
@@ -192,6 +192,10 @@ onUnmounted(() => {
         class="csb-chevron"
         :class="{ 'csb-chevron--open': abierto }"
       />
+
+      <div v-if="disabled" class="csb-lock">
+        <IconLock :size="16" />
+      </div>
     </div>
 
     <Teleport to="body">
@@ -315,49 +319,63 @@ onUnmounted(() => {
   position: relative;
 }
 
-/* ── Trigger / field (Estilo Minimalista) ── */
+/* ── Trigger / field (Outlined, igual a CampoTexto/CampoSelect) ── */
 .csb-field {
   display: flex;
-  align-items: flex-end;
-  padding: 16px 12px 6px 12px;
-  border: none;
-  border-bottom: 1px solid var(--color-border);
-  border-radius: var(--r-md);
+  align-items: center;
+  padding: 0 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-input);
   background: transparent;
   cursor: pointer;
   user-select: none;
-  transition: border-bottom-color var(--transition-fast), box-shadow var(--transition-fast);
-  height: 54px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  height: 48px;
   box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
   .csb-field {
-    height: 48px;
-    padding: 14px 10px 4px 10px;
+    height: 44px;
+    padding: 0 16px;
   }
 }
 
-.csb-field--open { 
-  border-bottom-color: var(--color-primary); 
-  box-shadow: 0 1px 0 0 var(--color-primary);
+.csb-field--open {
+  border-color: var(--color-primary);
 }
 
-.csb-field--error { 
-  border-bottom-color: var(--color-error) !important; 
-  box-shadow: 0 1px 0 0 var(--color-error) !important;
+.csb-field--error {
+  border-color: var(--color-error) !important;
+  box-shadow: 0 0 0 1px var(--color-error) !important;
 }
 
 .csb-field--disabled {
   background: transparent;
-  border-bottom-color: var(--color-border) !important;
-  border-bottom-style: solid !important;
+  border-color: var(--color-border) !important;
   cursor: default;
 }
 
 .csb-field--disabled .csb-label,
 .csb-field--disabled.csb-field--floated .csb-label {
   color: var(--color-text-3) !important;
+  background: #ffffff;
+  border-radius: 3px;
+}
+
+.csb-lock {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-3);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  pointer-events: none;
+}
+
+.csb-field--disabled:hover .csb-lock {
+  opacity: 1;
 }
 
 .csb-field--disabled .csb-value {
@@ -384,8 +402,8 @@ onUnmounted(() => {
 /* ── Label: en reposo actúa como placeholder dentro del trigger ── */
 .csb-label {
   position: absolute;
-  left: 12px;
-  top: 35px; /* Alineado con el centro del área de texto */
+  left: 16px;
+  top: 50%;
   transform: translateY(-50%);
   font-size: var(--text-base);
   font-weight: var(--fw-regular);
@@ -396,37 +414,24 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: calc(100% - 40px);
+  max-width: calc(100% - 32px);
   transition:
     top var(--transition-fast),
     transform var(--transition-fast),
     font-size var(--transition-fast),
-    font-weight var(--transition-fast),
     color var(--transition-fast);
 }
 
-@media (max-width: 768px) {
-  .csb-label {
-    left: 10px;
-    top: 30px;
-  }
-}
-
-/* ── Flotado: dentro del contenedor ── */
+/* ── Flotado: corta el borde, igual a CampoTexto/CampoSelect ── */
 .csb-field--floated .csb-label {
-  top: 4px;
-  transform: translateY(0);
-  font-size: 11px;
-  font-weight: var(--fw-medium);
-  background: transparent;
-  padding: 0;
-}
-
-@media (max-width: 768px) {
-  .csb-field--floated .csb-label {
-    top: 2px;
-    font-size: 10px;
-  }
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--color-text-2);
+  background: var(--bg-label, #ffffff);
+  border-radius: 3px;
+  padding: 0 4px;
+  left: 12px;
 }
 
 .csb-label--focused { color: var(--color-primary); }

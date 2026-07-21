@@ -238,7 +238,7 @@ const valorFormateado = computed(() => {
           'fecha-label--error':   !!error,
         }"
       >
-        {{ label }}<span v-if="required" class="fecha-required"> *</span>
+        {{ label.replace(/\s*\*\s*$/, '') }}<span v-if="required" class="fecha-required">*</span>
       </label>
 
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="fecha-chevron"
@@ -448,34 +448,32 @@ const valorFormateado = computed(() => {
 
 .fecha-field {
   position: relative;
-  height: 54px;
-  border: none;
-  border-bottom: 1px solid var(--color-border);
-  border-radius: var(--r-md);
+  height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-input);
   background: transparent;
   cursor: pointer;
-  transition: border-bottom-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   display: flex;
-  align-items: flex-end;
-  padding: 16px 12px 6px 12px;
+  align-items: center;
+  padding: 0 16px;
   box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
   .fecha-field {
-    height: 48px;
-    padding: 14px 10px 4px 10px;
+    height: 44px;
+    padding: 0 16px;
   }
 }
 
 .fecha-field--open {
-  border-bottom-color: var(--color-primary);
-  box-shadow: 0 1px 0 0 var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .fecha-field--error {
-  border-bottom-color: var(--color-error) !important;
-  box-shadow: 0 1px 0 0 var(--color-error) !important;
+  border-color: var(--color-error) !important;
+  box-shadow: 0 0 0 1px var(--color-error) !important;
 }
 
 .fecha-value {
@@ -497,8 +495,8 @@ const valorFormateado = computed(() => {
 /* ── Label flotante ── */
 .fecha-label {
   position: absolute;
-  left: 12px;
-  top: 35px;
+  left: 16px;
+  top: 50%;
   transform: translateY(-50%);
   font-size: var(--text-base);
   font-weight: var(--fw-regular);
@@ -514,31 +512,18 @@ const valorFormateado = computed(() => {
     top var(--transition-fast),
     transform var(--transition-fast),
     font-size var(--transition-fast),
-    font-weight var(--transition-fast),
     color var(--transition-fast);
 }
 
-@media (max-width: 768px) {
-  .fecha-label {
-    left: 10px;
-    top: 30px;
-  }
-}
-
 .fecha-field--floated .fecha-label {
-  top: 4px;
-  transform: translateY(0);
-  font-size: 11px;
-  font-weight: var(--fw-medium);
-  background: transparent;
-  padding: 0;
-}
-
-@media (max-width: 768px) {
-  .fecha-field--floated .fecha-label {
-    top: 2px;
-    font-size: 10px;
-  }
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--color-text-2);
+  background: var(--bg-label, #ffffff);
+  border-radius: 3px;
+  padding: 0 4px;
+  left: 12px;
 }
 
 .fecha-label--focused { color: var(--color-primary); }

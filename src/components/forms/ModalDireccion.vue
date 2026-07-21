@@ -130,7 +130,7 @@ function cerrar() { emit('update:visible', false) }
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: 'var(--sp-xl) var(--sp-2xl)',
             borderBottom: '1px solid var(--color-border-card)',
-            background: 'var(--color-bg-surface)',
+            background: '#f8f8f8',
             borderRadius: 'var(--r-md) var(--r-md) 0 0',
             flexShrink: '0',
           }">
@@ -145,9 +145,6 @@ function cerrar() { emit('update:visible', false) }
               <div :style="{ lineHeight: '1.2' }">
                 <div id="modal-dir-title" :style="{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-extrabold)', color: 'var(--color-text-1)', fontSize: 'var(--text-lg)' }">
                   Ingresar dirección
-                </div>
-                <div :style="{ fontSize: 'var(--text-sm)', color: 'var(--color-text-3)', fontWeight: 'var(--fw-medium)' }">
-                  Estructura la dirección de manera estándar
                 </div>
               </div>
             </div>

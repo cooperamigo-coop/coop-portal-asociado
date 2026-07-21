@@ -1,11 +1,7 @@
 import { supabase } from './supabase'
 
 export async function buscarAsociadoPorCedula(cedula) {
-  const { data, error } = await supabase
-    .from('asociados')
-    .select('id, cedula, nombres, apellidos, email, nivel_academico, titulo, fecha_nacimiento, fecha_expedicion, direccion, ciudad_expedicion, tipo_identificacion, ciudad, barrio, empresa, cargo, tipo_contrato, fecha_ingreso_empresa, ocupacion, salario, gastos_familiares, otros_ingresos, cuotas_credito, total_ingresos, total_egresos, activos_pasivos')
-    .eq('cedula', cedula)
-    .maybeSingle()
+  const { data, error } = await supabase.rpc('buscar_asociado_portal', { p_cedula: cedula })
   if (error) throw error
   return data
 }
@@ -40,13 +36,7 @@ export async function actualizarEmailAsociado(cedula, email) {
 }
 
 export async function crearAsociadoAfiliacion(payload) {
-  const { data, error } = await supabase
-    .from('asociados')
-    .insert({ ...payload, activo: false })
-    .select('id, cedula, nombres, apellidos, email, nivel_academico, titulo, fecha_nacimiento, fecha_expedicion, direccion, ciudad_expedicion, tipo_identificacion, ciudad, barrio, empresa, cargo, tipo_contrato, fecha_ingreso_empresa, ocupacion, salario, gastos_familiares, otros_ingresos, cuotas_credito, total_ingresos, total_egresos, activos_pasivos')
-    .single()
-
-  if (error?.code === '23505') return buscarAsociadoPorCedula(payload.cedula)
+  const { data, error } = await supabase.rpc('crear_asociado_portal_afiliacion', { p_payload: payload })
   if (error) throw error
   return data
 }

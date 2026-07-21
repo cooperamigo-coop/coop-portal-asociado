@@ -55,7 +55,7 @@ const pasoActualLabel = computed(() => {
           'step-v-label--pending': actual < i + 1,
         }">
           <span v-if="actual === i + 1" class="step-v-aqui">¡Estás aquí!</span>
-          {{ p.label }}<template v-if="p.label2"> {{ p.label2 }}</template>
+          {{ p.label }}<template v-if="p.label2"><br>{{ p.label2 }}</template>
         </div>
       </div>
     </template>
@@ -92,12 +92,15 @@ const pasoActualLabel = computed(() => {
             color: actual === i + 1 ? 'var(--color-text-on-primary)' : 'var(--color-text-3)',
           }">{{ i + 1 }}</span>
         </div>
-        <span :style="{
-          fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)',
-          color: actual >= i + 1 ? 'var(--color-text-1)' : 'var(--color-text-3)',
-          whiteSpace: p.noWrapLabel ? 'nowrap' : (p.label2 ? 'normal' : 'nowrap'),
-          textAlign: 'left', lineHeight: '1.3',
-        }">{{ p.label }}<template v-if="p.label2"><br>{{ p.label2 }}</template></span>
+        <div :style="{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }">
+          <span v-if="actual === i + 1" class="step-v-aqui">¡Estás aquí!</span>
+          <span :style="{
+            fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)',
+            color: actual >= i + 1 ? 'var(--color-text-1)' : 'var(--color-text-3)',
+            whiteSpace: p.noWrapLabel ? 'nowrap' : (p.label2 ? 'normal' : 'nowrap'),
+            textAlign: 'left', lineHeight: '1.3',
+          }">{{ p.label }}<template v-if="p.label2"><br>{{ p.label2 }}</template></span>
+        </div>
       </div>
       <div v-if="i < pasos.length - 1" :style="{
         flex: '1', height: '1px', margin: '0 var(--sp-md)',
@@ -204,9 +207,9 @@ const pasoActualLabel = computed(() => {
 
 .step-v-aqui {
   display: block;
+  color: #4d7480;
   font-size: var(--text-xs);
-  font-weight: var(--fw-medium);
-  color: var(--color-inactive);
+  font-weight: var(--fw-regular);
   margin-bottom: 2px;
 }
 

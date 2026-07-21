@@ -860,8 +860,7 @@ function descargarPdf() {
               fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-bold)',
               color: 'var(--color-text-1)', marginBottom: '12px', marginTop: 0,
             }">
-              Foto de tu cédula
-              <span :style="{ color: 'var(--color-error)' }"> *</span>
+              Foto de tu cédula<span :style="{ color: 'var(--color-error)' }">*</span>
             </p>
             <p :style="{
               fontSize: 'var(--text-xs)', color: 'var(--color-text-3)',

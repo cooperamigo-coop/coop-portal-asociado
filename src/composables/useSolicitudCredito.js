@@ -262,6 +262,8 @@ export function useSolicitudCredito() {
     fecha_aceptacion_autorizacion: null,
     autorizacion_desembolso_directo_educativo: false,
     fecha_autorizacion_desembolso_directo_educativo: null,
+    acepta_tratamiento_datos_inicial: false,
+    fecha_aceptacion_tratamiento_datos_inicial: null,
   })
   
   const asesoria = ref({
@@ -692,6 +694,18 @@ export function useSolicitudCredito() {
   // ── Verificación previa ───────────────────────────────────
   async function verificarYContinuar() {
     errorVerificacion.value = null
+
+    // Atajo solo para desarrollo local: permite avanzar sin llenar el paso 0
+    if (import.meta.env.DEV) {
+      verificacion.value.correo = verificacion.value.correo || 'dev@cooperamigo.coop'
+      verificacion.value.numero_documento = verificacion.value.numero_documento || '1000000000'
+      verificacion.value.tipo_documento = verificacion.value.tipo_documento || 'cedula_ciudadania'
+      persona.value.numero_identificacion = verificacion.value.numero_documento
+      persona.value.tipo_documento = verificacion.value.tipo_documento
+      persona.value.correo_electronico = verificacion.value.correo
+      verificado.value = true
+      return
+    }
 
     if (!verificacion.value.correo ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(verificacion.value.correo)) {
