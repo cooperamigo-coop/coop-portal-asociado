@@ -1,9 +1,13 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const token = computed(() => route.params.token)
+// Esta pestaña la abrió el propio formulario en el mismo celular (no un QR
+// escaneado desde otro dispositivo) — al terminar debe cerrarse sola en vez
+// de pedir "continúe en su computador".
+const esMismoDispositivo = computed(() => route.query.mismo === '1')
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const EF_BASE = `${SUPABASE_URL}/functions/v1/captura-documento`
@@ -36,9 +40,8 @@ onUnmounted(() => window.removeEventListener('resize', onResize))
 const esReverso = computed(() => !!urlFrente.value)
 const labelPaso = computed(() => esReverso.value ? 'Reverso' : 'Frente')
 
-onMounted(async () => {
-  console.log('[CapturaMovil] SUPABASE_URL:', SUPABASE_URL)
-  console.log('[CapturaMovil] token:', token.value)
+async function verificarEnlace() {
+  fase.value = 'verificando'
   try {
     const res  = await fetch(`${EF_BASE}/estado/${token.value}`)
     const data = await res.json()
@@ -51,7 +54,9 @@ onMounted(async () => {
     if (data.url_frente) { urlFrente.value = data.url_frente; fase.value = 'listo_reverso' }
     else fase.value = 'listo_frente'
   } catch { fase.value = 'error'; errorMsg.value = 'No se pudo verificar el enlace.' }
-})
+}
+
+onMounted(verificarEnlace)
 
 onUnmounted(detenerCamara)
 
@@ -215,6 +220,23 @@ async function confirmar() {
     subiendo.value = false  // SIEMPRE desbloquear el botón
   }
 }
+
+// Si esta pestaña la abrió el propio formulario en el mismo celular, se
+// cierra sola al terminar — el formulario ya está escuchando el resultado
+// por realtime/polling en la pestaña original.
+watch(fase, (v) => {
+  if (v === 'completado' && esMismoDispositivo.value) {
+    setTimeout(cerrarPestana, 1400)
+  }
+})
+
+function cerrarPestana() {
+  // window.close() a secas lo bloquean varios navegadores (sobre todo Safari
+  // iOS) si no reconocen la pestaña como "abierta por script" — reclamarla
+  // primero con window.open('', '_self') es el workaround estándar para eso.
+  try { window.open('', '_self') } catch { /* noop */ }
+  window.close()
+}
 </script>
 
 <template>
@@ -273,6 +295,14 @@ async function confirmar() {
       </div>
       <p :style="{ fontSize:'22px', fontWeight:'800', color:'var(--color-primary)', margin:'0' }">Algo salió mal</p>
       <p :style="{ color:'var(--color-text-3)', fontSize:'14px', margin:'0' }">{{ errorMsg }}</p>
+      <button :style="{
+        padding:'13px 28px', borderRadius:'999px', border:'none',
+        background:'var(--color-primary)', color:'#fff',
+        fontFamily:'inherit', fontWeight:'800', fontSize:'15px', cursor:'pointer',
+        WebkitTapHighlightColor:'transparent',
+      }" @click="verificarEnlace">
+        Reintentar
+      </button>
     </div>
 
     <!-- LISTO FRENTE / REVERSO -->
@@ -572,7 +602,7 @@ async function confirmar() {
         display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'14px',
         background:'linear-gradient(to top,rgba(0,0,0,0.8) 0%,transparent 100%)',
       }">
-        <button :style="{
+        <button aria-label="Tomar fotografía" :style="{
           width:'76px', height:'76px', borderRadius:'50%',
           border:'4px solid rgba(255,255,255,0.85)',
           background:'rgba(255,255,255,0.15)',
@@ -592,7 +622,7 @@ async function confirmar() {
       <canvas ref="canvasRef" style="display:none"/>
 
       <!-- Cancelar con safe-area-inset-top para notch iOS -->
-      <button :style="{
+      <button aria-label="Cerrar cámara" :style="{
         position:'absolute',
         top:'max(12px, env(safe-area-inset-top, 12px))',
         right:'14px',
@@ -745,7 +775,8 @@ async function confirmar() {
         }">¡Todo listo!</p>
         <p :style="{ color:'var(--color-text-3)', fontSize:'14px', lineHeight:'1.6', margin:'0' }">
           Ambas fotos fueron enviadas.<br/>
-          Cierre esta ventana y continúe en su computador.
+          <template v-if="esMismoDispositivo">Volviendo a su solicitud…</template>
+          <template v-else>Cierre esta ventana y continúe en su computador.</template>
         </p>
       </div>
 
@@ -766,6 +797,15 @@ async function confirmar() {
           </span>
         </div>
       </div>
+
+      <button v-if="esMismoDispositivo" :style="{
+        padding:'13px 28px', borderRadius:'999px', border:'none',
+        background:'var(--color-primary)', color:'#fff',
+        fontFamily:'inherit', fontWeight:'800', fontSize:'14px',
+        cursor:'pointer', WebkitTapHighlightColor:'transparent',
+      }" @click="cerrarPestana">
+        Volver al formulario
+      </button>
     </div>
 
     <!-- Footer -->

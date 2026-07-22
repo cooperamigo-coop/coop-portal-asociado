@@ -35,7 +35,7 @@ import {
   IconUser, IconUserX, IconMail, IconRotate, IconUsers, IconUserCheck, IconFileDescription,
   IconCheck, IconUpload, IconCamera, IconX, IconLoader2,
   IconPencil, IconAlertTriangle, IconFileCheck, IconFile, IconRotateClockwise2,
-  IconArrowRight, IconClock, IconEye, IconLock
+  IconArrowRight, IconArrowLeft, IconClock, IconEye, IconLock
 } from '@tabler/icons-vue'
 import { useSolicitudCredito } from '@/composables/useSolicitudCredito'
 import { useCreditoRotativoPortal } from '@/composables/useCreditoRotativoPortal'
@@ -718,6 +718,8 @@ const firmaCanvasRef = ref(null)
 const firmaFileRef = ref(null)
 const firmaArchivoNombre = ref('')
 const mostrarModalSubirFirma = ref(false)
+const errorFirmaArchivo = ref('')
+const FIRMA_TAMANO_MAXIMO_MB = 3
 const _dibujandoFirma = ref(false)
 const _firmaTrazoPrev = ref(null)
 const _firmaCanvasCssHeight = 175
@@ -899,10 +901,31 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', _onResizeFirma)
 })
 
+// Indicador de autoguardado: en un formulario tan largo, mostrar que el
+// progreso ya quedó guardado evita la ansiedad de "¿y si pierdo todo esto?".
+const _ahoraGuardado = ref(Date.now())
+let _tickerGuardado = null
+onMounted(() => { _tickerGuardado = setInterval(() => { _ahoraGuardado.value = Date.now() }, 15000) })
+onBeforeUnmount(() => clearInterval(_tickerGuardado))
+
+const textoUltimoGuardado = computed(() => {
+  if (!ultimoGuardado.value) return null
+  const segs = Math.max(0, Math.round((_ahoraGuardado.value - ultimoGuardado.value.getTime()) / 1000))
+  if (segs < 10) return 'Guardado hace un momento'
+  if (segs < 60) return `Guardado hace ${segs} segundos`
+  const min = Math.round(segs / 60)
+  return `Guardado hace ${min} minuto${min > 1 ? 's' : ''}`
+})
+
 async function cargarFirmaImagen(evt) {
   const file = evt?.target?.files?.[0]
   if (evt?.target) evt.target.value = ''
   if (!file) return
+  errorFirmaArchivo.value = ''
+  if (file.size > FIRMA_TAMANO_MAXIMO_MB * 1024 * 1024) {
+    errorFirmaArchivo.value = `La imagen pesa demasiado (máximo ${FIRMA_TAMANO_MAXIMO_MB}MB). Reduce el tamaño e intenta de nuevo.`
+    return
+  }
   firmaArchivoNombre.value = file.name || ''
   const reader = new FileReader()
   const dataUrl = await new Promise((resolve, reject) => {
@@ -1950,6 +1973,11 @@ function onOtpValidado() {
       <!-- ── PASO 1: Modalidad de crédito ─────────────────── -->
       <div v-if="paso === 1 && !modoRotativo" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
 
+        <!-- Volver a verificación -->
+        <button v-if="!mostrarOpcionBorrador" class="paso1-volver-btn" aria-label="Volver" @click="verificado = false">
+          <IconArrowLeft :size="18" />
+        </button>
+
         <!-- Encabezado siempre visible -->
         <SelectorModalidad
           v-if="!mostrarOpcionBorrador"
@@ -2032,7 +2060,7 @@ function onOtpValidado() {
             overflow:     'hidden',
           }">
             <div :style="{
-              padding:      isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)',
+              padding:      isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)',
               borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)',
               color:        'var(--color-primary)',
               fontFamily:   'var(--font-display)',
@@ -2046,7 +2074,7 @@ function onOtpValidado() {
               Información de la solicitud
             </div>
 
-            <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-md) 0' : 'var(--sp-md) var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
               
               <!-- Fila: Tipo de operación (siempre full width en móvil) -->
               <CampoSelectBuscable
@@ -2097,8 +2125,8 @@ function onOtpValidado() {
               </template>
 
               <!-- Fallbacks para casos donde no se muestra el selector de operación -->
-              <div v-if="!mostrarTipoOperacion">
-                 <CampoMoneda v-if="mostrarValorReestructura" :model-value="general.valor_reestructura" label="Valor de la reestructura" required @update:model-value="actualizarGeneral('valor_reestructura', $event)" />
+              <div v-if="!mostrarTipoOperacion && mostrarValorReestructura">
+                 <CampoMoneda :model-value="general.valor_reestructura" label="Valor de la reestructura" required @update:model-value="actualizarGeneral('valor_reestructura', $event)" />
               </div>
               <template v-if="!mostrarTipoOperacion || general.tipo_operacion">
                 <template v-if="esEducativo">
@@ -2153,7 +2181,7 @@ function onOtpValidado() {
                       @update:model-value="actualizarGeneral('tipo_estudio', $event)"
                     />
                   </div>
-                  <div v-if="isMobile" :style="{ marginTop: 'var(--sp-lg)' }">
+                  <div v-if="isMobile">
                     <CampoSelectBuscable :model-value="general.tipo_estudio" label="Tipo de estudio" required :opciones="opsTipoEstudio" @update:model-value="actualizarGeneral('tipo_estudio', $event)" />
                   </div>
                   <div :style="{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 'var(--sp-lg)' }">
@@ -2242,7 +2270,7 @@ function onOtpValidado() {
 
           <!-- 2. Información del Solicitante -->
           <div id="seccion-persona" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconUserCheck :size="20" /> Información personal
             </div>
             <div :style="{ paddingTop: isMobile ? 'var(--sp-sm)' : 'var(--sp-md)', paddingRight: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', paddingBottom: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', paddingLeft: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)' }">
@@ -2261,7 +2289,7 @@ function onOtpValidado() {
 
           <!-- 3. Información Laboral -->
           <div id="seccion-laboral" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconRotate :size="20" /> Situación laboral
             </div>
             <div :style="{ paddingTop: isMobile ? 'var(--sp-sm)' : 'var(--sp-md)', paddingRight: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', paddingBottom: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', paddingLeft: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: isMobile ? 'var(--sp-lg)' : 'var(--sp-xl)' }">
@@ -2317,7 +2345,7 @@ function onOtpValidado() {
 
           <!-- 4. Información Financiera -->
           <div id="seccion-financiera" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFileDescription :size="20" /> Información financiera
             </div>
             <div :style="{ paddingTop: isMobile ? 'var(--sp-sm)' : 'var(--sp-md)', paddingRight: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', paddingBottom: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', paddingLeft: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)' }">
@@ -2327,7 +2355,7 @@ function onOtpValidado() {
 
           <!-- 5. Patrimonio -->
           <div id="seccion-patrimonio" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: isMobile ? 'var(--sp-sm) var(--sp-lg)' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFile :size="20" /> Patrimonio
             </div>
             <div :style="{ paddingTop: isMobile ? 'var(--sp-sm)' : 'var(--sp-md)', paddingRight: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', paddingBottom: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)', paddingLeft: isMobile ? 'var(--sp-md)' : 'var(--sp-xl)' }">
@@ -2337,7 +2365,7 @@ function onOtpValidado() {
 
           <!-- 6. Cuenta para desembolso -->
           <div v-if="mostrarCuentaDesembolso" id="seccion-cuenta" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFileCheck :size="20" /> {{ esEducativo ? 'Autorización de desembolso directo' : 'Cuenta para desembolso' }}
             </div>
             <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
@@ -2609,7 +2637,7 @@ function onOtpValidado() {
         <template v-if="numCodudores >= 1 && (numCodudores < 2 || tabCodudorActivo === 1)">
           <!-- Información del codeudor 1 -->
           <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconUserCheck :size="20" /> Información del codeudor 1
             </div>
             <div :style="{ padding: 'var(--sp-xl)' }">
@@ -2628,7 +2656,7 @@ function onOtpValidado() {
           </div>
           <!-- Laboral codeudor 1 -->
           <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconRotate :size="20" /> Información laboral — Codeudor 1
             </div>
             <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
@@ -2677,7 +2705,7 @@ function onOtpValidado() {
           </div>
           <!-- Financiera codeudor 1 -->
           <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFileDescription :size="20" /> Información financiera — Codeudor 1
             </div>
             <div :style="{ padding: 'var(--sp-xl)' }">
@@ -2686,7 +2714,7 @@ function onOtpValidado() {
           </div>
           <!-- Patrimonio codeudor 1 -->
           <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFile :size="20" /> Patrimonio — Codeudor 1
             </div>
             <div :style="{ padding: 'var(--sp-xl)' }">
@@ -2699,7 +2727,7 @@ function onOtpValidado() {
         <template v-if="numCodudores >= 2 && tabCodudorActivo === 2">
           <!-- Información del codeudor 2 -->
           <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconUserCheck :size="20" /> Información del codeudor 2
             </div>
             <div :style="{ padding: 'var(--sp-xl)' }">
@@ -2718,7 +2746,7 @@ function onOtpValidado() {
           </div>
           <!-- Laboral codeudor 2 -->
           <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconRotate :size="20" /> Información laboral — Codeudor 2
             </div>
             <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
@@ -2767,7 +2795,7 @@ function onOtpValidado() {
           </div>
           <!-- Financiera codeudor 2 -->
           <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFileDescription :size="20" /> Información financiera — Codeudor 2
             </div>
             <div :style="{ padding: 'var(--sp-xl)' }">
@@ -2776,7 +2804,7 @@ function onOtpValidado() {
           </div>
           <!-- Patrimonio codeudor 2 -->
           <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFile :size="20" /> Patrimonio — Codeudor 2
             </div>
             <div :style="{ padding: 'var(--sp-xl)' }">
@@ -2808,7 +2836,7 @@ function onOtpValidado() {
 
         <!-- Cargue de documentos -->
         <div id="seccion-documentos" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-          <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
             <IconUpload :size="20" /> Cargue de documentos
           </div>
           <div :style="{ padding: 'var(--sp-xl)' }">
@@ -2861,7 +2889,7 @@ function onOtpValidado() {
 
         <!-- Acompañamiento de asesor -->
         <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-          <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+          <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
             <IconUserCheck :size="20" /> Acompañamiento de asesor
           </div>
           <div :style="{ padding: 'var(--sp-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
@@ -2908,7 +2936,7 @@ function onOtpValidado() {
 
           <!-- 1. Información de la solicitud -->
           <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFileDescription :size="20" /> Información de la solicitud
             </div>
             <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 'var(--sp-md)' }">
@@ -2954,7 +2982,7 @@ function onOtpValidado() {
 
           <!-- 2. Información personal del titular -->
           <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconUser :size="20" /> Información personal
             </div>
             <div :style="{ padding: 'var(--sp-lg)' }">
@@ -3000,7 +3028,7 @@ function onOtpValidado() {
           </div>
 
           <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconRotate :size="20" /> Situación laboral
             </div>
             <div :style="{ padding: 'var(--sp-lg)' }">
@@ -3062,7 +3090,7 @@ function onOtpValidado() {
           </div>
 
           <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFileDescription :size="20" /> Información financiera
             </div>
             <div :style="{ padding: 'var(--sp-lg)' }">
@@ -3150,7 +3178,7 @@ function onOtpValidado() {
           </div>
 
           <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFile :size="20" /> Patrimonio
             </div>
             <div :style="{ padding: 'var(--sp-lg)' }">
@@ -3168,7 +3196,7 @@ function onOtpValidado() {
           </div>
 
           <div v-if="!esEducativo && mostrarCuentaDesembolso" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconFileCheck :size="20" /> Cuenta para desembolso
             </div>
             <div :style="{ padding: 'var(--sp-lg)' }">
@@ -3240,7 +3268,7 @@ function onOtpValidado() {
 
             <!-- Codeudor 1 -->
             <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
                 <IconUserCheck :size="20" /> Codeudor 1
               </div>
               <div :style="{ padding: 'var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
@@ -3454,7 +3482,7 @@ function onOtpValidado() {
 
             <!-- Codeudor 2 -->
             <div v-if="numCodudores >= 2" :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
                 <IconUserCheck :size="20" /> Codeudor 2
               </div>
               <div :style="{ padding: 'var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
@@ -3670,7 +3698,7 @@ function onOtpValidado() {
 
           <!-- 4. Documentos adjuntos — checklist -->
           <div :style="{ borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconUpload :size="20" /> Documentos adjuntos
             </div>
             <div :style="{ padding: 'var(--sp-md) var(--sp-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)' }">
@@ -3745,6 +3773,7 @@ function onOtpValidado() {
                       transition: 'all var(--transition-fast)',
                     }"
                     title="Limpiar"
+                    aria-label="Limpiar firma"
                     @mouseenter="e => e.currentTarget.style.background = 'rgba(23,43,54,0.16)'"
                     @mouseleave="e => e.currentTarget.style.background = 'rgba(23,43,54,0.08)'"
                   >
@@ -3776,7 +3805,7 @@ function onOtpValidado() {
                       <!-- Header -->
                       <div class="firma-upload-header">
                         <span class="firma-upload-titulo">Cargar firma</span>
-                        <button class="firma-upload-close" @click="mostrarModalSubirFirma = false">
+                        <button aria-label="Cerrar" class="firma-upload-close" @click="mostrarModalSubirFirma = false">
                           <IconX :size="18" />
                         </button>
                       </div>
@@ -3786,10 +3815,11 @@ function onOtpValidado() {
                         <div class="firma-upload-aviso">
                           <IconAlertTriangle :size="15" class="firma-upload-aviso-icon" />
                           <ol class="firma-upload-aviso-list">
-                            <li>Los formatos permitidos son .png y .jpg</li>
+                            <li>Los formatos permitidos son .png y .jpg (máximo {{ FIRMA_TAMANO_MAXIMO_MB }}MB)</li>
                             <li>Cargue únicamente la imagen de su firma manuscrita. La firma debe corresponder a su firma personal habitual y permitir su identificación. Las solicitudes que contengan firmas inválidas, alteradas, digitalizadas de forma no autorizada o que no correspondan al titular serán rechazadas automáticamente.</li>
                           </ol>
                         </div>
+                        <p v-if="errorFirmaArchivo" :style="{ color: 'var(--color-error-text)', fontSize: 'var(--text-sm)', margin: '8px 0 0' }">{{ errorFirmaArchivo }}</p>
                       </div>
 
                       <!-- Footer: botón -->
@@ -3814,17 +3844,28 @@ function onOtpValidado() {
           </div>
         </div>
 
+      <!-- Autoguardado: tranquiliza que el progreso no se pierde en un formulario largo -->
+      <p v-if="textoUltimoGuardado" :style="{
+        display: 'flex', alignItems: 'center', gap: '6px',
+        fontSize: 'var(--text-xs)', color: 'var(--color-text-3)',
+        marginTop: 'var(--sp-lg)', marginBottom: '0',
+      }">
+        <IconCircleCheck :size="13" :style="{ color: 'var(--color-success)', flexShrink: '0' }" />
+        {{ textoUltimoGuardado }}
+      </p>
+
       <!-- Navegación -->
       <div :style="{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--sp-2xl)', gap: 'var(--sp-md)' }">
-        <PortalButton v-if="paso !== 1" variant="secondary" pill @click="anterior()" :style="{ width: '150px', height: '40px', justifyContent: 'center' }">Anterior</PortalButton>
+        <PortalButton v-if="paso !== 1" variant="secondary" pill @click="anterior()" :style="{ width: isMobile ? '110px' : '150px', height: '40px', justifyContent: 'center', flexShrink: '0' }">Anterior</PortalButton>
         <button
           v-if="!esUltimoPaso && paso !== 1"
           class="nav-continuar-btn"
-          :disabled="loading || (!isDev && (
+          :disabled="loading"
+          :style="{ opacity: (!loading && !isDev && (
             (paso === 2 && (erroresPaso2.length > 0 || esMenorDeEdad)) ||
             (paso === 3 && (hayErroresDuplicidad || hayErroresCodeudoresPaso3)) ||
             (paso === 4 && !skipDocs && (!documentosCompletos || !autorizaciones.autorizacion_aceptada))
-          ))"
+          )) ? 0.55 : 1 }"
           @click="continuar()"
         >
           <span v-if="loading" class="paso0-spinner" />
@@ -3838,12 +3879,13 @@ function onOtpValidado() {
         <button
           v-if="esUltimoPaso && paso !== 1"
           class="btn-firmar"
+          :style="{ padding: isMobile ? '0 40px 0 16px' : '0 52px 0 28px', fontSize: isMobile ? 'var(--text-sm)' : 'var(--text-base)' }"
           :disabled="loading || (!isDev && (!firma.nombre_firma || !firmaImagen || !pasoSolicitudValido))"
           @click="firmarYEnviar()"
         >
           <span v-if="loading" class="paso0-spinner" />
           <template v-else>
-            <span>Firmar solicitud y enviar</span>
+            <span>Radicar solicitud</span>
             <span class="btn-firmar-circle"><IconArrowRight :size="14" /></span>
           </template>
         </button>
@@ -4668,6 +4710,7 @@ function onOtpValidado() {
   font-family: var(--font-body);
   font-size: var(--text-base);
   font-weight: var(--fw-semibold);
+  white-space: nowrap;
   box-shadow: var(--shadow-btn);
   transition: all var(--transition-base);
   padding: 0 52px 0 28px;
@@ -4784,6 +4827,7 @@ function onOtpValidado() {
   font-family: var(--font-body);
   font-size: var(--text-base);
   font-weight: var(--fw-semibold);
+  white-space: nowrap;
   box-shadow: var(--shadow-btn);
   transition: all var(--transition-base);
   gap: 10px;
@@ -4823,6 +4867,26 @@ function onOtpValidado() {
 /* ─── Ampliar contenedor para aprovechar el ancho ─── */
 :deep(.portal-main__inner) {
   max-width: 1200px;
+}
+
+/* ─── Volver (paso 1) ─── */
+.paso1-volver-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-pill);
+  background: var(--color-bg-surface-alt);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+
+.paso1-volver-btn:hover {
+  background: var(--color-border);
 }
 
 /* ─── Layout dos columnas pasos 2-5 ─── */
@@ -4880,6 +4944,13 @@ function onOtpValidado() {
   .formulario-content {
     width: 100%;
     max-width: none;
+  }
+
+  .btn-firmar-circle,
+  .nav-continuar-circle {
+    width: 30px;
+    height: 30px;
+    right: 6px;
   }
 }
 
@@ -5204,7 +5275,6 @@ function onOtpValidado() {
   font-weight: 700;
   font-size: 0.9rem;
   flex-shrink: 0;
-  margin-top: -12px; /* para alinear con el input flotante que tiene label */
 }
 
 .paso0-input-wrapper {
@@ -5318,6 +5388,10 @@ function onOtpValidado() {
 }
 
 @media (max-width: 960px) {
+  .paso0-wrapper {
+    padding: 24px 0;
+  }
+
   .paso0-container {
     padding: 32px 24px;
   }
@@ -5325,7 +5399,7 @@ function onOtpValidado() {
   .paso0-actions {
     justify-content: center;
   }
-  
+
   .paso0-verify-btn {
     width: 100%;
     justify-content: space-between;
@@ -5334,7 +5408,7 @@ function onOtpValidado() {
 
 @media (max-width: 600px) {
   .paso0-wrapper {
-    padding: 16px;
+    padding: 16px 0;
   }
 }
 </style>

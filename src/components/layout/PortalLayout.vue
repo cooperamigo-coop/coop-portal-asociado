@@ -119,6 +119,11 @@ import PortalFooter from '@/components/layout/PortalFooter.vue'
   transform: rotate(-90deg) translateX(-50%);
   transform-origin: left top;
   white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.vigilada-badge:hover {
+  opacity: 0.7;
 }
 
 .vb-inner {
@@ -137,16 +142,16 @@ import PortalFooter from '@/components/layout/PortalFooter.vue'
 .vb-line {
   display: block;
   height: 1.5px;
-  background: var(--color-text-2);
+  background: var(--color-primary);
   border-radius: 1px;
 }
 
 .vb-vigilada {
   font-family: var(--font-display);
   font-size: 0.75rem;
-  font-weight: var(--fw-extrabold);
+  font-weight: var(--fw-bold);
   letter-spacing: 0.18em;
-  color: var(--color-text-2);
+  color: var(--color-primary);
   text-align: center;
   line-height: 1.4;
 }
@@ -156,9 +161,9 @@ import PortalFooter from '@/components/layout/PortalFooter.vue'
   flex-direction: column;
   font-family: var(--font-display);
   font-size: 0.625rem;
-  font-weight: var(--fw-bold);
+  font-weight: var(--fw-medium);
   letter-spacing: 0.04em;
-  color: var(--color-text-2);
+  color: var(--color-primary);
   line-height: 1.35;
 }
 

@@ -473,6 +473,8 @@ const firmaCanvasRef = ref(null)
 const firmaFileRef = ref(null)
 const firmaArchivoNombre = ref('')
 const mostrarModalSubirFirma = ref(false)
+const errorFirmaArchivo = ref('')
+const FIRMA_TAMANO_MAXIMO_MB = 3
 const _dibujandoFirma = ref(false)
 const _firmaTrazoPrev = ref(null)
 const _firmaCanvasCssHeight = 175
@@ -633,8 +635,22 @@ watch(
     if (p === 5 && firmaMetodo.value === 'dibujar') {
       nextTick(() => { prepararCanvasFirma() })
     }
+    intentoContinuar.value = false
   }
 )
+
+// El botón "Continuar" ya no queda deshabilitado por validación (solo por loading):
+// así el clic siempre corre esta función y, si faltan campos, se ve el aviso en vez
+// de quedar el botón apagado sin ninguna explicación.
+const intentoContinuar = ref(false)
+function continuarPaso() {
+  if (!isDev && !pasoValido.value) {
+    intentoContinuar.value = true
+    return
+  }
+  intentoContinuar.value = false
+  irAPaso(paso.value + 1)
+}
 
 watch(
   () => firmaMetodo.value,
@@ -995,6 +1011,11 @@ async function cargarFirmaImagen(evt) {
   const file = evt?.target?.files?.[0]
   if (evt?.target) evt.target.value = ''
   if (!file) return
+  errorFirmaArchivo.value = ''
+  if (file.size > FIRMA_TAMANO_MAXIMO_MB * 1024 * 1024) {
+    errorFirmaArchivo.value = `La imagen pesa demasiado (máximo ${FIRMA_TAMANO_MAXIMO_MB}MB). Reduce el tamaño e intenta de nuevo.`
+    return
+  }
   firmaArchivoNombre.value = file.name || ''
   const reader = new FileReader()
   const dataUrl = await new Promise((resolve, reject) => {
@@ -1110,7 +1131,7 @@ onBeforeUnmount(() => {
       
       <!-- Borrador disponible -->
       <template v-if="borradorDisponible">
-        <div class="paso0-container" style="display: block; padding: 40px;">
+        <div class="paso0-container" style="display: block;">
           <div :style="{ marginBottom: '20px' }">
             <div class="step-greeting-title">
               <span class="greeting-hi">¡Saludos!</span><span class="greeting-sub">Comencemos con tu solicitud</span>
@@ -1339,7 +1360,7 @@ onBeforeUnmount(() => {
         position: 'relative',
       }">
 
-        <div :style="{ padding: isMobile ? 'var(--sp-lg)' : 'var(--sp-xl)' }">
+        <div :style="{ padding: isMobile ? '0' : 'var(--sp-xl)' }">
 
         <!-- Honeypot anti-bot — NO modificar -->
         <div aria-hidden="true" :style="{
@@ -1364,10 +1385,10 @@ onBeforeUnmount(() => {
 
           <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
             <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
                 <IconFileDescription :size="20" /> Datos generales
               </div>
-              <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)' }">
+              <div :style="{ padding: isMobile ? 'var(--sp-md) 0' : 'var(--sp-md) var(--sp-xl)' }">
               <div :style="grid3(isMobile)">
                 <CampoTexto
                   :model-value="fechaSolicitudFormateada"
@@ -1392,10 +1413,10 @@ onBeforeUnmount(() => {
             </div>
 
             <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
                 <IconUserCheck :size="20" /> Información personal
               </div>
-              <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)' }">
+              <div :style="{ padding: isMobile ? 'var(--sp-md) 0' : 'var(--sp-md) var(--sp-xl)' }">
               <div :style="grid3(isMobile)">
                 <CampoSelect
                   v-model="datosPersonales.tipo_identificacion"
@@ -1567,10 +1588,10 @@ onBeforeUnmount(() => {
             </div>
 
             <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
                 <IconMapPin :size="20" /> Contacto y residencia
               </div>
-              <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)' }">
+              <div :style="{ padding: isMobile ? 'var(--sp-md) 0' : 'var(--sp-md) var(--sp-xl)' }">
               <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
                 <div :style="grid2(isMobile)">
                   <CampoTexto
@@ -1650,10 +1671,10 @@ onBeforeUnmount(() => {
             </div>
 
             <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
                 <IconCheck :size="20" /> Canales de comunicación
               </div>
-              <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)' }">
+              <div :style="{ padding: isMobile ? 'var(--sp-md) 0' : 'var(--sp-md) var(--sp-xl)' }">
               <div :style="grid3(isMobile)">
                 <div
                   v-for="op in opsCanalesComunicacion"
@@ -1689,10 +1710,10 @@ onBeforeUnmount(() => {
             </div>
 
             <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
                 <IconAlertTriangle :size="20" /> Exposición política y pública
               </div>
-              <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)' }">
+              <div :style="{ padding: isMobile ? 'var(--sp-md) 0' : 'var(--sp-md) var(--sp-xl)' }">
               <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
                 <div :style="{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', padding: 'var(--sp-md)', borderRadius: 'var(--r-md)', background: 'var(--color-bg-surface-alt)' }">
                   <div :style="{ width: '36px', height: '36px', borderRadius: 'var(--r-md)', background: 'var(--color-bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: '0' }">
@@ -2216,10 +2237,10 @@ onBeforeUnmount(() => {
 
           <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
             <div v-if="necesitaConyuge" :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
                 <IconUser :size="20" /> Datos del cónyuge / compañero(a)
               </div>
-              <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)' }">
+              <div :style="{ padding: isMobile ? 'var(--sp-md) 0' : 'var(--sp-md) var(--sp-xl)' }">
               <div :style="grid3(isMobile)">
                 <CampoSelect
                   v-model="datosConyuge.tipo_identificacion"
@@ -2410,10 +2431,10 @@ onBeforeUnmount(() => {
 
           <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
             <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden' }">
-              <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+              <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
                 <IconFileDescription :size="20" /> Referencias
               </div>
-              <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)' }">
+              <div :style="{ padding: isMobile ? 'var(--sp-md) 0' : 'var(--sp-md) var(--sp-xl)' }">
 
               <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-xl)' }">
                 <!-- Referencia Personal -->
@@ -2623,10 +2644,10 @@ onBeforeUnmount(() => {
           />
 
           <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', marginBottom: 'var(--sp-xl)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconUpload :size="20" /> Documentos requeridos
             </div>
-            <div :style="{ padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-md) 0' : 'var(--sp-md) var(--sp-xl)' }">
           <div :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-lg)' }">
             <CapturaDocumento
               :solicitud-id="null"
@@ -2701,11 +2722,11 @@ onBeforeUnmount(() => {
 
           <!-- ── Acompañamiento de asesor ─────────────────────── -->
           <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', marginBottom: 'var(--sp-xl)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconUserCheck :size="20" /> Acompañamiento de asesor
             </div>
             <div :style="{
-            padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)',
+            padding: isMobile ? 'var(--sp-md) 0' : 'var(--sp-md) var(--sp-xl)',
             display: 'flex',
             flexDirection: 'column',
             gap: 'var(--sp-lg)',
@@ -2728,11 +2749,11 @@ onBeforeUnmount(() => {
 
           <!-- ── Sección 10: Declaraciones SARLAFT ─────────────────── -->
           <div :style="{ background: 'var(--color-bg-card)', borderRadius: 'var(--r-md)', overflow: 'hidden', marginBottom: 'var(--sp-xl)' }">
-            <div :style="{ padding: 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
+            <div :style="{ padding: isMobile ? 'var(--sp-sm) 0' : 'var(--sp-md) var(--sp-xl)', borderBottom: '1px solid #e0e0e0', marginBottom: 'var(--sp-md)', color: 'var(--color-primary)', fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }">
               <IconAlertTriangle :size="20" /> Declaraciones adicionales
             </div>
             <div :style="{
-            padding: isMobile ? 'var(--sp-md)' : 'var(--sp-md) var(--sp-xl)',
+            padding: isMobile ? 'var(--sp-md) 0' : 'var(--sp-md) var(--sp-xl)',
             display: 'flex',
             flexDirection: 'column',
             gap: 'var(--sp-lg)',
@@ -2861,7 +2882,7 @@ onBeforeUnmount(() => {
                     <div class="firma-upload-modal">
                       <div class="firma-upload-header">
                         <span class="firma-upload-titulo">Cargar firma</span>
-                        <button class="firma-upload-close" @click="mostrarModalSubirFirma = false">
+                        <button aria-label="Cerrar" class="firma-upload-close" @click="mostrarModalSubirFirma = false">
                           <IconX :size="18" />
                         </button>
                       </div>
@@ -2869,10 +2890,11 @@ onBeforeUnmount(() => {
                         <div class="firma-upload-aviso">
                           <IconAlertTriangle :size="15" class="firma-upload-aviso-icon" />
                           <ol class="firma-upload-aviso-list">
-                            <li>Los formatos permitidos son .png y .jpg</li>
+                            <li>Los formatos permitidos son .png y .jpg (máximo {{ FIRMA_TAMANO_MAXIMO_MB }}MB)</li>
                             <li>Cargue únicamente la imagen de su firma manuscrita. La firma debe corresponder a su firma personal habitual y permitir su identificación. Las solicitudes que contengan firmas inválidas, alteradas, digitalizadas de forma no autorizada o que no correspondan al titular serán rechazadas automáticamente.</li>
                           </ol>
                         </div>
+                        <p v-if="errorFirmaArchivo" :style="{ color: 'var(--color-error-text)', fontSize: 'var(--text-sm)', margin: '8px 0 0' }">{{ errorFirmaArchivo }}</p>
                       </div>
                       <div class="firma-upload-footer">
                         <button class="firma-upload-btn" @click="seleccionarFirmaArchivo()">
@@ -2902,16 +2924,25 @@ onBeforeUnmount(() => {
           :style="{ marginTop: 'var(--sp-lg)' }"
         />
 
+        <!-- Campos obligatorios faltantes: solo aparece tras intentar continuar -->
+        <AlertaBanner
+          v-if="intentoContinuar && !pasoValido"
+          tipo="warning"
+          mensaje="No puede continuar: complete los campos obligatorios marcados con * en este paso."
+          :style="{ marginTop: 'var(--sp-lg)' }"
+        />
+
         <!-- ── Navegación ─────────────────────────────────────────────── -->
         <div :style="{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--sp-2xl)', gap: 'var(--sp-md)' }">
-          <PortalButton variant="secondary" pill @click="paso > 1 ? irAPaso(paso - 1) : router.push('/')" :style="{ width: '150px', height: '40px', justifyContent: 'center' }">
+          <PortalButton variant="secondary" pill @click="paso > 1 ? irAPaso(paso - 1) : router.push('/')" :style="{ width: isMobile ? '110px' : '150px', height: '40px', justifyContent: 'center', flexShrink: '0' }">
             {{ paso === 1 ? 'Cancelar' : 'Anterior' }}
           </PortalButton>
           <button
             v-if="paso < 5"
             class="nav-continuar-btn"
-            :disabled="loading || (!isDev && !pasoValido)"
-            @click="irAPaso(paso + 1)"
+            :disabled="loading"
+            :style="{ opacity: (!loading && !isDev && !pasoValido) ? 0.55 : 1 }"
+            @click="continuarPaso"
           >
             <span v-if="loading" class="paso0-spinner" />
             <template v-else>
@@ -2922,12 +2953,13 @@ onBeforeUnmount(() => {
           <button
             v-if="paso === 5"
             class="btn-firmar"
+            :style="{ padding: isMobile ? '0 40px 0 16px' : '0 52px 0 28px', fontSize: isMobile ? 'var(--text-sm)' : 'var(--text-base)' }"
             :disabled="loading || (!isDev && (!firma?.nombre_firma || !firmaImagen))"
             @click="firmarYEnviar()"
           >
             <span v-if="loading" class="paso0-spinner" />
             <template v-else>
-              <span>Firmar solicitud y enviar</span>
+              <span>Radicar solicitud</span>
               <span class="btn-firmar-circle"><IconArrowRight :size="14" /></span>
             </template>
           </button>
@@ -3205,7 +3237,6 @@ onBeforeUnmount(() => {
   font-weight: 700;
   font-size: 0.9rem;
   flex-shrink: 0;
-  margin-top: -12px;
 }
 
 .paso0-input-wrapper {
@@ -3319,6 +3350,10 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 960px) {
+  .paso0-wrapper {
+    padding: 24px 0;
+  }
+
   .paso0-container {
     padding: 32px 24px;
   }
@@ -3326,7 +3361,7 @@ onBeforeUnmount(() => {
   .paso0-actions {
     justify-content: center;
   }
-  
+
   .paso0-verify-btn {
     width: 100%;
     justify-content: space-between;
@@ -3335,7 +3370,7 @@ onBeforeUnmount(() => {
 
 @media (max-width: 600px) {
   .paso0-wrapper {
-    padding: 16px;
+    padding: 16px 0;
   }
 }
 
@@ -3658,6 +3693,13 @@ onBeforeUnmount(() => {
   :deep(.portal-main__inner) {
     max-width: 800px;
   }
+
+  .btn-firmar-circle,
+  .nav-continuar-circle {
+    width: 30px;
+    height: 30px;
+    right: 6px;
+  }
 }
 
 .formulario-sidebar {
@@ -3698,6 +3740,7 @@ onBeforeUnmount(() => {
   font-family: var(--font-body);
   font-size: var(--text-base);
   font-weight: var(--fw-semibold);
+  white-space: nowrap;
   box-shadow: var(--shadow-btn);
   transition: all var(--transition-base);
   gap: 10px;
@@ -3749,6 +3792,7 @@ onBeforeUnmount(() => {
   font-family: var(--font-body);
   font-size: var(--text-base);
   font-weight: var(--fw-semibold);
+  white-space: nowrap;
   box-shadow: var(--shadow-btn);
   transition: all var(--transition-base);
   padding: 0 52px 0 28px;

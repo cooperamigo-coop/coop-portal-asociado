@@ -259,7 +259,7 @@ export function useCapturaDocumento() {
       return url
     } catch (e) {
       estado.value = 'error'
-      error.value = 'Error al generar el PDF de la cédula.'
+      error.value = `Error al generar el PDF de la cédula: ${e.message || e}`
       throw e
     }
   }

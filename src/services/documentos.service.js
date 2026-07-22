@@ -12,6 +12,12 @@ const BUCKETS_CANDIDATOS = [
 const MIME_PERMITIDOS = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
 const EXT_PERMITIDAS  = new Set(['jpg', 'jpeg', 'png', 'webp', 'pdf'])
 
+// Fotos de cámara de celular (sobre todo HEIC/JPEG sin comprimir) pueden pesar
+// 10-20MB — sin este límite se intentan subir completas sobre datos móviles
+// antes de fallar en el servidor, con un mensaje genérico y sin aviso previo.
+const TAMANO_MAXIMO_MB    = 8
+const TAMANO_MAXIMO_BYTES = TAMANO_MAXIMO_MB * 1024 * 1024
+
 // El bucket es privado: la URL firmada se pide a la Edge Function
 // obtener-documento-portal (no hay SELECT directo de anon sobre
 // storage.objects). "carpeta" es el id de la solicitud o la carpeta
@@ -41,6 +47,11 @@ export async function subirDocumentoSolicitud(solicitudId, tipo, archivo) {
   const ext = archivo.name.split('.').pop().toLowerCase()
   if (!EXT_PERMITIDAS.has(ext) || !MIME_PERMITIDOS.has(archivo.type)) {
     throw new Error('Solo se permiten imágenes (JPG, PNG, WebP) y PDF.')
+  }
+  if (archivo.size > TAMANO_MAXIMO_BYTES) {
+    const err = new Error(`El archivo pesa demasiado (máximo ${TAMANO_MAXIMO_MB}MB). Reduce el tamaño o toma la foto con menor calidad e intenta de nuevo.`)
+    err.esValidacion = true
+    throw err
   }
 
   await validarPdfSinClave(archivo)
@@ -82,11 +93,12 @@ export async function subirDocumentoSolicitud(solicitudId, tipo, archivo) {
 export function obtenerMensajeErrorSubidaDocumento(error) {
   if (error?.esValidacion) return error.message
   const msg = String(error?.message || '')
-  if (msg.includes('row-level security policy')) {
-    return 'No hay permisos de Storage (RLS) para subir al bucket "documentos". Ajuste las policies en Supabase.'
+  // El detalle técnico queda en consola para diagnóstico — el usuario final
+  // solo necesita saber que algo falló y qué puede intentar.
+  if (msg.includes('row-level security policy') || msg.includes('Bucket not found')) {
+    console.error('[documentos.service] Error de configuración de Storage:', msg)
+    return 'No pudimos guardar el documento en este momento. Intenta de nuevo en unos minutos o contáctanos si el problema persiste.'
   }
-  if (msg.includes('Bucket not found')) {
-    return 'No se encontró el bucket de documentos en Supabase.'
-  }
-  return 'No se pudo subir el archivo. Verifique su conexión o el tamaño del archivo.'
+  console.error('[documentos.service] Error al subir documento:', msg)
+  return 'No se pudo subir el archivo. Verifica tu conexión e intenta de nuevo.'
 }
