@@ -263,14 +263,17 @@ const SERVICIOS_NO_ASOCIADO = [
               <IconClock class="horario-icon" :size="40" :stroke-width="1.75" />
             </div>
 
-            <h1 class="mantenimiento-title mantenimiento-title--sm">Fuera de horario de atención</h1>
+            <h1 class="mantenimiento-title mantenimiento-title--sm">Fuera del horario de atención</h1>
 
-            <p class="mantenimiento-text">
-              <strong>En este momento el portal no está disponible.</strong><br/>
-              Nuestro horario de atención es de <strong>lunes a viernes, 8:00 a.m. a 5:00 p.m.</strong><br/>
-              Vuelve a intentarlo dentro de este horario. ¡Gracias por tu paciencia!
-            </p>
+            <p class="horario-subtext">Vuelve a intentarlo dentro de nuestro horario de atención.</p>
 
+            <div class="horario-schedule">
+              <span class="horario-schedule-days">Lunes a viernes</span>
+              <span class="horario-schedule-sep"></span>
+              <span class="horario-schedule-hours">8:00 a. m. – 5:00 p. m.</span>
+            </div>
+
+            <p class="horario-thanks">¡Gracias por tu comprensión!</p>
           </div>
 
         </div>
@@ -891,17 +894,58 @@ const SERVICIOS_NO_ASOCIADO = [
   98% { transform: rotate(-4deg); }
 }
 
-.horario-badge {
-  display: inline-flex;
+.horario-subtext {
+  font-size: clamp(14px, 3.6vw, 16px);
+  color: var(--color-text-2);
+  max-width: 420px;
+  margin: 0 auto 24px;
+  line-height: 1.5;
+}
+
+.horario-schedule {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: var(--r-pill);
-  background: var(--color-bg-surface);
+  justify-content: center;
+  gap: 6px 12px;
+  padding: 14px 24px;
+  border-radius: var(--r-lg);
+  background: var(--color-bg-surface-alt);
+  margin: 0 auto 24px;
+  max-width: 100%;
+}
+
+.horario-schedule-days {
+  font-size: var(--text-base);
+  font-weight: var(--fw-bold);
   color: var(--color-primary);
-  font-size: var(--text-sm);
+}
+
+.horario-schedule-sep {
+  width: 4px;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--color-primary);
+  opacity: 0.4;
+}
+
+@media (max-width: 480px) {
+  .horario-schedule-sep {
+    display: none;
+  }
+}
+
+.horario-schedule-hours {
+  font-size: var(--text-base);
   font-weight: var(--fw-semibold);
-  margin: 0 auto 28px;
+  color: var(--color-text-4);
+}
+
+.horario-thanks {
+  font-size: var(--text-sm);
+  color: var(--color-text-2);
+  opacity: 0.75;
+  margin: 0;
 }
 
 /* --- SVG Illustration --- */
@@ -1300,7 +1344,7 @@ const SERVICIOS_NO_ASOCIADO = [
   font-size: 1rem;
   color: var(--color-text-2);
   line-height: 1.4;
-  margin: 0;
+  margin: -8px 0 0;
   max-width: 640px;
 }
 
