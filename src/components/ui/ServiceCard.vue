@@ -142,6 +142,8 @@ const tag = computed(() => props.href ? 'a' : (props.clickable ? 'button' : 'div
   font-weight: var(--fw-bold);
   color: var(--color-text-1);
   margin: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .sc-desc-wrapper {

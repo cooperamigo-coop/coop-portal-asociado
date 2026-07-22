@@ -926,6 +926,9 @@ export function useAfiliacion() {
     } catch (e) {
       const msg = e?.message || e?.error_description || String(e) || ''
       const code = e?.code || e?.status || ''
+      // El detalle técnico (columnas, constraints, mensaje crudo de Postgres) queda
+      // solo en consola — nunca se muestra al usuario. El borrador no se borra hasta
+      // el éxito (línea de arriba), así que sus datos siguen guardados si esto falla.
       console.error('[enviarSolicitud] Error:', { code, msg, raw: e })
       if (msg.includes('duplicate') || msg.includes('unique') || code === '23505') {
         error.value = 'Ya existe una solicitud de afiliación para este documento.'
@@ -934,28 +937,19 @@ export function useAfiliacion() {
       } else if (msg.includes('chk_nombres_longitud')) {
         error.value = 'El campo Nombres no cumple el largo mínimo requerido. Por favor revíselo.'
       } else if (msg.includes('violates check constraint') || code === '23514') {
-        const constraint = msg.match(/constraint "([^"]+)"/)?.[1] || ''
-        error.value = constraint
-          ? `Dato inválido (${constraint}). Revise los campos del formulario.`
-          : 'Uno o más valores están fuera del rango permitido.'
+        error.value = 'Uno o más datos no cumplen el formato esperado. Revise el formulario e intente nuevamente.'
       } else if (msg.includes('violates not-null constraint') || code === '23502') {
-        const col = msg.match(/column "([^"]+)"/)?.[1] || ''
-        error.value = col
-          ? `El campo "${col}" es requerido pero llegó vacío.`
-          : 'Falta un campo requerido. Revise el formulario.'
+        error.value = 'Falta un campo requerido. Revise el formulario e intente nuevamente.'
       } else if (msg.includes('value too long') || code === '22001') {
-        const col = msg.match(/type "([^"]+)"/)?.[1] || ''
-        error.value = col
-          ? `El campo "${col}" excede el largo máximo permitido.`
-          : 'Un valor ingresado es demasiado largo.'
+        error.value = 'Un valor ingresado es demasiado largo. Revíselo e intente nuevamente.'
       } else if (msg.includes('invalid input syntax') || code === '22P02') {
         error.value = 'Un campo tiene un formato inválido. Revise fechas y números.'
       } else if (code === '42501' || msg.includes('permission denied')) {
-        error.value = 'Sin permisos para enviar la solicitud. Contacte al administrador.'
-      } else if (msg) {
-        error.value = `Error al enviar: ${msg}`
+        error.value = 'No pudimos procesar su solicitud por un problema de permisos. Sus datos siguen guardados — contáctenos para ayudarle.'
+      } else if (/fetch|network|timeout/i.test(msg)) {
+        error.value = 'No pudimos conectar con el servidor. Sus datos siguen guardados — revise su conexión e intente nuevamente.'
       } else {
-        error.value = 'Error desconocido al enviar la solicitud. Intente nuevamente.'
+        error.value = 'No pudimos enviar su solicitud en este momento. Sus datos siguen guardados — intente nuevamente en unos minutos.'
       }
     } finally {
       loading.value = false

@@ -7,6 +7,8 @@ export function useFirmaElectronica() {
   const firmaImagen = ref('')
   const firmaCanvasRef = ref(null)
   const firmaFileRef = ref(null)
+  const errorFirmaArchivo = ref('')
+  const FIRMA_TAMANO_MAXIMO_MB = 3
   const _dibujando = ref(false)
   const _trazoPrev = ref(null)
 
@@ -103,6 +105,11 @@ export function useFirmaElectronica() {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
+    errorFirmaArchivo.value = ''
+    if (file.size > FIRMA_TAMANO_MAXIMO_MB * 1024 * 1024) {
+      errorFirmaArchivo.value = `La imagen pesa demasiado (máximo ${FIRMA_TAMANO_MAXIMO_MB}MB). Reduce el tamaño e intenta de nuevo.`
+      return
+    }
     const reader = new FileReader()
     const dataUrl = await new Promise((resolve, reject) => {
       reader.onerror = () => reject(new Error('Error leyendo imagen'))
@@ -219,7 +226,7 @@ export function useFirmaElectronica() {
   }
 
   return {
-    firmaImagen, firmaCanvasRef, firmaFileRef,
+    firmaImagen, firmaCanvasRef, firmaFileRef, errorFirmaArchivo, FIRMA_TAMANO_MAXIMO_MB,
     prepararCanvas, prepararCanvasEnSiguienteTick,
     iniciarTrazo, moverTrazo, terminarTrazo, limpiarTrazo,
     cargarFirmaImagen, capturarMetadataForense,

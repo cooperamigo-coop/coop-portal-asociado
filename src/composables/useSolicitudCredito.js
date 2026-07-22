@@ -768,7 +768,9 @@ export function useSolicitudCredito() {
 
       verificado.value = true
     } catch (e) {
-      errorVerificacion.value = 'Error al verificar el documento. Intente nuevamente.'
+      errorVerificacion.value = /fetch|network|timeout/i.test(e?.message || '')
+        ? 'No pudimos conectar con el servidor. Revise su conexión a internet e intente nuevamente.'
+        : 'No pudimos verificar sus datos en este momento. Intente nuevamente en unos minutos.'
       console.error(e)
     } finally {
       loadingVerificacion.value = false
@@ -1389,7 +1391,11 @@ export function useSolicitudCredito() {
       limpiarBorradorLocal(verificacion.value.correo)
       enviado.value = true
     } catch (e) {
-      error.value = 'Error al enviar la solicitud. Intente nuevamente.'
+      // El borrador solo se limpia tras un envío exitoso (línea de arriba) — en
+      // error, la información ya diligenciada sigue guardada localmente.
+      error.value = /fetch|network|timeout/i.test(e?.message || '')
+        ? 'No pudimos conectar con el servidor para enviar su solicitud. Sus datos siguen guardados — revise su conexión e intente nuevamente.'
+        : 'No pudimos enviar su solicitud en este momento. Sus datos siguen guardados — intente nuevamente en unos minutos.'
       console.error(e)
     } finally {
       loading.value = false

@@ -68,6 +68,8 @@ const nombreFirma        = ref('')
 const numDocFirma        = ref('')
 const firmaMetodo        = ref('dibujar')
 const firmaArchivoNombre = ref('')
+const errorFirmaArchivo  = ref('')
+const FIRMA_TAMANO_MAXIMO_MB = 3
 const firmaCanvasRef     = ref(null)
 const firmaFileRef       = ref(null)
 const _dibujandoFirma    = ref(false)
@@ -260,6 +262,11 @@ async function cargarFirmaImagen(e) {
   const file = e.target.files?.[0]
   e.target.value = ''
   if (!file) return
+  errorFirmaArchivo.value = ''
+  if (file.size > FIRMA_TAMANO_MAXIMO_MB * 1024 * 1024) {
+    errorFirmaArchivo.value = `La imagen pesa demasiado (máximo ${FIRMA_TAMANO_MAXIMO_MB}MB). Reduce el tamaño e intenta de nuevo.`
+    return
+  }
   firmaArchivoNombre.value = file.name || ''
   const reader = new FileReader()
   const dataUrl = await new Promise((resolve, reject) => {
@@ -990,7 +997,7 @@ function descargarPdf() {
               @click="firmaFileRef?.click()"
             >
               <p v-if="!firmaImagen" :style="{ color: 'var(--color-text-3)', fontSize: 'var(--text-sm)' }">
-                Haz clic para seleccionar una imagen de tu firma (PNG o JPG)
+                Haz clic para seleccionar una imagen de tu firma (PNG o JPG, máximo {{ FIRMA_TAMANO_MAXIMO_MB }}MB)
               </p>
               <img
                 v-else
@@ -999,6 +1006,7 @@ function descargarPdf() {
                 alt="Vista previa de firma"
               />
             </div>
+            <p v-if="errorFirmaArchivo" :style="{ color: 'var(--color-error-text)', fontSize: 'var(--text-sm)', margin: '8px 0 0' }">{{ errorFirmaArchivo }}</p>
             <input
               ref="firmaFileRef"
               type="file"

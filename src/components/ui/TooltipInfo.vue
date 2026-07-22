@@ -35,7 +35,7 @@ const visible = ref(false)
           lineHeight:    '1.5',
           padding:       'var(--sp-sm) var(--sp-md)',
           borderRadius:  'var(--r-lg)',
-          width:         '240px',
+          width:         'min(240px, calc(100vw - 32px))',
           zIndex:        '100',
           boxShadow:     'var(--shadow-modal)',
           pointerEvents: 'none',

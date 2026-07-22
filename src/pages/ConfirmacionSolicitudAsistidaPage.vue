@@ -31,7 +31,7 @@ const nombreAsociado = computed(() => {
 })
 
 const {
-  firmaImagen, firmaCanvasRef, firmaFileRef,
+  firmaImagen, firmaCanvasRef, firmaFileRef, errorFirmaArchivo, FIRMA_TAMANO_MAXIMO_MB,
   prepararCanvasEnSiguienteTick, iniciarTrazo, moverTrazo, terminarTrazo, limpiarTrazo,
   cargarFirmaImagen, capturarMetadataForense,
 } = useFirmaElectronica()
@@ -385,10 +385,11 @@ async function enviarConfirmacion() {
               @click="firmaFileRef?.click()"
             >
               <p v-if="!firmaImagen" :style="{ color: 'var(--color-text-3)', fontSize: 'var(--text-sm)' }">
-                Haz clic para seleccionar una imagen de tu firma (PNG o JPG)
+                Haz clic para seleccionar una imagen de tu firma (PNG o JPG, máximo {{ FIRMA_TAMANO_MAXIMO_MB }}MB)
               </p>
               <img v-else :src="firmaImagen" :style="{ maxHeight: '80px', maxWidth: '100%', objectFit: 'contain' }" alt="Vista previa de firma" />
             </div>
+            <p v-if="errorFirmaArchivo" :style="{ color: 'var(--color-error-text)', fontSize: 'var(--text-sm)', margin: '8px 0 0' }">{{ errorFirmaArchivo }}</p>
             <input ref="firmaFileRef" type="file" accept="image/png,image/jpeg" :style="{ display: 'none' }" @change="cargarFirmaImagen" />
           </div>
 

@@ -18,7 +18,7 @@ const opciones = computed(() => {
   const base = [
     {
       value:       'ordinario',
-      titulo:      'Crédito Ordinario/Consumo',
+      titulo:      'Crédito Ordinario',
       descripcion: 'Para necesidades personales, vivienda, vehículo u otros destinos.',
       icono:       'CreditCard',
     },
@@ -42,15 +42,13 @@ const opciones = computed(() => {
 </script>
 
 <template>
-  <div class="selector-wrap">
+  <div class="selector-group">
 
     <!-- Encabezado -->
-    <div class="selector-header">
-      <h2 class="selector-titulo">Elige el tipo de crédito</h2>
-    </div>
+    <h2 class="selector-titulo">¿Qué tipo de crédito deseas?</h2>
 
-    <!-- Grid de cards -->
-    <div class="selector-grid" :class="{ 'selector-grid--3': opciones.length === 3 }">
+    <!-- Stack de cards -->
+    <div class="selector-stack">
       <ServiceCard
         v-for="op in opciones"
         :key="op.value"
@@ -76,65 +74,65 @@ const opciones = computed(() => {
 </template>
 
 <style scoped>
-.selector-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-lg);
+/* ─── Stack de tipos de crédito (mismo estilo que "¿Qué deseas hacer?") ─── */
+.selector-group {
   width: 100%;
-  max-width: 420px;
-  margin: 0 auto;
-  background: var(--color-bg-card);
-  border-radius: 20px;
-  padding: 40px 32px;
-  box-sizing: border-box;
-}
-
-@media (min-width: 768px) {
-  .selector-wrap {
-    max-width: 720px;
-    margin: 0 auto;
-  }
-}
-
-@media (min-width: 860px) {
-  .selector-wrap:has(.selector-grid--3) {
-    max-width: 1020px;
-  }
-}
-
-/* ─── Encabezado ─── */
-.selector-header {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-xs);
-  text-align: center;
+  gap: 12px;
 }
 
 .selector-titulo {
   font-family: var(--font-display);
   font-size: var(--text-2xl);
-  font-weight: var(--fw-extrabold);
+  font-weight: var(--fw-bold);
   color: var(--color-text-1);
-  margin: 0;
-  line-height: 1.1;
+  margin: 0 0 16px;
+  text-align: center;
 }
 
-/* ─── Grid ─── */
-.selector-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
+.selector-stack {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-@media (min-width: 600px) {
-  .selector-grid {
-    grid-template-columns: repeat(2, 1fr);
+@media (min-width: 961px) {
+  .selector-group {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .selector-stack {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .selector-stack > * {
+    flex: 1;
+    min-width: 0;
   }
 }
 
-@media (min-width: 860px) {
-  .selector-grid--3 {
-    grid-template-columns: repeat(3, 1fr);
+@media (max-width: 960px) {
+  .selector-group {
+    padding: 0 20px;
+    box-sizing: border-box;
+  }
+
+  .selector-stack {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .selector-stack > * {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .selector-titulo {
+    font-size: var(--text-lg);
   }
 }
 
@@ -143,7 +141,7 @@ const opciones = computed(() => {
   display: none;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 960px) {
   .selector-continuar-btn {
     display: flex;
     align-items: center;
@@ -161,6 +159,7 @@ const opciones = computed(() => {
     padding: 0 8px 0 8px;
     box-shadow: var(--shadow-btn);
     transition: all var(--transition-base);
+    margin-top: 4px;
   }
 
   .selector-continuar-btn span:first-child {
@@ -177,37 +176,6 @@ const opciones = computed(() => {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-  }
-}
-
-/* ─── Mobile ─── */
-@media (max-width: 600px) {
-  .selector-wrap {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 50;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-radius: 24px 24px 0 0;
-    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
-    padding: 28px 22px calc(32px + env(safe-area-inset-bottom, 0px));
-    gap: var(--sp-lg);
-  }
-
-  .selector-grid {
-    grid-template-columns: 1fr;
-    gap: var(--sp-md);
-  }
-
-  .selector-header {
-    text-align: center;
-  }
-
-  .selector-titulo {
-    font-size: var(--text-lg);
   }
 }
 </style>

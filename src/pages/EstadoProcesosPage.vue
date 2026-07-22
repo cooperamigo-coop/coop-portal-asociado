@@ -346,6 +346,11 @@ function etapasProceso(proceso) {
   transform: rotate(-90deg) translateX(-50%);
   transform-origin: left top;
   white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.vigilada-badge:hover {
+  opacity: 0.7;
 }
 
 .vb-inner {
@@ -364,16 +369,16 @@ function etapasProceso(proceso) {
 .vb-line {
   display: block;
   height: 1.5px;
-  background: var(--color-text-2);
+  background: var(--color-primary);
   border-radius: 1px;
 }
 
 .vb-vigilada {
   font-family: var(--font-display);
   font-size: 0.75rem;
-  font-weight: var(--fw-extrabold);
+  font-weight: var(--fw-bold);
   letter-spacing: 0.18em;
-  color: var(--color-text-2);
+  color: var(--color-primary);
   text-align: center;
   line-height: 1.4;
 }
@@ -383,9 +388,9 @@ function etapasProceso(proceso) {
   flex-direction: column;
   font-family: var(--font-display);
   font-size: 0.625rem;
-  font-weight: var(--fw-bold);
+  font-weight: var(--fw-medium);
   letter-spacing: 0.04em;
-  color: var(--color-text-2);
+  color: var(--color-primary);
   line-height: 1.35;
 }
 
@@ -442,6 +447,15 @@ function etapasProceso(proceso) {
 @media (max-width: 960px) {
   .estado-content {
     max-width: 100%;
+  }
+
+  .estado-content > .estado-header {
+    padding: 0 24px;
+    box-sizing: border-box;
+  }
+
+  .estado-content > .estado-header .estado-subtitle {
+    margin-top: 12px;
   }
 }
 
@@ -501,6 +515,17 @@ function etapasProceso(proceso) {
   font-weight: 700;
 }
 
+@media (max-width: 960px) {
+  .estado-title {
+    line-height: 1;
+  }
+
+  .estado-title span {
+    display: block;
+    margin-top: 2px;
+  }
+}
+
 .estado-title .estado-title-nombre {
   font-size: 2.2rem;
   font-weight: 700;
@@ -530,6 +555,17 @@ function etapasProceso(proceso) {
   color: var(--color-text-3);
   font-size: var(--text-sm);
   text-align: center;
+}
+
+@media (max-width: 960px) {
+  .estado-aviso {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .estado-aviso-icon {
+    margin-top: 2px;
+  }
 }
 
 .estado-aviso-icon {

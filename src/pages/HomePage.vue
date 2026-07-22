@@ -1,67 +1,16 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { IconCreditCard, IconUserPlus, IconUserMinus, IconClipboardList, IconFileText, IconArrowRight, IconArrowLeft, IconClock, IconSearch, IconCircleCheck, IconClockHour4, IconPlugX } from '@tabler/icons-vue'
+import { IconCreditCard, IconUserPlus, IconUserMinus, IconClipboardList, IconFileText, IconArrowRight, IconArrowLeft, IconClock, IconSearch, IconPlugX } from '@tabler/icons-vue'
 import { ShieldCheck, PiggyBank, FileBadge, MessageSquare, Gift, User, CheckCircle2 } from 'lucide-vue-next'
 import PortalFooter from '@/components/layout/PortalFooter.vue'
 import ServiceCard from '@/components/ui/ServiceCard.vue'
-import CampoTexto from '@/components/forms/CampoTexto.vue'
 import { PROXIMAMENTE as proximamente } from '@/config/flags'
-import { useEstadoProcesos } from '@/composables/useEstadoProcesos'
 import { esFueraDeHorarioAtencion } from '@/utils/horarioAtencion'
 
 const router = useRouter()
 const route = useRoute()
-const paso = ref('pregunta') // 'pregunta' | 'asociado' | 'no-asociado' | 'estado'
-
-const { cedula, correo, honeypot, cargando, error, resultado, consultar, reiniciar } = useEstadoProcesos()
-
-const ETIQUETAS_CREDITO = {
-  radicado:        'Radicada',
-  en_revision:     'En revisión',
-  en_analisis:     'En análisis',
-  en_aprobacion:   'En aprobación',
-  aprobado:        'Aprobada',
-  pendiente_firma: 'Pendiente de firma',
-  firmado:         'Firmada — pendiente de desembolso',
-  enviado:         'Enviada',
-}
-
-const ETIQUETAS_AFILIACION = {
-  en_revision: 'En revisión',
-  devuelto:    'Devuelta — requiere ajustes',
-  aprobado:    'Aprobada',
-  vo_sarlaft:  'En validación de cumplimiento',
-}
-
-const ESTADOS_POSITIVOS = ['aprobado', 'firmado']
-
-function etiquetaEstado(proceso) {
-  const mapa = proceso.tipo === 'credito' ? ETIQUETAS_CREDITO : ETIQUETAS_AFILIACION
-  return mapa[proceso.estado] ?? proceso.estado.replace(/_/g, ' ')
-}
-
-function estiloEstado(proceso) {
-  return ESTADOS_POSITIVOS.includes(proceso.estado) ? 'estado-pill--ok' : 'estado-pill--proceso'
-}
-
-function iconoEstado(proceso) {
-  return ESTADOS_POSITIVOS.includes(proceso.estado) ? IconCircleCheck : IconClockHour4
-}
-
-function fmtFecha(v) {
-  if (!v) return ''
-  return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(v))
-}
-
-function volverDesdeEstado() {
-  reiniciar()
-  paso.value = 'pregunta'
-}
-
-function reiniciarConsulta() {
-  reiniciar()
-}
+const paso = ref('pregunta') // 'pregunta' | 'asociado' | 'no-asociado'
 
 // ── Horario hábil: lunes–viernes 08:00–17:00 hora Colombia (sin fines de semana ni festivos) ──
 const ahora = ref(new Date())
@@ -143,7 +92,7 @@ const SERVICIOS_NO_ASOCIADO = [
       <a v-if="paso === 'pregunta'" href="https://cooperamigo.coop" target="_blank" rel="noopener noreferrer" class="topbar-back" aria-label="Ir a Cooperamigo.coop">
         <IconArrowLeft :size="18" />
       </a>
-      <button v-else class="topbar-back" @click="paso === 'estado' ? volverDesdeEstado() : (paso = 'pregunta')" aria-label="Volver">
+      <button v-else class="topbar-back" @click="paso = 'pregunta'" aria-label="Volver">
         <IconArrowLeft :size="18" />
       </button>
     </header>
@@ -363,88 +312,6 @@ const SERVICIOS_NO_ASOCIADO = [
           </div>
         </div>
 
-        <!-- ── Vista: consulta de estado ─────────────────────── -->
-        <div v-else-if="paso === 'estado'" class="vista animate-in">
-          <div class="pregunta-layout">
-            <div class="pregunta-spacer" aria-hidden="true"></div>
-            <div class="estado-wrap">
-              <div class="pregunta-card estado-card" :class="{ 'estado-card--resultado': resultado }">
-              <div class="pregunta-right">
-
-                <template v-if="!resultado">
-                  <h1 class="hero-title">Consultar estado de trámite</h1>
-                  <p class="hero-question">Ingresa tu número de identificación y el correo electrónico registrado en la solicitud.</p>
-
-                  <form class="estado-form" @submit.prevent="consultar">
-                    <div style="position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none;">
-                      <input v-model="honeypot" type="text" name="website" autocomplete="off" tabindex="-1" />
-                    </div>
-
-                    <CampoTexto v-model="cedula" label="Número de identificación" solo-numeros :maxlength="15" required />
-                    <CampoTexto v-model="correo" label="Correo electrónico" type="email" required />
-
-                    <p v-if="error" class="estado-error">{{ error }}</p>
-
-                    <button type="submit" class="btn-opcion btn-opcion--primary" :disabled="cargando">
-                      <span>{{ cargando ? 'Consultando...' : 'Consultar estado' }}</span>
-                      <span class="btn-circle"><IconArrowRight :size="14" /></span>
-                    </button>
-                  </form>
-
-                  <div class="btn-volver-container">
-                    <button class="btn-volver btn-volver--estado" @click="volverDesdeEstado">
-                      <IconArrowLeft :size="13" />
-                      Regresar a inicio
-                    </button>
-                  </div>
-                </template>
-
-                <template v-else>
-                  <div class="estado-header">
-                    <h1 class="hero-title">
-                      {{ resultado.nombre ? `Saludos, ${resultado.nombre} ${resultado.apellido ?? ''}`.trim() : 'Tus procesos' }}
-                    </h1>
-                    <p v-if="resultado.procesos.length" class="hero-question">Este es el estado actual de tus solicitudes en proceso.</p>
-                  </div>
-
-                  <div class="procesos-list">
-                    <div v-for="(proceso, i) in resultado.procesos" :key="i" class="proceso-row">
-                      <div class="proceso-icon" :class="proceso.tipo === 'credito' ? 'proceso-icon--credito' : 'proceso-icon--afiliacion'">
-                        <component :is="proceso.tipo === 'credito' ? IconCreditCard : IconUserPlus" :size="20" />
-                      </div>
-                      <div class="proceso-content">
-                        <div class="proceso-nombre">
-                          {{ proceso.tipo === 'credito' ? 'Solicitud de crédito' : 'Solicitud de afiliación' }}
-                        </div>
-                        <div class="proceso-fecha">{{ fmtFecha(proceso.fecha) }}</div>
-                      </div>
-                      <div class="estado-pill" :class="estiloEstado(proceso)">
-                        <component :is="iconoEstado(proceso)" :size="13" />
-                        {{ etiquetaEstado(proceso) }}
-                      </div>
-                    </div>
-
-                    <div v-if="!resultado.procesos.length" class="sin-procesos-container">
-                      <div class="sin-procesos-icon">
-                        <IconSearch :size="40" />
-                      </div>
-                      <p class="sin-procesos-title">No encontramos solicitudes activas</p>
-                      <p class="sin-procesos-text">Revisa que tu número de identificación y correo electrónico sean correctos. Si tienes dudas, contáctanos.</p>
-                    </div>
-                  </div>
-
-                  <button type="button" class="btn-volver-form" @click="volverDesdeEstado">
-                    <IconArrowLeft :size="14" />
-                    Regresar a inicio
-                  </button>
-                </template>
-
-              </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
       </div>
     </main>
 
@@ -544,6 +411,10 @@ const SERVICIOS_NO_ASOCIADO = [
   .home-main--centrado {
     justify-content: center;
     align-items: center;
+  }
+
+  .home-shell--landing .home-main {
+    justify-content: flex-start;
   }
 
   .home-content {
@@ -1075,241 +946,6 @@ const SERVICIOS_NO_ASOCIADO = [
   to { stroke-dashoffset: 0; }
 }
 
-/* ─── Vista estado ─── */
-.estado-card__icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--r-lg);
-  background: var(--color-bg-surface-alt);
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
-}
-
-.estado-form {
-  width: 100%;
-  max-width: 380px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.estado-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-}
-
-.estado-error {
-  font-size: var(--text-sm);
-  color: var(--color-error-text);
-  text-align: center;
-  margin: 0;
-}
-
-.btn-volver-container {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  margin-top: 8px;
-}
-
-.procesos-list {
-  width: 100%;
-  max-width: 380px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  margin: 4px auto;
-  overflow-y: auto;
-}
-
-.proceso-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px;
-  border-radius: var(--r-lg);
-  background: var(--color-bg-app);
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
-  width: 100%;
-}
-
-.proceso-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--r-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.proceso-icon--credito {
-  background: var(--color-bg-surface-alt);
-  color: var(--color-primary);
-}
-
-.proceso-icon--afiliacion {
-  background: var(--color-bg-surface-alt);
-  color: var(--color-primary);
-}
-
-.proceso-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.proceso-nombre {
-  font-size: var(--text-sm);
-  font-weight: var(--fw-bold);
-  color: var(--color-text-1);
-}
-
-.proceso-fecha {
-  font-size: var(--text-xs);
-  color: var(--color-text-2);
-  margin-top: 2px;
-}
-
-.estado-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--text-xs);
-  font-weight: var(--fw-bold);
-  padding: 5px 10px;
-  border-radius: var(--r-pill);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.estado-pill--proceso {
-  background: var(--color-bg-surface-alt);
-  color: var(--color-text-2);
-}
-
-.estado-pill--ok {
-  background: var(--color-success-bg, #e6f4ea);
-  color: var(--color-success-text, #1e7a3d);
-}
-
-.sin-procesos-container {
-  width: 100%;
-  max-width: 380px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 24px 16px;
-  text-align: center;
-}
-
-.sin-procesos-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: var(--color-bg-surface-alt);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-2);
-  margin-bottom: 8px;
-}
-
-.sin-procesos-title {
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: var(--fw-bold);
-  color: var(--color-text-1);
-  margin: 0;
-}
-
-.sin-procesos-text {
-  font-size: var(--text-sm);
-  color: var(--color-text-2);
-  margin: 0 0 16px 0;
-  line-height: 1.5;
-}
-
-.btn-volver-form {
-  align-self: center;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  color: var(--color-primary);
-  font-size: var(--text-sm);
-  font-weight: var(--fw-semibold);
-  cursor: pointer;
-  padding: 6px 12px;
-}
-
-.btn-volver-form:hover {
-  text-decoration: underline;
-}
-
-.estado-card--resultado .pregunta-right {
-  align-items: stretch;
-}
-
-.estado-card--resultado .procesos-list {
-  flex: 1;
-  min-height: 0;
-}
-
-.estado-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-}
-
-button.btn-volver--estado {
-  display: none;
-}
-
-@media (min-width: 961px) {
-  button.btn-volver--estado {
-    display: inline-flex;
-  }
-
-  .estado-wrap {
-    width: auto;
-  }
-}
-
-/* ─── Botón volver ─── */
-.btn-volver {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-radius: var(--r-pill);
-  cursor: pointer;
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  font-weight: var(--fw-semibold);
-  color: var(--color-text-2);
-  padding: 6px var(--sp-md);
-  align-self: center;
-  transition: all var(--transition-fast);
-}
-
-.btn-volver:hover {
-  background: rgba(255, 255, 255, 1);
-  color: var(--color-primary);
-}
-
 /* ─── Stack de servicios (asociado / no-asociado) ─── */
 .services-group {
   width: 100%;
@@ -1349,6 +985,25 @@ button.btn-volver--estado {
     flex: 1;
   }
 }
+
+@media (max-width: 960px) {
+  .services-group {
+    padding: 0 20px;
+    margin-bottom: 32px;
+    box-sizing: border-box;
+  }
+
+  .services-stack {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .services-stack > * {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 
 /* ─── Animación ─── */
 .animate-in {
@@ -1436,6 +1091,11 @@ button.btn-volver--estado {
   transform: rotate(-90deg) translateX(-50%);
   transform-origin: left top;
   white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.vigilada-badge:hover {
+  opacity: 0.7;
 }
 
 .vb-inner {
@@ -1454,16 +1114,16 @@ button.btn-volver--estado {
 .vb-line {
   display: block;
   height: 1.5px;
-  background: var(--color-text-2);
+  background: var(--color-primary);
   border-radius: 1px;
 }
 
 .vb-vigilada {
   font-family: var(--font-display);
   font-size: 0.75rem;
-  font-weight: var(--fw-extrabold);
+  font-weight: var(--fw-bold);
   letter-spacing: 0.18em;
-  color: var(--color-text-2);
+  color: var(--color-primary);
   text-align: center;
   line-height: 1.4;
 }
@@ -1473,9 +1133,9 @@ button.btn-volver--estado {
   flex-direction: column;
   font-family: var(--font-display);
   font-size: 0.625rem;
-  font-weight: var(--fw-bold);
+  font-weight: var(--fw-medium);
   letter-spacing: 0.04em;
-  color: var(--color-text-2);
+  color: var(--color-primary);
   line-height: 1.35;
 }
 
@@ -1544,6 +1204,10 @@ button.btn-volver--estado {
     justify-content: flex-start;
     padding: 0 16px;
     height: 52px;
+  }
+
+  .home-shell--landing .portal-topbar {
+    display: none;
   }
 
   /* Desktop elements: ocultos */
@@ -1750,7 +1414,7 @@ button.btn-volver--estado {
   gap: 12px;
   width: 100%;
   padding: 8px 16px;
-  border-radius: 18px; /* Mismo border-radius que las action-cards */
+  border-radius: 18px;
   border: none;
   background: var(--color-bg-surface-alt);
   color: var(--color-text-2);
@@ -1758,7 +1422,7 @@ button.btn-volver--estado {
   font-weight: var(--fw-bold);
   cursor: pointer;
   transition: all 0.3s;
-  grid-column: 1 / -1; /* Ocupa todo el ancho del grid */
+  grid-column: 1 / -1;
 }
 
 .search-bar-btn:hover {
@@ -1877,7 +1541,7 @@ button.btn-volver--estado {
 
 @media (max-width: 960px) {
   .hero-split {
-    padding: 24px 20px 0;
+    padding: 32px 20px 0;
   }
   .hero-left {
     align-items: center;
@@ -1887,7 +1551,7 @@ button.btn-volver--estado {
     max-width: 400px;
   }
   .hero-actions-grid {
-    gap: 12px; /* Un poco menos de gap en mobile que en desktop para no exagerar */
+    gap: 12px;
   }
   .services-container-white {
     padding: 24px 16px;
@@ -1908,12 +1572,7 @@ button.btn-volver--estado {
 
 @media (max-width: 600px) {
   .services-grid {
-    grid-template-columns: 1fr;
-    justify-items: center;
-  }
-  .services-grid > * {
-    width: 100%;
-    max-width: 360px;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 </style>

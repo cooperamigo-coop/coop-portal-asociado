@@ -100,7 +100,7 @@
 
         <!-- Copy -->
         <div class="footer-copy">
-          © 2026 Cooperativa Multiactiva Luis Amigó. Todos los derechos reservados.
+          © 2026 Cooperativa Multiactiva Luis Amigó. All rights reserved.
         </div>
 
         <!-- Supersolidaria Placeholder -->
@@ -126,7 +126,15 @@ const abierto = reactive({ links: false, legal: false, contacto: false });
 const showFaqModal = ref(false);
 
 function toggle(seccion) {
-  abierto[seccion] = !abierto[seccion];
+  const estabaAbierto = abierto[seccion];
+  
+  Object.keys(abierto).forEach(key => {
+    abierto[key] = false;
+  });
+  
+  if (!estabaAbierto) {
+    abierto[seccion] = true;
+  }
 }
 </script>
 
@@ -135,6 +143,7 @@ function toggle(seccion) {
   width: 100%;
   flex-shrink: 0;
   background-color: var(--color-bg-card);
+  border-top: 1px solid var(--color-border-light);
 }
 
 .footer-top {
@@ -159,11 +168,15 @@ function toggle(seccion) {
   }
 
   .footer-grid {
-    gap: 0;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
   }
 
   .brand-col {
-    margin-bottom: 24px;
+    grid-column: 1 / -1;
+    margin-bottom: 16px;
+    align-items: center;
+    text-align: center;
   }
 
   .footer-logo-img {
@@ -175,16 +188,17 @@ function toggle(seccion) {
   }
 
   .footer-col:not(.brand-col) {
-    border-top: 1px solid var(--color-border-light);
-    padding: 0;
+    display: contents;
   }
 
-  .footer-chevron {
-    display: block;
-  }
-
-  .footer-col.is-open .footer-chevron {
-    transform: rotate(180deg);
+  .footer-col:not(.brand-col) .footer-heading {
+    grid-row: 2;
+    margin: 0;
+    padding: 8px 0;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    align-items: center;
+    justify-content: center;
   }
 
   .footer-col:not(.brand-col):not(.is-open) .footer-list {
@@ -192,13 +206,44 @@ function toggle(seccion) {
   }
 
   .footer-col:not(.brand-col) .footer-list {
-    margin-top: 0;
+    grid-column: 1 / -1;
+    margin-top: 8px;
     padding-bottom: 18px;
+    align-items: center;
   }
 
-  .footer-col:not(.brand-col) .footer-heading {
+  .footer-chevron {
+    display: none;
+  }
+
+  .footer-col.is-open .footer-chevron {
+    transform: rotate(180deg);
+  }
+
+  .footer-list {
+    gap: 12px;
+    align-items: center;
+  }
+
+  .footer-link,
+  .footer-text,
+  .contact-item {
+    font-size: 0.8rem;
+    word-break: normal;
+    text-align: center;
+  }
+
+  .contact-item {
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .contact-icon {
+    width: 16px;
+    height: 16px;
     margin: 0;
-    padding: 18px 0;
   }
 }
 

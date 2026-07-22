@@ -1,8 +1,7 @@
 <script setup>
-import { ref, watch, onUnmounted, computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useCapturaDocumento } from '@/composables/useCapturaDocumento.js'
 import { useBreakpoint } from '@/composables/useBreakpoint'
-import PortalButton from '@/components/ui/PortalButton.vue'
 import {
   IconCamera, IconUpload, IconQrcode, IconCircleCheck,
   IconRefresh, IconDeviceMobile, IconX, IconAlertCircle, IconClock, IconId, IconLoader2, IconEye
@@ -26,7 +25,7 @@ const {
   esMovil, estado, urlFrente, urlReverso,
   qrDataUrl, urlCaptura, sesionId, token,
   error: errorCaptura,
-  progreso, crearSesionQR, subirFotoLocal, iniciarCapturaMovil, cancelar,
+  progreso, crearSesionQR, cancelar,
   finalizarConPdf, subirPdfDirecto,
 } = useCapturaDocumento()
 
@@ -43,44 +42,31 @@ watch(estado, (v) => {
 
 const uploadKey = computed(() => props.storageKey || props.solicitudId)
 
-// ── Previews locales para upload directo ────────────────────────────────────
-const previewFrente  = ref(null)
-const previewReverso = ref(null)
-
-function _revocarPreviews() {
-  if (previewFrente.value?.startsWith('blob:'))  URL.revokeObjectURL(previewFrente.value)
-  if (previewReverso.value?.startsWith('blob:')) URL.revokeObjectURL(previewReverso.value)
-  previewFrente.value  = null
-  previewReverso.value = null
-}
-
 function cancelarConPreview() {
-  _revocarPreviews()
   urlFinal.value = null
   qrModalVisible.value = false
   cancelar()
 }
-
-onUnmounted(_revocarPreviews)
 
 // ── Notificar al padre cuando el PDF final está listo ──────────────────────
 async function onFinalizar() {
   try {
     const url = await finalizarConPdf(uploadKey.value, props.campo)
     urlFinal.value = url
-    _revocarPreviews()
     emit('completado', url)
   } catch (e) {
     console.error('Error al finalizar captura:', e)
-    // Volver a idle para que el usuario pueda subir PDF manualmente
-    cancelar()
-    _revocarPreviews()
+    // NO llamar cancelar() aquí: eso borra el mensaje de error y las fotos ya
+    // capturadas (urlFrente/urlReverso), dejando al usuario sin aviso y
+    // obligado a repetir toda la captura. finalizarConPdf ya deja estado en
+    // 'error' con su mensaje — el botón "Reintentar" reintenta solo el PDF.
   }
 }
 
-// Escuchar cambios de Realtime/Polling para cuando se capturan ambos en el móvil
+// Escuchar cambios de Realtime/Polling para cuando se capturan ambos lados
+// (llega desde la pestaña de captura móvil, sea el mismo celular u otro escaneando el QR)
 watch([urlFrente, urlReverso], ([f, r]) => {
-  if (f && r && !urlFinal.value && !esMovil) {
+  if (f && r && !urlFinal.value) {
     onFinalizar()
   }
 })
@@ -91,7 +77,6 @@ async function onPdfSeleccionado(e) {
   try {
     const url = await subirPdfDirecto(uploadKey.value, props.campo, archivo)
     urlFinal.value = url
-    _revocarPreviews()
     emit('completado', url)
   } catch (e) {
     console.error('Error al subir PDF:', e)
@@ -108,34 +93,48 @@ function cerrarPreview() {
   modalPreviewVisible.value = false
 }
 
-function onArchivoSeleccionado(lado, e) {
-  const archivo = e.target.files?.[0]
-  if (!archivo) return
-  if (archivo.type.startsWith('image/')) {
-    const objUrl = URL.createObjectURL(archivo)
-    if (lado === 'frente') previewFrente.value = objUrl
-    else                   previewReverso.value = objUrl
-  }
-  subirFotoLocal(lado, archivo)
-  e.target.value = ''
-}
+// Crea la sesión de captura: en escritorio muestra el QR para escanear con el
+// celular; en un celular no tiene sentido mostrar un QR para sí mismo, así que
+// abre directamente la vista de cámara guiada (CapturaMovilPage) en una pestaña
+// nueva — esta pestaña sigue viva y detecta la subida por realtime/polling igual
+// que si otro dispositivo hubiera escaneado el QR.
+async function iniciarCaptura() {
+  // En iOS/Safari, window.open() solo funciona de forma síncrona dentro del
+  // gesto de click — si se llama después de un await pierde el permiso y el
+  // navegador lo bloquea. Por eso se abre la pestaña vacía ya mismo y se
+  // navega una vez que la sesión (y su URL) estén listas.
+  // Sin 'noopener' aquí: necesitamos la referencia para poder navegarla luego.
+  // No hay riesgo de seguridad — la pestaña solo llegará a cargar nuestra
+  // propia URL de captura, nunca contenido de terceros.
+  const nuevaPestana = esMovil ? window.open('', '_blank') : null
 
-async function iniciarQR() {
   await crearSesionQR(props.solicitudId, props.campo)
-  if (token.value) {
-    emit('sesion-creada', { token: token.value, sesionId: sesionId.value })
+  if (!token.value) {
+    nuevaPestana?.close()
+    return
+  }
+  emit('sesion-creada', { token: token.value, sesionId: sesionId.value })
+  if (esMovil) {
+    // La url_captura que arma la Edge Function usa el dominio de producción
+    // configurado en el backend — no sirve para probar en local/LAN. Como la
+    // ruta es siempre /captura-movil/:token dentro de esta misma app, se
+    // reconstruye con el origen actual (funciona igual en local, LAN o prod).
+    // "mismo=1" le indica a CapturaMovilPage que esta pestaña la abrió el propio
+    // formulario (no un QR escaneado desde otro dispositivo) y que debe cerrarse
+    // sola al terminar en vez de pedir "continúe en su computador".
+    const url = `${window.location.origin}/captura-movil/${token.value}?mismo=1`
+    if (nuevaPestana) nuevaPestana.location.href = url
+    else window.open(url, '_blank', 'noopener')
+  } else {
     qrModalVisible.value = true
   }
 }
 
-const LADOS = [
-  { key: 'frente', label: 'Frente' },
-  { key: 'reverso', label: 'Reverso' },
-]
-
 const textoEstado = computed(() => {
   if (urlFinal.value) return 'Documento cargado correctamente'
-  if (['esperando_qr', 'capturando_movil'].includes(estado.value) && !esMovil.value) return 'Escaneo con celular en curso'
+  if (['esperando_qr', 'capturando_movil'].includes(estado.value)) {
+    return esMovil ? 'Tomando fotografías en la otra pestaña…' : 'Escaneo con celular en curso'
+  }
   return 'Cargue el archivo o tome las fotografías de ambos lados'
 })
 </script>
@@ -175,8 +174,15 @@ const textoEstado = computed(() => {
         <button :style="{ display: 'flex', alignItems: 'center', gap: '4px', border: 'none', background: 'var(--color-success-bg)', color: 'var(--color-success-text)', borderRadius: 'var(--r-pill)', cursor: 'pointer', padding: '4px 10px', fontSize: '10px', fontWeight: 'var(--fw-bold)' }" @click="abrirPreview">
           <IconEye :size="13" /> Visualizar
         </button>
-        <button :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-success-text)', padding: 'var(--sp-xs)', display: 'flex' }" @click="cancelarConPreview">
+        <button aria-label="Cargar un documento nuevo" :style="{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-success-text)', padding: 'var(--sp-xs)', display: 'flex' }" @click="cancelarConPreview">
           <IconRefresh :size="16" />
+        </button>
+      </div>
+
+      <!-- El PDF falló pero las fotos ya capturadas siguen ahí: reintentar solo el armado del PDF -->
+      <div v-else-if="estado === 'error' && urlFrente && urlReverso" :style="{ display: 'flex', gap: 'var(--sp-sm)' }">
+        <button @click="onFinalizar" :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '6px 12px', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)' }">
+          <IconRefresh :size="14" /> Reintentar
         </button>
       </div>
 
@@ -187,7 +193,7 @@ const textoEstado = computed(() => {
           <input type="file" accept=".pdf" :style="{ display: 'none' }" @change="onPdfSeleccionado" />
         </label>
         <!-- Botón Cámara -->
-        <button @click="esMovil ? iniciarCapturaMovil() : iniciarQR()" :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '6px 12px', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)', flex: isMobile ? '1' : 'unset', minWidth: isMobile ? 'unset' : '170px' }">
+        <button @click="iniciarCaptura" :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '6px 12px', borderRadius: 'var(--r-pill)', border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-2)', flex: isMobile ? '1' : 'unset', minWidth: isMobile ? 'unset' : '170px' }">
           <IconCamera :size="14" /> Tomar fotografía
         </button>
       </div>
@@ -196,25 +202,12 @@ const textoEstado = computed(() => {
         <IconLoader2 :size="15" class="spin" /> <span :style="{ fontSize: 'var(--text-xs)' }">Procesando…</span>
       </div>
 
-      <!-- Escaneo con QR en curso (el detalle vive en el modal) -->
-      <div v-else-if="['esperando_qr', 'capturando_movil'].includes(estado) && !esMovil" :style="{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-3)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)', flexShrink: '0' }">
-        <IconLoader2 :size="14" class="spin" /> {{ estado === 'capturando_movil' ? 'Esperando fotografías…' : 'Escaneo en curso…' }}
-      </div>
-    </div>
-
-    <!-- ══ ÁREA EXPANDIDA (Solo cuando hay proceso activo) ════════════ -->
-    <div v-if="!urlFinal && esMovil" :style="{ padding: 'var(--sp-lg)' }">
-
-      <!-- Fotos directas en móvil -->
-      <div v-if="(esMovil && estado === 'idle_movil') || (esMovil && !urlFinal)" :style="{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }">
-        <div :style="{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-sm)' }">
-          <label v-for="lado in LADOS" :key="lado.key" :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', border: '1px dashed var(--color-border)', borderRadius: 'var(--r-lg)', background: (lado.key === 'frente' ? urlFrente : urlReverso) ? 'var(--color-success-bg)' : 'white' }">
-            <IconCamera :size="16" :style="{ color: 'var(--color-primary)' }" />
-            <span :style="{ fontSize: 'var(--text-xs)', fontWeight: 'bold' }">{{ (lado.key === 'frente' ? urlFrente : urlReverso) ? 'Listo ✓' : lado.label }}</span>
-            <input type="file" accept="image/*" capture="environment" :style="{ display: 'none' }" @change="onArchivoSeleccionado(lado.key, $event)" />
-          </label>
-        </div>
-        <PortalButton v-if="urlFrente && urlReverso" variant="primary" :full="true" size="sm" @click="onFinalizar">Generar PDF</PortalButton>
+      <!-- Captura en curso (QR en desktop / pestaña de cámara en móvil; el detalle vive en el modal) -->
+      <div v-else-if="['esperando_qr', 'capturando_movil'].includes(estado)" :style="{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-3)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-semibold)', flexShrink: '0' }">
+        <IconLoader2 :size="14" class="spin" />
+        {{ esMovil
+          ? (estado === 'capturando_movil' ? 'Esperando fotografías…' : 'Abriendo cámara…')
+          : (estado === 'capturando_movil' ? 'Esperando fotografías…' : 'Escaneo en curso…') }}
       </div>
     </div>
 
@@ -228,7 +221,7 @@ const textoEstado = computed(() => {
         <div :style="{ width: 'min(980px, 96vw)', height: 'min(86vh, 920px)', background: 'white', borderRadius: 'var(--r-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }">
           <div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-lg) var(--sp-xl)', borderBottom: '1px solid var(--color-border)' }">
             <div :style="{ fontSize: 'var(--text-base)', fontWeight: 'var(--fw-bold)', color: 'var(--color-text-1)' }">{{ label }}</div>
-            <button :style="{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-3)' }" @click="cerrarPreview">
+            <button aria-label="Cerrar vista previa" :style="{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-3)' }" @click="cerrarPreview">
               <IconX :size="20" />
             </button>
           </div>
@@ -241,7 +234,7 @@ const textoEstado = computed(() => {
     <Teleport to="body">
       <div v-if="qrModalVisible" :style="{ position: 'fixed', inset: '0', zIndex: '1000', background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--sp-lg)' }">
         <div :style="{ width: 'min(360px, 92vw)', background: 'white', borderRadius: 'var(--r-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'var(--sp-xl)', gap: 'var(--sp-md)', position: 'relative' }">
-          <button :style="{ position: 'absolute', top: 'var(--sp-sm)', right: 'var(--sp-sm)', width: '24px', height: '24px', borderRadius: '50%', border: 'none', background: 'var(--color-bg-surface-alt)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-3)', padding: '0' }" @click="cancelarConPreview">
+          <button aria-label="Cancelar escaneo" :style="{ position: 'absolute', top: 'var(--sp-sm)', right: 'var(--sp-sm)', width: '24px', height: '24px', borderRadius: '50%', border: 'none', background: 'var(--color-bg-surface-alt)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-3)', padding: '0' }" @click="cancelarConPreview">
             <IconX :size="13" />
           </button>
 
