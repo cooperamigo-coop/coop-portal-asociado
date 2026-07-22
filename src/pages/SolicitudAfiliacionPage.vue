@@ -158,10 +158,13 @@ const opsGenero = [
 ]
 const opsNivelAcademico = [
   { value: 'Primaria',          label: 'Primaria'                   },
-  { value: 'Bachiller',         label: 'Bachiller'                  },
-  { value: 'Tecnico Tecnologo', label: 'Técnico / Tecnológico'      },
-  { value: 'Universitario',     label: 'Universitario / Pregrado'   },
-  { value: 'Otro',              label: 'Especialización / Posgrado' },
+  { value: 'Bachiller',         label: 'Bachillerato'                },
+  { value: 'Tecnico Tecnologo', label: 'Técnico / Tecnólogo'         },
+  { value: 'Universitario',     label: 'Universitario'               },
+  { value: 'Especializacion',   label: 'Especialización / Postgrado' },
+  { value: 'Maestria',          label: 'Maestría'                    },
+  { value: 'Doctorado',         label: 'Doctorado'                   },
+  { value: 'Otro',              label: 'Otro'                        },
 ]
 const opsOcupacion = [
   { value: 'Empleado',      label: 'Empleado'      },
