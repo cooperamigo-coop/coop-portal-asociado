@@ -372,6 +372,7 @@ export function useSolicitudCredito() {
     if (!p.apellidos) list.push('Apellidos')
     if (!p.celular) list.push('Teléfono de contacto')
     if (!p.fecha_nacimiento) list.push('Fecha de nacimiento')
+    if (!p.fecha_expedicion_documento) list.push('Fecha de expedición')
     if (!p.nivel_educativo_solicitante) list.push('Nivel educativo (Titular)')
     if (!p.direccion_residencia && !construirDireccion()) list.push('Dirección de residencia')
     if (!ubicacionResidencia.value.municipio_codigo) list.push('Ciudad/Municipio')
