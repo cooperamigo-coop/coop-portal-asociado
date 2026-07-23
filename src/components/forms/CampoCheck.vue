@@ -11,6 +11,11 @@ defineEmits(['update:modelValue'])
 
 <template>
   <div
+    role="checkbox"
+    :aria-checked="modelValue"
+    :aria-required="required"
+    :aria-invalid="!!error"
+    tabindex="0"
     :style="{
       display: 'flex', alignItems: compact ? 'center' : 'flex-start', gap: 'var(--sp-sm)',
       padding: compact ? 'var(--sp-xs) var(--sp-sm)' : 'var(--sp-md)',
@@ -27,6 +32,8 @@ defineEmits(['update:modelValue'])
       cursor: 'pointer',
     }"
     @click="$emit('update:modelValue', !modelValue)"
+    @keydown.enter.prevent="$emit('update:modelValue', !modelValue)"
+    @keydown.space.prevent="$emit('update:modelValue', !modelValue)"
   >
     <div :style="{
       width: '18px', height: '18px',

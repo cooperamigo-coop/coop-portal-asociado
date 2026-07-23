@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { IconCreditCard, IconUserPlus, IconUserMinus, IconClipboardList, IconFileText, IconArrowRight, IconArrowLeft, IconClock, IconSearch, IconPlugX } from '@tabler/icons-vue'
-import { ShieldCheck, PiggyBank, FileBadge, MessageSquare, Gift, User, CheckCircle2 } from 'lucide-vue-next'
+import { ShieldCheck, PiggyBank, FileBadge, MessageSquare, UserCog, User, CheckCircle2 } from 'lucide-vue-next'
 import PortalFooter from '@/components/layout/PortalFooter.vue'
 import ServiceCard from '@/components/ui/ServiceCard.vue'
 import { PROXIMAMENTE as proximamente } from '@/config/flags'
@@ -168,7 +168,7 @@ const SERVICIOS_NO_ASOCIADO = [
                       <circle cx="100" cy="100" r="80" fill="none" stroke="var(--color-primary)" stroke-width="30" />
                     </svg>
                   </div>
-                  <img src="/banner1.png" alt="Portal Cooperamigó" class="hero-banner" />
+                  <img src="/banner1.jpg" alt="Portal Cooperamigó" class="hero-banner" />
                 </div>
               </div>
             </div>
@@ -189,7 +189,7 @@ const SERVICIOS_NO_ASOCIADO = [
                   <ServiceCard
                     :icon="PiggyBank"
                     title="Aportes sociales"
-                    description="Consulta tus aportes sociales y consigna tus aportes."
+                    description="Consulta y consigna tus aportes sociales."
                     clickable
                   />
                   <ServiceCard
@@ -205,10 +205,10 @@ const SERVICIOS_NO_ASOCIADO = [
                     href="https://cooperamigo.coop/pqrsf"
                   />
                   <ServiceCard
-                    :icon="Gift"
-                    title="Beneficios"
-                    description="Descubre convenios, descuentos y alianzas para ti."
-                    clickable
+                    :icon="UserCog"
+                    title="Actualización de datos"
+                    description="Mantén tu información personal al día con nosotros."
+                    href="https://cooperamigo.coop/actualizacion-datos"
                   />
                 </div>
               </div>

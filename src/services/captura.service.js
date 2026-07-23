@@ -48,7 +48,9 @@ export async function crearSesionCaptura(solicitudId, campo = 'documento_identid
  * Consulta el estado actual de una sesión de captura.
  */
 export async function consultarEstadoCaptura(token) {
-  const res = await fetch(`${EF_BASE}/estado/${token}`)
+  const res = await fetch(`${EF_BASE}/estado/${token}`, {
+    headers: { 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
+  })
   return leerRespuesta(res)
 }
 
